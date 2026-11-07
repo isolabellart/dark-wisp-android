@@ -234,8 +234,9 @@ class SocialActionManager(
         if (!repostActionsInProgress.add(event.id)) return
         scope.launch {
             try {
-                if (eventRepo.hasUserReposted(event.id)) {
-                    val repostIds = eventRepo.getUserRepostEventIds(event.id)
+                val knownRepostIds = eventRepo.getUserRepostEventIds(event.id)
+                if (eventRepo.hasUserReposted(event.id) || knownRepostIds.isNotEmpty()) {
+                    val repostIds = knownRepostIds
                     if (repostIds.isEmpty()) return@launch
 
                     val deletionTags = repostIds.map { listOf("e", it) }.toMutableList()
