@@ -1400,7 +1400,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
             binaryInsert(
                 target,
                 sortTime = latestFollowedRepost ?: target.created_at,
-                fromFeed = true
+                fromFeed = false
             )
         }
 
