@@ -1408,9 +1408,23 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         markEventVersionDirty(targetId)
     }
 
-    /** All repost events for this target that belong to the currently signed-in user. */
+    /**
+     * All repost events for this target that belong to the currently signed-in user.
+     * Also consult the local event database so a repost from an earlier session is
+     * recognised even when its kind-6 event is outside the current relay subscription.
+     */
     fun getUserRepostEventIds(eventId: String): List<String> {
         val myPubkey = currentUserPubkey ?: return emptyList()
+        val persisted = eventPersistence?.getEventsByAuthorAndKind(myPubkey, 6, 5000).orEmpty()
+        persisted.forEach { repostEvent ->
+            val targetId = repostEvent.tags.firstOrNull { it.size >= 2 && it[0] == "e" }?.get(1)
+            if (targetId == eventId) {
+                try {
+                    recordRepost(repostEvent, fromJson(repostEvent.content))
+                } catch (_: Exception) {
+                }
+            }
+        }
         return repostEvents.get(eventId)?.entries
             ?.filter { it.value.author == myPubkey }
             ?.map { it.key }
