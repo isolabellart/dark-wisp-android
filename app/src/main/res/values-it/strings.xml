@@ -119,6 +119,7 @@
     <string name="btn_copy_note_json">Copia JSON Nota</string>
     <string name="btn_hide">Nascondi</string>
     <string name="btn_retweet">Condividi</string>
+    <string name="btn_undo_repost">Annulla repost</string>
     <string name="btn_vote">Vota</string>
     <string name="btn_anonymous">Anonimo</string>
     <string name="btn_private">Privato</string>
