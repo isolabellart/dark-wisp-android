@@ -5,6 +5,7 @@ on:
     branches:
       - feature/deepl-translation
       - integration/deepl-plus-blossom
+      - feat/repost-undo-feed-scroll
   workflow_dispatch:
 
 permissions:
