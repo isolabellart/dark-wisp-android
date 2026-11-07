@@ -1417,6 +1417,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         val myPubkey = currentUserPubkey ?: return emptyList()
         val persisted = eventPersistence?.getEventsByAuthorAndKind(myPubkey, 6, 5000).orEmpty()
         persisted.forEach { repostEvent ->
+            if (deletedEventsRepo?.isDeleted(repostEvent.id) == true) return@forEach
             val targetId = repostEvent.tags.firstOrNull { it.size >= 2 && it[0] == "e" }?.get(1)
             if (targetId == eventId) {
                 try {
