@@ -306,6 +306,7 @@ class UserProfileViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 // Only process events from our own subscriptions
                 if (subscriptionId !in SUB_IDS && !subscriptionId.startsWith("followprofiles") && !subscriptionId.startsWith("user-engage") && subscriptionId != "userposts-more" && subscriptionId != "userreplies-more") return@collect
+                if (event.id in _deletedRepostEventIds) return@collect
 
                 // Route engagement events — reactions, zaps, reply counts
                 if (subscriptionId.startsWith("user-engage")) {
