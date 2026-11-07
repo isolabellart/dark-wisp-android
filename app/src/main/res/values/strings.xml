@@ -129,6 +129,7 @@
     <string name="btn_copy_text">Copy Text</string>
     <string name="btn_hide">Hide</string>
     <string name="btn_retweet">Repost</string>
+    <string name="btn_undo_repost">Undo repost</string>
     <string name="btn_vote">Vote</string>
     <string name="btn_anonymous">Anonymous</string>
     <string name="btn_private">Private</string>
