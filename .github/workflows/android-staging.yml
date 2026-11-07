@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/deepl-translation
+      - integration/deepl-plus-blossom
   workflow_dispatch:
 
 permissions:
@@ -34,6 +35,6 @@ jobs:
       - name: Upload staging APK
         uses: actions/upload-artifact@v4
         with:
-          name: dark-wisp-deepl-staging
+          name: dark-wisp-integrated-staging
           path: app/build/outputs/apk/staging/*.apk
           if-no-files-found: error
