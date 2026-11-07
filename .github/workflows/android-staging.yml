@@ -38,3 +38,5 @@ jobs:
           name: dark-wisp-integrated-staging
           path: app/build/outputs/apk/staging/*.apk
           if-no-files-found: error
+
+# Keep the combined DeepL + Blossom verification build traceable.
