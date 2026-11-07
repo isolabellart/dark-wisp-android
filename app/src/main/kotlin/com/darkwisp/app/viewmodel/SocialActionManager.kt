@@ -234,20 +234,25 @@ class SocialActionManager(
         if (!repostActionsInProgress.add(event.id)) return
         scope.launch {
             try {
+                val wasAlreadyMarked = eventRepo.hasUserReposted(event.id)
                 val knownRepostIds = eventRepo.getUserRepostEventIds(event.id)
-                if (eventRepo.hasUserReposted(event.id) || knownRepostIds.isNotEmpty()) {
-                    val repostIds = knownRepostIds
-                    if (repostIds.isEmpty()) return@launch
+                if (wasAlreadyMarked) {
+                    if (knownRepostIds.isEmpty()) return@launch
 
-                    val deletionTags = repostIds.map { listOf("e", it) }.toMutableList()
+                    val deletionTags = knownRepostIds.map { listOf("e", it) }.toMutableList()
                     deletionTags.add(listOf("k", "6"))
                     val deletionEvent = s.signEvent(kind = 5, content = "", tags = deletionTags)
                     relayPool.sendToWriteRelays(ClientMessage.event(deletionEvent))
 
                     // Optimistic local update; later relay copies of the kind-5
                     // event are idempotent and will reconcile the same records.
-                    repostIds.forEach { deletedEventsRepo.markDeleted(it) }
+                    knownRepostIds.forEach { deletedEventsRepo.markDeleted(it) }
                     eventRepo.removeUserRepost(event.id)
+                } else if (knownRepostIds.isNotEmpty()) {
+                    // A pre-existing repost was found in local persistence. Do not
+                    // publish another one: recordRepost() has already updated the
+                    // selected state, so the next action will offer Undo repost.
+                    return@launch
                 } else {
                     val hint = outboxRouter.getRelayHint(event.pubkey)
                     val tags = Nip18.buildRepostTags(event, hint).toMutableList()
