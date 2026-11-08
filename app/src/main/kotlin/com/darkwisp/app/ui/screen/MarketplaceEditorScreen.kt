@@ -57,13 +57,6 @@ import com.darkwisp.app.R
 import com.darkwisp.app.nostr.ClientMessage
 import com.darkwisp.app.nostr.Nip99
 
-private val MARKETPLACE_CURRENCY_CODES = listOf(
-    "EUR", "USD", "GBP", "CHF", "CAD", "AUD", "NZD", "JPY", "CNY", "INR",
-    "BRL", "MXN", "ARS", "CLP", "COP", "PEN", "PLN", "CZK", "HUF", "SEK",
-    "NOK", "DKK", "ISK", "TRY", "RUB", "KRW", "HKD", "SGD", "THB", "IDR",
-    "PHP", "MYR", "TWD", "VND", "AED", "SAR", "ILS", "ZAR", "NGN", "KES",
-    "BTC", "SATS", "ETH"
-)
 import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.nostr.NostrSigner
 import com.darkwisp.app.relay.RelayPool
@@ -73,6 +66,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
+
+private val MARKETPLACE_CURRENCY_CODES = listOf(
+    "EUR", "USD", "GBP", "CHF", "CAD", "AUD", "NZD", "JPY", "CNY", "INR",
+    "BRL", "MXN", "ARS", "CLP", "COP", "PEN", "PLN", "CZK", "HUF", "SEK",
+    "NOK", "DKK", "ISK", "TRY", "RUB", "KRW", "HKD", "SGD", "THB", "IDR",
+    "PHP", "MYR", "TWD", "VND", "AED", "SAR", "ILS", "ZAR", "NGN", "KES",
+    "BTC", "SATS", "ETH"
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
