@@ -111,6 +111,7 @@ fun InterfaceScreen(
     var isCustomTheme by remember { mutableStateOf(selectedTheme == "custom") }
     var selectedLanguage by remember { mutableStateOf(interfacePrefs.getLanguage()) }
     var languagesExpanded by remember { mutableStateOf(false) }
+    var drawerOnRight by remember { mutableStateOf(interfacePrefs.isDrawerOnRight()) }
 
     val savedColor = remember { Color(interfacePrefs.getAccentColor()) }
     val initialHsv = remember {
@@ -221,6 +222,46 @@ fun InterfaceScreen(
             Spacer(Modifier.height(24.dp))
 
             TranslationSettingsSection(interfacePrefs)
+
+            Spacer(Modifier.height(24.dp))
+
+            // Drawer position
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    stringResource(R.string.settings_drawer_position),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(R.string.settings_drawer_position_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+                val drawerPositionOptions = listOf(
+                    true to R.string.settings_drawer_right,
+                    false to R.string.settings_drawer_left
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    drawerPositionOptions.forEachIndexed { index, (right, labelRes) ->
+                        SegmentedButton(
+                            selected = drawerOnRight == right,
+                            onClick = {
+                                drawerOnRight = right
+                                interfacePrefs.setDrawerOnRight(right)
+                                onChanged()
+                            },
+                            shape = SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = drawerPositionOptions.size
+                            )
+                        ) {
+                            Text(stringResource(labelRes))
+                        }
+                    }
+                }
+            }
 
             Spacer(Modifier.height(24.dp))
 

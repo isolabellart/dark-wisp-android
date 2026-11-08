@@ -48,6 +48,11 @@ class InterfacePreferences(context: Context) {
     fun isLargeText(): Boolean = prefs.getBoolean("large_text", false)
     fun setLargeText(enabled: Boolean) = prefs.edit().putBoolean("large_text", enabled).apply()
 
+    /** The drawer defaults to the right edge; left is available for left-handed use. */
+    fun isDrawerOnRight(): Boolean = prefs.getBoolean(KEY_DRAWER_ON_RIGHT, true)
+    fun setDrawerOnRight(onRight: Boolean) =
+        prefs.edit().putBoolean(KEY_DRAWER_ON_RIGHT, onRight).apply()
+
     fun isNewNotesButtonHidden(): Boolean = prefs.getBoolean("new_notes_button_hidden", false)
     fun setNewNotesButtonHidden(hidden: Boolean) = prefs.edit().putBoolean("new_notes_button_hidden", hidden).apply()
 
@@ -196,6 +201,7 @@ class InterfacePreferences(context: Context) {
          * filter their `OnSharedPreferenceChangeListener` callbacks by it.
          */
         const val KEY_NOTIFICATION_FEED_STYLE = "notification_feed_style"
+        const val KEY_DRAWER_ON_RIGHT = "drawer_on_right"
     }
 
     /** Reset all interface preferences to defaults (called on full logout). */
@@ -216,6 +222,7 @@ class InterfacePreferences(context: Context) {
             .remove("translation_target_language")
             .remove("translation_engine")
             .remove(KEY_NOTIFICATION_FEED_STYLE)
+            .remove(KEY_DRAWER_ON_RIGHT)
             .apply()
     }
 }

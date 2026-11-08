@@ -59,6 +59,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
@@ -92,6 +93,7 @@ import com.darkwisp.app.repo.AccountInfo
 import com.darkwisp.app.repo.FiatPreferences
 import com.darkwisp.app.repo.WalletBalanceDisplayMode
 import com.darkwisp.app.ui.util.AmountFormatter
+import com.darkwisp.app.ui.theme.WispThemeColors
 
 private val TorPurple = Color(0xFF9C59D1)
 private val TorAmber = Color(0xFFFFB74D)
@@ -137,6 +139,11 @@ fun WispDrawerContent(
     userStatus: String? = null,
     onUpdateStatus: ((String) -> Unit)? = null,
     onScanResult: (String) -> Unit = {},
+    onlineCount: Int = 0,
+    connectedRelayCount: Int = 0,
+    onOnlineClick: () -> Unit = {},
+    onConnectedRelaysClick: () -> Unit = {},
+    connectedRelayMenu: @Composable () -> Unit = {},
     // Mini-wallet widget (wisp-ios #474 port). `walletConfigured` is the
     // active wallet's mode != NONE; `walletBalanceMsats` is null whenever
     // the balance is unknown (never fetched / connecting / errored).
@@ -209,6 +216,58 @@ fun WispDrawerContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Surface(
+                    onClick = onOnlineClick,
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Outlined.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = WispThemeColors.repostColor
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            onlineCount.toString(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Box {
+                    Surface(
+                        onClick = onConnectedRelaysClick,
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Outlined.Hub,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = if (connectedRelayCount > 0) WispThemeColors.repostColor
+                                    else Color(0xFFFF5252)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                connectedRelayCount.toString(),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    connectedRelayMenu()
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 IconButton(onClick = onToggleTheme) {
@@ -463,45 +522,11 @@ fun WispDrawerContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Mini-wallet stripe — replaces the plain Wallet menu row with a
-        // live-balance card (hide/show toggle sharing the dashboard's
-        // per-pubkey hidden state, or a "Set up wallet" CTA). Skipped for
-        // watch-only accounts, mirroring wisp-ios #474.
-        if (!isWatchOnly) {
-            DrawerMiniWalletRow(
-                pubkey = pubkey,
-                walletConfigured = walletConfigured,
-                balanceMsats = walletBalanceMsats,
-                onOpenWallet = onWallet
-            )
-        }
-
         NavigationDrawerItem(
             icon = { Icon(Icons.Outlined.Person, contentDescription = null) },
             label = { Text(stringResource(R.string.drawer_my_profile)) },
             selected = false,
             onClick = onProfile,
-            modifier = Modifier.height(48.dp).padding(horizontal = 12.dp)
-        )
-        NavigationDrawerItem(
-            icon = { Icon(Icons.Outlined.Home, contentDescription = null) },
-            label = { Text(stringResource(R.string.drawer_feeds)) },
-            selected = false,
-            onClick = onFeed,
-            modifier = Modifier.height(48.dp).padding(horizontal = 12.dp)
-        )
-        NavigationDrawerItem(
-            icon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-            label = { Text(stringResource(R.string.title_search)) },
-            selected = false,
-            onClick = onSearch,
-            modifier = Modifier.height(48.dp).padding(horizontal = 12.dp)
-        )
-        NavigationDrawerItem(
-            icon = { Icon(Icons.Outlined.Email, contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_messages)) },
-            selected = false,
-            onClick = onMessages,
             modifier = Modifier.height(48.dp).padding(horizontal = 12.dp)
         )
         // Wallet lives in the mini-wallet widget near the top of the
