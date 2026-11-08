@@ -1208,7 +1208,15 @@ fun WispNavHost(
                 onNotePublished = { feedViewModel.refreshNotifRepliesEtag() },
                 powManager = feedViewModel.powManager,
                 powPrefs = feedViewModel.powPrefs,
-                resolvedEmojis = feedViewModel.customEmojiRepo.resolvedEmojis.collectAsState().value
+                resolvedEmojis = feedViewModel.customEmojiRepo.resolvedEmojis.collectAsState().value,
+                onMarketplaceListingClick = { event ->
+                    val dTag = Nip99.dTag(event)
+                    if (dTag.isNotBlank()) {
+                        navController.navigate(
+                            "marketplace/address/${event.pubkey}/${android.net.Uri.encode(dTag)}"
+                        )
+                    }
+                }
             )
         }
 
