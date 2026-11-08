@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import com.darkwisp.app.nostr.MarketplaceCurrencies
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -35,7 +36,7 @@ object MarketplacePriceConverter {
         val fiatAmount = amount.trim().replace(',', '.').toBigDecimalOrNull()
             ?.takeIf { it > BigDecimal.ZERO } ?: return null
         val code = currency.trim().uppercase()
-        if (code.isBlank() || code == "BTC" || code == "SATS") return null
+        if (code !in MarketplaceCurrencies.FIAT) return null
 
         val rate = loadRates()[code] ?: return null
         return convertFiatToSats(fiatAmount, rate)
@@ -43,7 +44,7 @@ object MarketplacePriceConverter {
 
     private suspend fun loadRates(): Map<String, BigDecimal> = cacheMutex.withLock {
         val now = System.currentTimeMillis()
-        if (now < cacheExpiresAt && cachedRates.isNotEmpty()) return@withLock cachedRates
+        if (now < cacheExpiresAt) return@withLock cachedRates
 
         val freshRates = withContext(Dispatchers.IO) {
             runCatching {
@@ -75,7 +76,14 @@ object MarketplacePriceConverter {
             cachedRates = freshRates
             cacheExpiresAt = System.currentTimeMillis() + CACHE_DURATION_MS
         }
-        freshRates ?: cachedRates
+        if (freshRates == null) {
+            // Avoid a request storm when many cards are visible and the quote service is down.
+            cachedRates = emptyMap()
+            cacheExpiresAt = System.currentTimeMillis() + 10_000L
+            emptyMap()
+        } else {
+            freshRates
+        }
     }
 
     internal fun convertFiatToSats(amount: BigDecimal, fiatPerBtc: BigDecimal): Long? {
