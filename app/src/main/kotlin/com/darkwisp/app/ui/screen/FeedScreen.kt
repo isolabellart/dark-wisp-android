@@ -1014,16 +1014,22 @@ fun FeedScreen(
                                 onClick = { viewModel.setFeedContentFilter(FeedContentFilter.POLLS_ONLY) },
                                 modifier = Modifier.weight(1f)
                             )
-                        }
-                        IconButton(
-                            onClick = onMarketplace,
-                            modifier = Modifier.size(44.dp)
-                        ) {
-                            Icon(
-                                Icons.Outlined.Storefront,
-                                contentDescription = stringResource(R.string.marketplace_title),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .clickable(onClick = onMarketplace)
+                                    .padding(horizontal = 2.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Storefront,
+                                    contentDescription = stringResource(R.string.marketplace_title),
+                                    modifier = Modifier.size(22.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                         if (drawerOnRight) {
                             IconButton(
