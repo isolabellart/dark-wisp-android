@@ -694,9 +694,8 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
     }
 
     /**
-     * Triggers connect() on any disconnected write relays and waits briefly
-     * for at least one to become connected. Returns the number of connected
-     * write relays after the wait.
+     * Reconnects every disconnected user-configured write relay and waits for the
+     * full writable set or the timeout. Returns the number actually connected.
      */
     suspend fun ensureWriteRelaysConnected(timeoutMs: Long = 8000): Int {
         val writeRelays = relays.filter { it.config.write }
@@ -752,7 +751,14 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
             }
 
             // Do not override an explicit read-only setting on a persistent user relay.
-            if (existing != null) continue
+            // Existing writable marketplace sockets are explicitly reconnected on retry.
+            if (existing != null) {
+                if (existing.config.write && !existing.isConnected) {
+                    existing.resetBackoff()
+                    existing.connect()
+                }
+                continue
+            }
 
             cleanupEphemeralRelays()
             if (ephemeralRelays.size >= MAX_EPHEMERAL) {
