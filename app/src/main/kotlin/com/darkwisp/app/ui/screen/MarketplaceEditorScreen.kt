@@ -56,6 +56,7 @@ import coil3.compose.AsyncImage
 import com.darkwisp.app.R
 import com.darkwisp.app.nostr.ClientMessage
 import com.darkwisp.app.nostr.Nip99
+import com.darkwisp.app.nostr.MarketplaceRelays
 
 import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.nostr.NostrSigner
@@ -68,11 +69,8 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 
 private val MARKETPLACE_CURRENCY_CODES = listOf(
-    "EUR", "USD", "GBP", "CHF", "CAD", "AUD", "NZD", "JPY", "CNY", "INR",
-    "BRL", "MXN", "ARS", "CLP", "COP", "PEN", "PLN", "CZK", "HUF", "SEK",
-    "NOK", "DKK", "ISK", "TRY", "RUB", "KRW", "HKD", "SGD", "THB", "IDR",
-    "PHP", "MYR", "TWD", "VND", "AED", "SAR", "ILS", "ZAR", "NGN", "KES",
-    "BTC", "SATS", "ETH"
+    "EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "NZD", "SEK", "NOK",
+    "BTC", "SATS"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,9 +102,6 @@ fun MarketplaceEditorScreen(
     val dTag = remember(existingEvent?.id) {
         existingEvent?.let { Nip99.dTag(it) }?.takeIf { it.isNotBlank() }
             ?: ("listing-" + UUID.randomUUID().toString())
-    }
-    val publishedAt = remember(existingEvent?.id) {
-        existingEvent?.let { Nip99.publishedAt(it) } ?: (System.currentTimeMillis() / 1000).toString()
     }
 
     var uploading by remember { mutableStateOf(false) }
@@ -214,10 +209,17 @@ fun MarketplaceEditorScreen(
                                     value = currency,
                                     onValueChange = {},
                                     readOnly = true,
-                                    modifier = Modifier.fillMaxWidth().clickable { currencyMenuExpanded = true },
+                                    modifier = Modifier.fillMaxWidth(),
                                     label = { Text(stringResource(R.string.marketplace_currency_field)) },
                                     trailingIcon = { Text(if (currencyMenuExpanded) "▴" else "▾") },
                                     singleLine = true
+                                )
+                                // An overlay receives taps across the whole outlined field,
+                                // including its centre, without depending on TextField internals.
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable { currencyMenuExpanded = true }
                                 )
                                 DropdownMenu(
                                     expanded = currencyMenuExpanded,
@@ -235,6 +237,11 @@ fun MarketplaceEditorScreen(
                                     }
                                 }
                             }
+                        }
+                    }
+                    item {
+                        if (currency != "BTC" && currency != "SATS") {
+                            MarketplaceLightningEstimate(amount = amount, currency = currency)
                         }
                     }
                     item {
@@ -350,7 +357,7 @@ fun MarketplaceEditorScreen(
                                     dTag = dTag,
                                     title = title,
                                     summary = summary,
-                                    publishedAt = publishedAt,
+                                    publishedAt = (System.currentTimeMillis() / 1000).toString(),
                                     amount = amount,
                                     currency = currency,
                                     location = location,
@@ -364,17 +371,34 @@ fun MarketplaceEditorScreen(
                                     tags = tags
                                 )
                                 val message = ClientMessage.event(event)
+                                // Bring the user's declared write relays and the public NIP-99
+                                // marketplace relays online before attempting the broadcast.
+                                relayPool.ensureWriteRelaysConnected(timeoutMs = 8_000)
+                                relayPool.ensureMarketplaceWriteRelaysConnected(
+                                    MarketplaceRelays.WRITE,
+                                    timeoutMs = 8_000
+                                )
                                 var outcome = relayPool.publishWithConfirmation(
                                     event.id,
-                                    send = { relayPool.sendToWriteRelays(message) }
+                                    send = {
+                                        relayPool.sendToWriteRelays(message) +
+                                            relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
+                                    }
                                 )
                                 if (outcome.sentCount == 0 || !outcome.confirmed) {
-                                    if (relayPool.ensureWriteRelaysConnected() > 0) {
-                                        outcome = relayPool.publishWithConfirmation(
-                                            event.id,
-                                            send = { relayPool.sendToWriteRelays(message) }
-                                        )
-                                    }
+                                    // Recycle potentially half-open user sockets and retry once.
+                                    relayPool.cycleWriteRelays(timeoutMs = 8_000)
+                                    relayPool.ensureMarketplaceWriteRelaysConnected(
+                                        MarketplaceRelays.WRITE,
+                                        timeoutMs = 8_000
+                                    )
+                                    outcome = relayPool.publishWithConfirmation(
+                                        event.id,
+                                        send = {
+                                            relayPool.sendToWriteRelays(message) +
+                                                relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
+                                        }
+                                    )
                                 }
                                 if (outcome.sentCount == 0 || !outcome.confirmed) {
                                     throw IllegalStateException(context.getString(R.string.marketplace_publish_unconfirmed))
