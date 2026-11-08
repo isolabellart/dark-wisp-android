@@ -211,6 +211,7 @@
     <string name="tab_muted_words">Stummgeschaltete Wörter</string>
     <string name="tab_muted_users">Stummgeschaltete Nutzer</string>
     <string name="tab_replies">Antworten</string>
+    <string name="tab_with_reply">Mit Antworten</string>
     <string name="tab_media">Medien</string>
     <string name="tab_following">Folge ich</string>
     <string name="tab_relays">Relays</string>

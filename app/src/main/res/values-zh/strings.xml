@@ -211,6 +211,7 @@
     <string name="tab_muted_words">静音词语</string>
     <string name="tab_muted_users">静音用户</string>
     <string name="tab_replies">回复</string>
+    <string name="tab_with_reply">含回复</string>
     <string name="tab_media">媒体</string>
     <string name="tab_following">关注</string>
     <string name="tab_relays">中继</string>

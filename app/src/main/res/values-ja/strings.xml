@@ -211,6 +211,7 @@
     <string name="tab_muted_words">ミュート単語</string>
     <string name="tab_muted_users">ミュートユーザー</string>
     <string name="tab_replies">返信</string>
+    <string name="tab_with_reply">返信あり</string>
     <string name="tab_media">メディア</string>
     <string name="tab_following">フォロー中</string>
     <string name="tab_relays">リレー</string>

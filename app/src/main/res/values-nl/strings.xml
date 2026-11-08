@@ -211,6 +211,7 @@
     <string name="tab_muted_words">Gedempte Woorden</string>
     <string name="tab_muted_users">Gedempte Gebruikers</string>
     <string name="tab_replies">Antwoorden</string>
+    <string name="tab_with_reply">Met antwoorden</string>
     <string name="tab_media">Media</string>
     <string name="tab_following">Volgend</string>
     <string name="tab_relays">Relays</string>

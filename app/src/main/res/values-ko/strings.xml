@@ -211,6 +211,7 @@
     <string name="tab_muted_words">음소거 단어</string>
     <string name="tab_muted_users">음소거 사용자</string>
     <string name="tab_replies">답글</string>
+    <string name="tab_with_reply">답글 포함</string>
     <string name="tab_media">미디어</string>
     <string name="tab_following">팔로잉</string>
     <string name="tab_relays">릴레이</string>

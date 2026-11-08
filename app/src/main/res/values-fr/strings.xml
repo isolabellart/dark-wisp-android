@@ -211,6 +211,7 @@
     <string name="tab_muted_words">Mots Masqués</string>
     <string name="tab_muted_users">Utilisateurs Masqués</string>
     <string name="tab_replies">Réponses</string>
+    <string name="tab_with_reply">Avec des réponses</string>
     <string name="tab_media">Médias</string>
     <string name="tab_following">Abonnements</string>
     <string name="tab_relays">Relais</string>

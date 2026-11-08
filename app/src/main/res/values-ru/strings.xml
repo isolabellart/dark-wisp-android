@@ -196,6 +196,7 @@
     <string name="tab_muted_words">Заглушённые слова</string>
     <string name="tab_muted_users">Заглушённые пользователи</string>
     <string name="tab_replies">Ответы</string>
+    <string name="tab_with_reply">С ответами</string>
     <string name="tab_media">Медиа</string>
     <string name="tab_following">Подписки</string>
     <string name="tab_relays">Рилэи</string>
