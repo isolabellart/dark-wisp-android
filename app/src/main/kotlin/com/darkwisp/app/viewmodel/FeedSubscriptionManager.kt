@@ -1034,7 +1034,7 @@ class FeedSubscriptionManager(
     fun subscribeEngagementForFeed() {
         pauseEngagement()
 
-        val feedEvents = if (_feedType.value == FeedType.RELAY || _feedType.value == FeedType.TRENDING) eventRepo.relayFeed.value else eventRepo.feed.value
+        val feedEvents = currentFeedEvents()
         if (feedEvents.isEmpty()) return
 
         // Subscribe global subs (poll votes, DM zaps) for all feed events
@@ -1204,9 +1204,11 @@ class FeedSubscriptionManager(
     }
 
     private fun currentFeedEvents(): List<NostrEvent> =
-        if (_feedType.value == FeedType.RELAY || _feedType.value == FeedType.TRENDING) {
-            eventRepo.relayFeed.value
-        } else eventRepo.feed.value
+        when (_feedType.value) {
+            FeedType.RELAY, FeedType.TRENDING -> eventRepo.relayFeed.value
+            FeedType.WITH_REPLIES -> eventRepo.replyFeed.value
+            else -> eventRepo.feed.value
+        }
 
     /** Global poll/DM/notification subscriptions are intentionally not viewport-owned. */
     private fun cleanupDistantEngagementSubs(nearbyIds: Set<String>) {
