@@ -144,7 +144,7 @@ object Routes {
     const val FEED = "feed"
     const val MARKETPLACE = "marketplace"
     const val MARKETPLACE_DETAIL = "marketplace/detail/{eventId}"
-    const val MARKETPLACE_ADDRESS = "marketplace/address/{author}/{dTag}"
+    const val MARKETPLACE_ADDRESS = "marketplace/address/{author}/{dTag}?relays={relays}"
     const val MARKETPLACE_EDITOR = "marketplace/edit?eventId={eventId}"
     const val COMPOSE = "compose"
     const val RELAYS = "relays"
@@ -204,8 +204,13 @@ fun NostrUriData.toRoute(): String? = when (this) {
     is NostrUriData.NoteRef -> "thread/$eventId"
     is NostrUriData.AddressRef ->
         when {
-            kind == Nip99.KIND_LISTING && author != null ->
-                "marketplace/address/$author/${android.net.Uri.encode(dTag)}"
+            kind == Nip99.KIND_LISTING && author != null -> {
+                val relayQuery = relays.takeIf { it.isNotEmpty() }
+                    ?.joinToString(",")
+                    ?.let { "?relays=${android.net.Uri.encode(it)}" }
+                    .orEmpty()
+                "marketplace/address/$author/${android.net.Uri.encode(dTag)}$relayQuery"
+            }
             (kind == 30023 || kind == com.darkwisp.app.nostr.CustomNip.KIND) && author != null ->
                 "article/$kind/$author/$dTag"
             else -> null
@@ -1093,16 +1098,31 @@ fun WispNavHost(
             Routes.MARKETPLACE_ADDRESS,
             arguments = listOf(
                 navArgument("author") { type = NavType.StringType },
-                navArgument("dTag") { type = NavType.StringType }
+                navArgument("dTag") { type = NavType.StringType },
+                navArgument("relays") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
             )
         ) { backStackEntry ->
             val author = backStackEntry.arguments?.getString("author") ?: return@composable
             val dTag = backStackEntry.arguments?.getString("dTag") ?: return@composable
+            val relayHints = backStackEntry.arguments?.getString("relays")
+                ?.split(",")
+                ?.map { it.trim() }
+                ?.filter { it.startsWith("wss://") }
+                ?: emptyList()
             val event by feedViewModel.eventRepo
                 .observeAddressableEvent(Nip99.KIND_LISTING, author, dTag)
                 .collectAsState(initial = feedViewModel.eventRepo.findAddressableEvent(Nip99.KIND_LISTING, author, dTag))
-            LaunchedEffect(author, dTag) {
-                feedViewModel.eventRepo.requestAddressableEvent(Nip99.KIND_LISTING, author, dTag)
+            LaunchedEffect(author, dTag, relayHints) {
+                feedViewModel.eventRepo.requestAddressableEvent(
+                    Nip99.KIND_LISTING,
+                    author,
+                    dTag,
+                    relayHints
+                )
             }
             if (event == null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
