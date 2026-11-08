@@ -729,7 +729,11 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
      * Existing personal read-only relays are never promoted: only a temporary
      * connection created specifically for this NIP-99 destination is writable.
      */
-    suspend fun ensureMarketplaceWriteRelaysConnected(urls: List<String>, timeoutMs: Long = 8000): Int {
+    suspend fun ensureMarketplaceWriteRelaysConnected(
+        urls: List<String>,
+        timeoutMs: Long = 8000,
+        forceReconnect: Boolean = false
+    ): Int {
         val requested = urls.distinct().filter {
             it !in blockedUrls && RelayConfig.isValidUrl(it)
         }
@@ -753,9 +757,15 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
             // Do not override an explicit read-only setting on a persistent user relay.
             // Existing writable marketplace sockets are explicitly reconnected on retry.
             if (existing != null) {
-                if (existing.config.write && !existing.isConnected) {
-                    existing.resetBackoff()
-                    existing.connect()
+                if (url in ephemeralRelays && existing.config.write) {
+                    if (forceReconnect) {
+                        existing.forceDisconnect()
+                        existing.resetBackoff()
+                        existing.connect()
+                    } else if (!existing.isConnected) {
+                        existing.resetBackoff()
+                        existing.connect()
+                    }
                 }
                 continue
             }
