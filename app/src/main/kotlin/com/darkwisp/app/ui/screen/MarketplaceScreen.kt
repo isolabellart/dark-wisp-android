@@ -1,6 +1,7 @@
 package com.darkwisp.app.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import com.darkwisp.app.ui.component.ProfilePicture
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
@@ -245,7 +246,7 @@ private fun MarketplaceListingCard(event: NostrEvent, eventRepository: EventRepo
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MarketplaceDetailScreen(
     event: NostrEvent,
