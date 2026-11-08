@@ -242,8 +242,14 @@ private fun MarketplaceListingCard(event: NostrEvent, eventRepository: EventRepo
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(Nip99.title(event), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2)
-                Nip99.priceLabel(event)?.let {
-                    Text(it, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Nip99.price(event)?.let { price ->
+                    Text(
+                        Nip99.priceLabel(event).orEmpty(),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    MarketplaceLightningEstimate(amount = price.amount, currency = price.currency)
                 }
                 val location = Nip99.location(event)
                 if (location.isNotBlank()) Text(location, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
@@ -338,8 +344,14 @@ fun MarketplaceDetailScreen(
                     }
                 }
                 Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Nip99.priceLabel(event)?.let {
-                    Text(it, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Nip99.price(event)?.let { price ->
+                    Text(
+                        Nip99.priceLabel(event).orEmpty(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    MarketplaceLightningEstimate(amount = price.amount, currency = price.currency)
                 }
                 if (sold) {
                     Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(8.dp)) {
