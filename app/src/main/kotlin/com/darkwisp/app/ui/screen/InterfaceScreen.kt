@@ -239,9 +239,10 @@ fun InterfaceScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(8.dp))
+                // Keep the right-hand choice on the right and the left-hand choice on the left.
                 val drawerPositionOptions = listOf(
-                    false to R.string.settings_drawer_left,
-                    true to R.string.settings_drawer_right
+                    true to R.string.settings_drawer_right,
+                    false to R.string.settings_drawer_left
                 )
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     drawerPositionOptions.forEachIndexed { index, (right, labelRes) ->

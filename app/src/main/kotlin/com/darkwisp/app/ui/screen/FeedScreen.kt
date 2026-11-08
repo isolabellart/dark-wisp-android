@@ -85,6 +85,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.LayoutDirection
 import com.darkwisp.app.nostr.FollowSet
 import com.darkwisp.app.nostr.Nip10
@@ -3475,15 +3476,18 @@ private fun FeedModeTab(
         verticalArrangement = Arrangement.Center
     ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
+                fontSize = 15.sp,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 textDecoration = if (selected) TextDecoration.Underline else TextDecoration.None,
+                textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -3495,6 +3499,16 @@ private fun FeedModeTab(
                     tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+        if (selected) {
+            Spacer(Modifier.height(3.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
         }
     }
 }
