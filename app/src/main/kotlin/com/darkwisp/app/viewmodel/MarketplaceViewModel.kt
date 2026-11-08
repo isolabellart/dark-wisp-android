@@ -122,8 +122,8 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                 val request = ClientMessage.req(subId, filter)
 
                 // Search the account's configured relays, public indexers, and
-                // the two NIP-99 markets' own relays. This avoids relying on a
-                // single indexer that may not carry externally published ads.
+                // the public relay sets used by NIP-99 marketplaces. This avoids
+                // relying on a single indexer that may not carry external listings.
                 // Subscribe to the result stream before sending REQ. Some relays reply
                 // immediately; collecting afterwards loses their EVENT/EOSE frames.
                 val eventCollector = launch(start = CoroutineStart.UNDISPATCHED) {
