@@ -127,6 +127,7 @@ import com.darkwisp.app.viewmodel.buildTrendingRelayUrl
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.itemsIndexed
 import com.darkwisp.app.ui.theme.WispThemeColors
@@ -1070,31 +1071,38 @@ fun FeedScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(40.dp)
-                            .padding(horizontal = 8.dp)
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            .height(48.dp)
+                            .padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(0.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        FeedModePill(
+                        FeedModeTab(
                             label = stringResource(R.string.tab_all),
                             selected = contentFilter == FeedContentFilter.ALL,
-                            onClick = { viewModel.setFeedContentFilter(FeedContentFilter.ALL) }
+                            onClick = { viewModel.setFeedContentFilter(FeedContentFilter.ALL) },
+                            modifier = Modifier.weight(1f),
+                            equalWidth = true
                         )
-                        FeedModePill(
+                        FeedModeTab(
                             label = stringResource(R.string.tab_text),
                             selected = contentFilter == FeedContentFilter.TEXT_ONLY,
-                            onClick = { viewModel.setFeedContentFilter(FeedContentFilter.TEXT_ONLY) }
+                            onClick = { viewModel.setFeedContentFilter(FeedContentFilter.TEXT_ONLY) },
+                            modifier = Modifier.weight(1f),
+                            equalWidth = true
                         )
-                        FeedModePill(
+                        FeedModeTab(
                             label = stringResource(R.string.tab_gallery),
                             selected = contentFilter == FeedContentFilter.GALLERY_ONLY,
-                            onClick = { viewModel.setFeedContentFilter(FeedContentFilter.GALLERY_ONLY) }
+                            onClick = { viewModel.setFeedContentFilter(FeedContentFilter.GALLERY_ONLY) },
+                            modifier = Modifier.weight(1f),
+                            equalWidth = true
                         )
-                        FeedModePill(
+                        FeedModeTab(
                             label = stringResource(R.string.tab_polls),
                             selected = contentFilter == FeedContentFilter.POLLS_ONLY,
-                            onClick = { viewModel.setFeedContentFilter(FeedContentFilter.POLLS_ONLY) }
+                            onClick = { viewModel.setFeedContentFilter(FeedContentFilter.POLLS_ONLY) },
+                            modifier = Modifier.weight(1f),
+                            equalWidth = true
                         )
                     }
                     HorizontalDivider(
@@ -3453,23 +3461,29 @@ private fun FeedModeTab(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
-    showChevron: Boolean = false
+    showChevron: Boolean = false,
+    modifier: Modifier = Modifier,
+    equalWidth: Boolean = false
 ) {
     Column(
-        modifier = Modifier
-            .height(44.dp)
+        modifier = modifier
+            .height(48.dp)
             .clickable(onClick = onClick)
-            .padding(horizontal = 7.dp),
+            .padding(horizontal = if (equalWidth) 2.dp else 7.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Bottom
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             if (showChevron) {
                 Icon(
@@ -3480,53 +3494,17 @@ private fun FeedModeTab(
                 )
             }
         }
-        Spacer(Modifier.height(5.dp))
+        Spacer(Modifier.height(4.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(2.dp)
+                .height(3.dp)
                 .background(
-                    if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
-                    RoundedCornerShape(2.dp)
+                    if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    RoundedCornerShape(3.dp)
                 )
         )
-        Spacer(Modifier.height(5.dp))
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun FeedModePill(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    showChevron: Boolean = false
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(18.dp),
-        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Row(
-            modifier = Modifier.height(36.dp).padding(horizontal = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
-            if (showChevron) {
-                Icon(
-                    Icons.Filled.ArrowDropDown,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        Spacer(Modifier.height(4.dp))
     }
 }
 

@@ -240,8 +240,8 @@ fun InterfaceScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 val drawerPositionOptions = listOf(
-                    true to R.string.settings_drawer_right,
-                    false to R.string.settings_drawer_left
+                    false to R.string.settings_drawer_left,
+                    true to R.string.settings_drawer_right
                 )
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     drawerPositionOptions.forEachIndexed { index, (right, labelRes) ->
