@@ -487,6 +487,21 @@ fun WispNavHost(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Keep NIP-99 items flowing into the shared feed even when users never
+    // open the Marketplace screen itself. The repository applies the same feed
+    // moderation and content filters as it does to ordinary kind-1 notes.
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == Routes.FEED) {
+            marketplaceViewModel.load(
+                selectedScope = com.darkwisp.app.viewmodel.MarketplaceScope.ALL,
+                relayPool = feedViewModel.relayPool,
+                eventRepository = feedViewModel.eventRepo,
+                followedPubkeys = emptyList(),
+                userPubkey = feedViewModel.getUserPubkey()
+            )
+        }
+    }
+
     val nonAppRoutes = setOf(Routes.SPLASH, Routes.AUTH, Routes.LOADING, Routes.ONBOARDING_PROFILE, Routes.ONBOARDING_SUGGESTIONS, Routes.ONBOARDING_TOPICS, Routes.ONBOARDING_FIRST_POST, Routes.EXISTING_USER_ONBOARDING)
     val hideBottomBarRoutes = nonAppRoutes + Routes.DM_CONVERSATION + Routes.DM_CONVERSATION_GROUP + Routes.CONTACT_PICKER + Routes.GROUP_ROOM + Routes.GROUP_DETAIL + Routes.LIVE_STREAM
     val socialGraphDiscoveryState by feedViewModel.extendedNetworkRepo.discoveryState.collectAsState()

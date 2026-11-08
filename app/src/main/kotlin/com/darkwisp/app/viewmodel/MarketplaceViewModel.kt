@@ -49,14 +49,15 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
         private const val LOAD_TIMEOUT_MS = 15_000L
         private const val MAX_CACHED_LISTINGS = 500
         private val MARKETPLACE_RELAYS = listOf(
-            "wss://relay.plebeian.market",
-            "wss://relay.barattolo.store",
+            // The current Plebeian Market profile advertises these read/write relays.
             "wss://relay.dwadziesciajeden.pl",
             "wss://nostr.einundzwanzig.space",
             "wss://espelho.girino.org",
             "wss://adre.su",
             "wss://nostr.mom",
-            "wss://purplepag.es"
+            "wss://purplepag.es",
+            // Barattolo's NIP-99 listings are published on its public relay.
+            "wss://relay.barattolo.store"
         )
     }
 

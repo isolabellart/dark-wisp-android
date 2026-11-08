@@ -59,7 +59,9 @@ import com.darkwisp.app.nostr.Nip99
 
 private val MARKETPLACE_CURRENCY_CODES = listOf(
     "EUR", "USD", "GBP", "CHF", "CAD", "AUD", "NZD", "JPY", "CNY", "INR",
-    "BRL", "MXN", "ARS", "PLN", "CZK", "HUF", "SEK", "NOK", "DKK", "TRY", "ZAR",
+    "BRL", "MXN", "ARS", "CLP", "COP", "PEN", "PLN", "CZK", "HUF", "SEK",
+    "NOK", "DKK", "ISK", "TRY", "RUB", "KRW", "HKD", "SGD", "THB", "IDR",
+    "PHP", "MYR", "TWD", "VND", "AED", "SAR", "ILS", "ZAR", "NGN", "KES",
     "BTC", "SATS", "ETH"
 )
 import com.darkwisp.app.nostr.NostrEvent
