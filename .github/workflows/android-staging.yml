@@ -30,10 +30,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Clean previous build outputs
-        run: ./gradlew --no-daemon --no-build-cache clean
+        run: ./gradlew --no-daemon --no-build-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" clean
 
       - name: Run unit tests and build staging APK with stacktrace
-        run: ./gradlew --no-daemon --no-build-cache testStagingUnitTest assembleStaging --stacktrace --info
+        run: ./gradlew --no-daemon --no-build-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" testStagingUnitTest assembleStaging --stacktrace --info
 
       - name: Upload staging APK
         uses: actions/upload-artifact@v4
@@ -42,5 +42,5 @@ jobs:
           path: app/build/outputs/apk/staging/*.apk
           if-no-files-found: error
 
-# Keep the combined DeepL + Blossom verification build traceable.
-# Keep the staging verification available for the revised localized feed tabs.
+# Combined verification build for DeepL, Blossom and the integrated Marketplace.
+# Keep the staging verification traceable for the revised feed navigation.
