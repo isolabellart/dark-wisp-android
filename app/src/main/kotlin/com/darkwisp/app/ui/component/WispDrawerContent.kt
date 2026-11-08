@@ -55,6 +55,7 @@ import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
@@ -100,6 +101,7 @@ private val TorAmber = Color(0xFFFFB74D)
 private val TorGreen = Color(0xFF4CAF50)
 private val AnonGreen = Color(0xFF00C853)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WispDrawerContent(
     profile: ProfileData?,

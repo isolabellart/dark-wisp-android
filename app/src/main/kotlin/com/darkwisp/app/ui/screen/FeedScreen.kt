@@ -3435,6 +3435,7 @@ fun BroadcastStatusBar(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FeedModePill(
     label: String,
