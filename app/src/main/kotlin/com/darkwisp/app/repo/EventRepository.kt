@@ -1357,6 +1357,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
      */
     private fun recordRepostIfEligible(repostEvent: NostrEvent): NostrEvent? {
         if (repostEvent.kind != 6 || repostEvent.content.isBlank()) return null
+        if (repostEvent.created_at > System.currentTimeMillis() / 1000 + 30) return null
         if (deletedEventsRepo?.isDeleted(repostEvent.id) == true) return null
         if (muteRepo?.isBlocked(repostEvent.pubkey) == true) return null
 
