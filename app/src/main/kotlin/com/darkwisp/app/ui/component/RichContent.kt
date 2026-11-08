@@ -706,6 +706,7 @@ fun RichContent(
     onNoteClick: ((String) -> Unit)? = null,
     onHashtagClick: ((String) -> Unit)? = null,
     onLiveStreamClick: ((String, String, String?) -> Unit)? = null,
+    onMarketplaceListingClick: ((NostrEvent) -> Unit)? = null,
     noteActions: NoteActions? = null,
     authorPubkey: String? = null,
     quoteDepth: Int = 0,
@@ -1046,7 +1047,8 @@ fun RichContent(
                                         dTag = segment.dTag,
                                         author = segment.author,
                                         relayHints = segment.relays,
-                                        eventRepo = eventRepo
+                                        eventRepo = eventRepo,
+                                        onClick = onMarketplaceListingClick
                                     )
                                 } else {
                                     UnsupportedKindBadge(kind = kind, style = style)
@@ -1543,7 +1545,8 @@ private fun MarketplaceListingCard(
     dTag: String,
     author: String,
     relayHints: List<String>,
-    eventRepo: EventRepository
+    eventRepo: EventRepository,
+    onClick: ((NostrEvent) -> Unit)?
 ) {
     val event = rememberAddressableEvent(eventRepo, Nip99.KIND_LISTING, author, dTag)
     val profile = rememberProfile(eventRepo, author)
@@ -1561,6 +1564,10 @@ private fun MarketplaceListingCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
+            .then(
+                if (event != null && onClick != null) Modifier.clickable { onClick(event) }
+                else Modifier
+            )
     ) {
         if (event == null) {
             Row(
