@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.darkwisp.app.nostr.ClientMessage
 import com.darkwisp.app.nostr.Filter
 import com.darkwisp.app.nostr.Nip99
+import com.darkwisp.app.nostr.MarketplaceRelays
 import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.relay.RelayConfig
 import com.darkwisp.app.relay.RelayPool
@@ -46,19 +47,9 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
     private var currentUserPubkey: String? = null
 
     companion object {
-        private const val LOAD_TIMEOUT_MS = 15_000L
-        private const val MAX_CACHED_LISTINGS = 500
-        private val MARKETPLACE_RELAYS = listOf(
-            // The current Plebeian Market profile advertises these read/write relays.
-            "wss://relay.dwadziesciajeden.pl",
-            "wss://nostr.einundzwanzig.space",
-            "wss://espelho.girino.org",
-            "wss://adre.su",
-            "wss://nostr.mom",
-            "wss://purplepag.es",
-            // Barattolo's NIP-99 listings are published on its public relay.
-            "wss://relay.barattolo.store"
-        )
+        private const val LOAD_TIMEOUT_MS = 25_000L
+        private const val MAX_CACHED_LISTINGS = 1000
+
     }
 
     fun setScope(scope: MarketplaceScope) {
@@ -126,7 +117,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                 val filter = Filter(
                     kinds = listOf(Nip99.KIND_LISTING),
                     authors = authors.takeIf { it.isNotEmpty() }?.toList(),
-                    limit = 500
+                    limit = 1000
                 )
                 val request = ClientMessage.req(subId, filter)
 
@@ -171,7 +162,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
 
-                val targets = (relayPool.getRelayUrls() + RelayConfig.DEFAULT_INDEXER_RELAYS + MARKETPLACE_RELAYS).distinct()
+                val targets = (relayPool.getRelayUrls() + RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ).distinct()
                 targets.forEach { relay ->
                     relayPool.sendToRelayOrEphemeral(relay, request, skipBadCheck = true)
                 }
@@ -195,7 +186,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
     private fun closeSubscription(relayPool: RelayPool, subId: String) {
         val close = ClientMessage.close(subId)
         relayPool.sendToAll(close)
-        (RelayConfig.DEFAULT_INDEXER_RELAYS + MARKETPLACE_RELAYS).distinct().forEach {
+        (RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ).distinct().forEach {
             relayPool.sendToRelayOrEphemeral(it, close, skipBadCheck = true)
         }
     }
