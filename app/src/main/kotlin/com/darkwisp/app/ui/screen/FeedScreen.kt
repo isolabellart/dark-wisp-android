@@ -9,7 +9,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.clickable
@@ -113,7 +112,6 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import com.darkwisp.app.nostr.RelaySet
 import com.darkwisp.app.relay.BroadcastState
 import com.darkwisp.app.viewmodel.FeedContentFilter
@@ -975,26 +973,30 @@ fun FeedScreen(
                             }
                         }
                         Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(0.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             FeedModeTab(
                                 label = stringResource(R.string.tab_for_you),
                                 selected = feedType == FeedType.FOR_YOU,
-                                onClick = { viewModel.setFeedType(FeedType.FOR_YOU) }
+                                onClick = { viewModel.setFeedType(FeedType.FOR_YOU) },
+                                modifier = Modifier.weight(1f),
+                                equalWidth = true
                             )
                             FeedModeTab(
                                 label = stringResource(R.string.tab_following),
                                 selected = feedType == FeedType.FOLLOWS,
-                                onClick = { viewModel.setFeedType(FeedType.FOLLOWS) }
+                                onClick = { viewModel.setFeedType(FeedType.FOLLOWS) },
+                                modifier = Modifier.weight(1f),
+                                equalWidth = true
                             )
                             FeedModeTab(
                                 label = stringResource(R.string.tab_with_reply),
                                 selected = feedType == FeedType.WITH_REPLIES,
-                                onClick = { viewModel.setFeedType(FeedType.WITH_REPLIES) }
+                                onClick = { viewModel.setFeedType(FeedType.WITH_REPLIES) },
+                                modifier = Modifier.weight(1f),
+                                equalWidth = true
                             )
                             FeedModeTab(
                                 label = stringResource(R.string.tab_extended),
@@ -1005,15 +1007,19 @@ fun FeedScreen(
                                     } else {
                                         viewModel.setFeedType(FeedType.EXTENDED_FOLLOWS)
                                     }
-                                }
+                                },
+                                modifier = Modifier.weight(1f),
+                                equalWidth = true
                             )
-                            Box {
+                            Box(modifier = Modifier.weight(1f)) {
                                 FeedModeTab(
                                     label = stringResource(R.string.tab_more),
                                     selected = feedType == FeedType.RELAY ||
                                         feedType == FeedType.LIST || feedType == FeedType.TRENDING,
                                     onClick = { showFeedTypeDropdown = true },
-                                    showChevron = true
+                                    showChevron = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    equalWidth = true
                                 )
                                 DropdownMenu(
                                     expanded = showFeedTypeDropdown,
@@ -3486,7 +3492,6 @@ private fun FeedModeTab(
                 fontSize = 15.sp,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                textDecoration = if (selected) TextDecoration.Underline else TextDecoration.None,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
