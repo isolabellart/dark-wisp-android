@@ -1033,5 +1033,5 @@
     <string name="marketplace_seller_label">Seller</string>
     <string name="marketplace_sats_loading">Getting current BTC exchange rate…</string>
     <string name="marketplace_sats_estimate">≈ %1$s sats via Lightning at the current reference rate; seller confirms final amount</string>
-    <string name="marketplace_sats_unavailable">Lightning estimate unavailable. The final amount depends on the seller's invoice.</string>
+    <string name="marketplace_sats_unavailable">Lightning estimate unavailable. The final amount depends on the seller\\'s invoice.</string>
 </resources>
