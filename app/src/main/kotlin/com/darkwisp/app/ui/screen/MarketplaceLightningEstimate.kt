@@ -39,7 +39,7 @@ fun MarketplaceLightningEstimate(amount: String, currency: String) {
         !completed -> stringResource(R.string.marketplace_sats_loading)
         sats != null -> stringResource(
             R.string.marketplace_sats_estimate,
-            NumberFormat.getIntegerInstance().format(sats)
+            NumberFormat.getIntegerInstance().format(sats ?: 0L)
         )
         else -> stringResource(R.string.marketplace_sats_unavailable)
     }
