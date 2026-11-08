@@ -96,6 +96,7 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
     val selectedMessageId: StateFlow<String?> = _selectedMessageId
 
     private var peerPubkey: String = ""
+    private var requireRecipientDmRelays: Boolean = false
     private var conversationKey: String = ""
     /** All participants in this conversation, excluding the local user. */
     private var participants: List<String> = emptyList()
@@ -125,9 +126,13 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
         relayPool: RelayPool? = null,
         powPreferences: PowPreferences? = null,
         myPubkeyHex: String? = null,
-        participantPubkeys: List<String> = emptyList()
+        participantPubkeys: List<String> = emptyList(),
+        initialMessage: String? = null,
+        requireRecipientDmRelays: Boolean = false
     ) {
         peerPubkey = peerPubkeyHex
+        this.requireRecipientDmRelays = requireRecipientDmRelays
+        if (!initialMessage.isNullOrBlank()) _messageText.value = initialMessage
         participants = participantPubkeys.ifEmpty { listOf(peerPubkeyHex) }
         val myKey = myPubkeyHex ?: keyRepo.getPubkeyHex() ?: ""
         conversationKey = DmRepository.conversationKey(participants + myKey)
@@ -164,6 +169,7 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
                 val fetched = fetchRecipientDmRelays(relayPool, forceRefresh = true)
                 val primaryRelays = when {
                     fetched.isNotEmpty() -> PeerDeliveryRelays(fetched, DeliveryRelaySource.DM_RELAYS)
+                    requireRecipientDmRelays -> PeerDeliveryRelays(emptyList(), DeliveryRelaySource.DM_RELAYS)
                     cached.isNullOrEmpty() -> resolveRecipientRelaysWithSource(emptyList(), relayPool)
                     else -> _peerDeliveryRelays.value
                 }
@@ -662,8 +668,13 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
             _sending.value = true
             viewModelScope.launch(Dispatchers.Default) {
                 try {
-                    val recipientDmRelays = fetchRecipientDmRelays(relayPool)
-                    val deliveryRelays = resolveRecipientRelaysWithSource(recipientDmRelays, relayPool).urls
+                    val recipientDmRelays = fetchRecipientDmRelays(relayPool, forceRefresh = requireRecipientDmRelays)
+                    if (requireRecipientDmRelays && recipientDmRelays.isEmpty()) {
+                        _messageText.value = text
+                        _sendError.value = getApplication<Application>().getString(R.string.marketplace_dm_relay_required)
+                        return@launch
+                    }
+                    val deliveryRelays = if (requireRecipientDmRelays) recipientDmRelays else resolveRecipientRelaysWithSource(recipientDmRelays, relayPool).urls
 
                     val dmPowEnabled = powPrefs?.isDmPowEnabled() == true
                     val dmDifficulty = if (dmPowEnabled) powPrefs?.getDmDifficulty() ?: 0 else 0
@@ -730,7 +741,7 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
                     val selfMsg = ClientMessage.event(selfWrap)
                     if (relayPool.hasDmRelays()) {
                         relayPool.sendToDmRelays(selfMsg)
-                    } else {
+                    } else if (!requireRecipientDmRelays) {
                         relayPool.sendToWriteRelays(selfMsg)
                     }
 
@@ -779,8 +790,13 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
                 val emojiTags2 = com.darkwisp.app.nostr.Nip30.buildEmojiTagsForContent(text, resolvedEmojis)
                 val combinedTags = replyTags + allParticipantTags + emojiTags2
 
-                val recipientDmRelays = fetchRecipientDmRelays(relayPool)
-                val deliveryRelays = resolveRecipientRelaysWithSource(recipientDmRelays, relayPool).urls
+                val recipientDmRelays = fetchRecipientDmRelays(relayPool, forceRefresh = requireRecipientDmRelays)
+                if (requireRecipientDmRelays && recipientDmRelays.isEmpty()) {
+                    _messageText.value = text
+                    _sendError.value = getApplication<Application>().getString(R.string.marketplace_dm_relay_required)
+                    return@launch
+                }
+                val deliveryRelays = if (requireRecipientDmRelays) recipientDmRelays else resolveRecipientRelaysWithSource(recipientDmRelays, relayPool).urls
 
                 val dmPowEnabled = powPrefs?.isDmPowEnabled() == true
                 val dmDifficulty = if (dmPowEnabled) powPrefs?.getDmDifficulty() ?: 0 else 0
