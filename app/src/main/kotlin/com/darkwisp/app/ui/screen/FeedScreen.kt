@@ -112,6 +112,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import com.darkwisp.app.nostr.RelaySet
 import com.darkwisp.app.relay.BroadcastState
 import com.darkwisp.app.viewmodel.FeedContentFilter
@@ -3471,7 +3472,7 @@ private fun FeedModeTab(
             .clickable(onClick = onClick)
             .padding(horizontal = if (equalWidth) 2.dp else 7.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Bottom
+        verticalArrangement = Arrangement.Center
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -3482,6 +3483,7 @@ private fun FeedModeTab(
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                textDecoration = if (selected) TextDecoration.Underline else TextDecoration.None,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -3494,17 +3496,6 @@ private fun FeedModeTab(
                 )
             }
         }
-        Spacer(Modifier.height(4.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(3.dp)
-                .background(
-                    if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                    RoundedCornerShape(3.dp)
-                )
-        )
-        Spacer(Modifier.height(4.dp))
     }
 }
 
