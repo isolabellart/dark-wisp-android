@@ -9,6 +9,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import coil3.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.clickable
@@ -90,6 +92,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.LayoutDirection
 import com.darkwisp.app.nostr.FollowSet
 import com.darkwisp.app.nostr.Nip10
+import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.Nip69
 import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.R
@@ -145,6 +148,7 @@ import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ButtonDefaults
@@ -171,6 +175,8 @@ fun FeedScreen(
     onRelays: () -> Unit,
     onProfileEdit: () -> Unit = {},
     onProfileClick: (String) -> Unit = {},
+    onMarketplace: () -> Unit = {},
+    onListingClick: (NostrEvent) -> Unit = {},
     onDms: () -> Unit = {},
     onReact: (NostrEvent, String) -> Unit = { _, _ -> },
     onRepost: (NostrEvent) -> Unit = {},
@@ -806,6 +812,10 @@ fun FeedScreen(
                 onFeed = {
                     scope.launch { drawerState.close() }
                 },
+                onMarketplace = {
+                    scope.launch { drawerState.close() }
+                    onMarketplace()
+                },
                 onSearch = {
                     scope.launch { drawerState.close() }
                     onSearch()
@@ -1003,6 +1013,16 @@ fun FeedScreen(
                                 selected = contentFilter == FeedContentFilter.POLLS_ONLY,
                                 onClick = { viewModel.setFeedContentFilter(FeedContentFilter.POLLS_ONLY) },
                                 modifier = Modifier.weight(1f)
+                            )
+                        }
+                        IconButton(
+                            onClick = onMarketplace,
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Icon(
+                                Icons.Outlined.Storefront,
+                                contentDescription = stringResource(R.string.marketplace_title),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         if (drawerOnRight) {
@@ -1317,7 +1337,13 @@ fun FeedScreen(
                                     )
                                 }
                             }
-                            items(items = feed, key = { it.id }, contentType = { if (it.kind == 30023) "article" else "post" }) { event ->
+                            items(items = feed, key = { it.id }, contentType = {
+                                when (it.kind) {
+                                    30023 -> "article"
+                                    Nip99.KIND_LISTING -> "marketplace-listing"
+                                    else -> "post"
+                                }
+                            }) { event ->
                                 val itemOnReply = { onReply(event) }
                                 val itemOnProfileClick = { onProfileClick(event.pubkey) }
                                 val itemOnNoteClick = { onNoteClick(event) }
@@ -1327,7 +1353,14 @@ fun FeedScreen(
                                 val itemOnZap = { zapTargetEvent = event }
                                 val itemOnAddToList = { onAddToList(event.id) }
                                 val itemOnOpenEmojiLibrary = { showEmojiLibrary = true }
-                                if (event.kind == 30023) {
+                                if (event.kind == Nip99.KIND_LISTING) {
+                                    MarketplaceFeedItem(
+                                        event = event,
+                                        eventRepository = viewModel.eventRepo,
+                                        onOpen = { onListingClick(event) },
+                                        onProfileClick = onProfileClick
+                                    )
+                                } else if (event.kind == 30023) {
                                     FeedArticleItem(
                                         event = event,
                                         viewModel = viewModel,
@@ -1687,6 +1720,88 @@ private fun FeedItem(
             translationState = translationState,
             onTranslate = onTranslateCb
         )
+    }
+}
+
+
+@Composable
+private fun MarketplaceFeedItem(
+    event: NostrEvent,
+    eventRepository: com.darkwisp.app.repo.EventRepository,
+    onOpen: () -> Unit,
+    onProfileClick: (String) -> Unit
+) {
+    val profileVersion by eventRepository.profileVersionFor(event.pubkey).collectAsState(initial = 0)
+    val sellerProfile = remember(event.pubkey, profileVersion) {
+        eventRepository.getProfileData(event.pubkey)
+    }
+    LaunchedEffect(event.pubkey) {
+        eventRepository.requestProfileIfMissing(event.pubkey)
+    }
+    val image = Nip99.images(event).firstOrNull()
+    val title = Nip99.title(event)
+    val summary = Nip99.summary(event)
+    val price = Nip99.priceLabel(event)
+    val location = Nip99.location(event)
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .clickable(onClick = onOpen),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        tonalElevation = 1.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ProfilePicture(
+                    url = sellerProfile?.picture,
+                    size = 30,
+                    onClick = { onProfileClick(event.pubkey) }
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        sellerProfile?.displayString ?: event.pubkey.take(8) + "…" + event.pubkey.takeLast(4),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        stringResource(R.string.marketplace_seller_label),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (Nip99.isSold(event)) {
+                    Text(
+                        stringResource(R.string.marketplace_sold),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+            if (image != null) {
+                AsyncImage(
+                    model = image,
+                    contentDescription = title,
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            if (!price.isNullOrBlank()) {
+                Text(price, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            }
+            if (summary.isNotBlank()) {
+                Text(summary, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            }
+            if (location.isNotBlank()) {
+                Text(location, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }
 

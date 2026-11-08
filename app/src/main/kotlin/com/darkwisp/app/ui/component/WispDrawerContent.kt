@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Key
@@ -120,6 +121,7 @@ fun WispDrawerContent(
     onFeed: () -> Unit,
     onSearch: () -> Unit,
     onMessages: () -> Unit,
+    onMarketplace: () -> Unit = {},
     onWallet: () -> Unit,
     onLists: () -> Unit = {},
     onDrafts: () -> Unit = {},
@@ -531,6 +533,13 @@ fun WispDrawerContent(
             label = { Text(stringResource(R.string.drawer_my_profile)) },
             selected = false,
             onClick = onProfile,
+            modifier = Modifier.height(48.dp).padding(horizontal = 12.dp)
+        )
+        NavigationDrawerItem(
+            icon = { Icon(Icons.Outlined.Storefront, contentDescription = null) },
+            label = { Text(stringResource(R.string.marketplace_title)) },
+            selected = false,
+            onClick = onMarketplace,
             modifier = Modifier.height(48.dp).padding(horizontal = 12.dp)
         )
         // Wallet lives in the mini-wallet widget near the top of the
