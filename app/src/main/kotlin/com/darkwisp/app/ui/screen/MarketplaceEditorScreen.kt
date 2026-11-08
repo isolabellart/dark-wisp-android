@@ -102,6 +102,9 @@ fun MarketplaceEditorScreen(
         existingEvent?.let { Nip99.dTag(it) }?.takeIf { it.isNotBlank() }
             ?: ("listing-" + UUID.randomUUID().toString())
     }
+    val publishedAt = remember(existingEvent?.id) {
+        existingEvent?.let { Nip99.publishedAt(it) } ?: (System.currentTimeMillis() / 1000).toString()
+    }
 
     var uploading by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
@@ -356,7 +359,7 @@ fun MarketplaceEditorScreen(
                                     dTag = dTag,
                                     title = title,
                                     summary = summary,
-                                    publishedAt = (System.currentTimeMillis() / 1000).toString(),
+                                    publishedAt = publishedAt,
                                     amount = amount,
                                     currency = currency,
                                     location = location,
