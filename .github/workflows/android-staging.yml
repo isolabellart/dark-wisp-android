@@ -6,6 +6,7 @@ on:
       - feature/deepl-translation
       - integration/deepl-plus-blossom
       - feat/repost-undo-feed-scroll
+      - feat/feed-redesign-navigation
   workflow_dispatch:
 
 permissions:

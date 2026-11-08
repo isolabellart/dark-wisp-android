@@ -211,7 +211,12 @@
     <string name="tab_bad">Bad</string>
     <string name="tab_people">Profiles</string>
     <string name="tab_notes">Notes</string>
-    <string name="tab_for_you">For You</string>
+    <string name="tab_for_you">For you</string>
+    <string name="tab_with_reply">With reply</string>
+    <string name="tab_more">More</string>
+    <string name="tab_text">Text</string>
+    <string name="tab_gallery">Gallery</string>
+    <string name="tab_polls">Polls</string>
     <string name="tab_follows">Follows</string>
     <string name="tab_extended">Extended</string>
     <string name="tab_trending">Trending</string>
@@ -495,6 +500,10 @@
     <string name="dm_your_relays">your relays</string>
 
     <!-- Settings / Interface -->
+    <string name="settings_drawer_position">Sidebar position</string>
+    <string name="settings_drawer_position_description">Choose which edge opens the sidebar. Right is the default; left is available for left-handed use.</string>
+    <string name="settings_drawer_right">Right</string>
+    <string name="settings_drawer_left">Left</string>
     <string name="settings_text_size">Text Size</string>
     <string name="settings_large_text">Large text</string>
     <string name="settings_increase_text_size">Increase text size across the app</string>

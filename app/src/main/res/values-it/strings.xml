@@ -200,6 +200,12 @@
     <string name="tab_people">Persone</string>
     <string name="tab_notes">Note</string>
     <string name="tab_follows">Seguiti</string>
+    <string name="tab_for_you">Per te</string>
+    <string name="tab_with_reply">Con risposte</string>
+    <string name="tab_more">Altro</string>
+    <string name="tab_text">Testo</string>
+    <string name="tab_gallery">Galleria</string>
+    <string name="tab_polls">Sondaggi</string>
     <string name="tab_extended">Esteso</string>
     <string name="tab_trending">Tendenze</string>
     <string name="tab_relay">Relay</string>
@@ -439,6 +445,10 @@
     <string name="dm_your_relays">i tuoi relay</string>
 
     <!-- Settings / Interface -->
+    <string name="settings_drawer_position">Posizione del menu laterale</string>
+    <string name="settings_drawer_position_description">Scegli da quale lato si apre il menu laterale. Destra è la scelta predefinita; sinistra è disponibile per mancini.</string>
+    <string name="settings_drawer_right">Destra</string>
+    <string name="settings_drawer_left">Sinistra</string>
     <string name="settings_text_size">Dimensione Testo</string>
     <string name="settings_large_text">Testo grande</string>
     <string name="settings_increase_text_size">Aumenta la dimensione del testo in tutta l\'app</string>
