@@ -219,8 +219,9 @@ fun WispDrawerContent(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(6.dp))
-                Surface(
+                if (onlineCount > 0) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
                     onClick = onOnlineClick,
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant
@@ -242,8 +243,9 @@ fun WispDrawerContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
                 }
-                Spacer(modifier = Modifier.width(4.dp))
                 Box {
                     Surface(
                         onClick = onConnectedRelaysClick,

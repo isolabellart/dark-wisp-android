@@ -888,7 +888,12 @@ fun FeedScreen(
                 isWatchOnly = isWatchOnly,
                 onlineCount = onlinePubkeys.size,
                 connectedRelayCount = connectedCount,
-                onOnlineClick = { showOnlineSheet = true },
+                onOnlineClick = {
+                    scope.launch {
+                        drawerState.close()
+                        showOnlineSheet = true
+                    }
+                },
                 onConnectedRelaysClick = { showRelayDropdown = true },
                 connectedRelayMenu = {
                     DropdownMenu(
