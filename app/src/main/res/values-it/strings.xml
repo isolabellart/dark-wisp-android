@@ -791,4 +791,7 @@
     <string name="marketplace_dm_privacy">Si aprirà una chat privata NIP-17. Potrai rileggere il messaggio e inviarlo da lì.</string>
     <string name="marketplace_dm_relay_required">Questo venditore non ha pubblicato una lista di relay DM NIP-17 (kind 10050). Per proteggere la tua privacy, Dark Wisp non utilizzerà relay alternativi.</string>
     <string name="marketplace_seller_label">Venditore</string>
+    <string name="marketplace_sats_loading">Recupero del cambio BTC aggiornato…</string>
+    <string name="marketplace_sats_estimate">≈ %1$s sats via Lightning al cambio indicativo attuale; il venditore conferma l’importo finale</string>
+    <string name="marketplace_sats_unavailable">Stima Lightning non disponibile. L’importo finale dipende dalla fattura del venditore.</string>
 </resources>
