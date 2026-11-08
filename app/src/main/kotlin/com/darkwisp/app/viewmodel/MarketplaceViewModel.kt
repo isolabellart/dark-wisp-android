@@ -11,6 +11,7 @@ import com.darkwisp.app.relay.RelayConfig
 import com.darkwisp.app.relay.RelayPool
 import com.darkwisp.app.repo.EventRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +39,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
 
     private val subscriptionSequence = AtomicLong()
     private val cachedByAddress = linkedMapOf<String, NostrEvent>()
+    private val cacheLock = Any()
     private var loadJob: Job? = null
     private var activeSubscriptionId: String? = null
     private var currentAuthors: Set<String> = emptySet()
@@ -70,7 +72,8 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
         }
 
     private fun publishVisibleCache(selectedScope: MarketplaceScope, authors: Set<String>, userPubkey: String?) {
-        _listings.value = cachedByAddress.values
+        val snapshot = synchronized(cacheLock) { cachedByAddress.values.toList() }
+        _listings.value = snapshot
             .asSequence()
             .filter { matchesScope(it, selectedScope, authors, userPubkey) }
             .sortedByDescending { it.created_at }
@@ -129,41 +132,49 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                 // Search the account's configured relays, public indexers, and
                 // the two NIP-99 markets' own relays. This avoids relying on a
                 // single indexer that may not carry externally published ads.
+                // Subscribe to the result stream before sending REQ. Some relays reply
+                // immediately; collecting afterwards loses their EVENT/EOSE frames.
+                val eventCollector = launch(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeoutOrNull(LOAD_TIMEOUT_MS) {
+                        relayPool.relayEvents
+                            .filter { it.subscriptionId == subId }
+                            .collect { relayEvent ->
+                                val event = relayEvent.event
+                                if (event.kind != Nip99.KIND_LISTING) return@collect
+                                if (selectedScope == MarketplaceScope.FOLLOWING && event.pubkey !in authors) return@collect
+                                if (selectedScope == MarketplaceScope.MINE && event.pubkey != userPubkey) return@collect
+                                if (!eventRepository.isEventVisibleToUser(event)) return@collect
+
+                                val dTag = Nip99.dTag(event)
+                                if (dTag.isBlank() || Nip99.title(event).isBlank()) return@collect
+
+                                eventRepository.addEvent(event)
+                                eventRepository.requestProfileIfMissing(event.pubkey)
+
+                                val address = event.pubkey + ":" + dTag
+                                val updated = synchronized(cacheLock) {
+                                    val previous = cachedByAddress[address]
+                                    if (previous == null || event.created_at >= previous.created_at) {
+                                        cachedByAddress[address] = event
+                                        while (cachedByAddress.size > MAX_CACHED_LISTINGS) {
+                                            val oldestKey = cachedByAddress.minByOrNull { it.value.created_at }?.key ?: break
+                                            cachedByAddress.remove(oldestKey)
+                                        }
+                                        true
+                                    } else false
+                                }
+                                if (updated && activeSubscriptionId == subId) {
+                                    publishVisibleCache(selectedScope, authors, userPubkey)
+                                }
+                            }
+                    }
+                }
+
                 val targets = (relayPool.getRelayUrls() + RelayConfig.DEFAULT_INDEXER_RELAYS + MARKETPLACE_RELAYS).distinct()
                 targets.forEach { relay ->
                     relayPool.sendToRelayOrEphemeral(relay, request, skipBadCheck = true)
                 }
-
-                withTimeoutOrNull(LOAD_TIMEOUT_MS) {
-                    relayPool.relayEvents
-                        .filter { it.subscriptionId == subId }
-                        .collect { relayEvent ->
-                            val event = relayEvent.event
-                            if (event.kind != Nip99.KIND_LISTING) return@collect
-                            if (selectedScope == MarketplaceScope.FOLLOWING && event.pubkey !in authors) return@collect
-                            if (selectedScope == MarketplaceScope.MINE && event.pubkey != userPubkey) return@collect
-                            if (!eventRepository.isEventVisibleToUser(event)) return@collect
-
-                            val dTag = Nip99.dTag(event)
-                            if (dTag.isBlank() || Nip99.title(event).isBlank()) return@collect
-
-                            eventRepository.addEvent(event)
-                            eventRepository.requestProfileIfMissing(event.pubkey)
-
-                            val address = event.pubkey + ":" + dTag
-                            val previous = cachedByAddress[address]
-                            if (previous == null || event.created_at >= previous.created_at) {
-                                cachedByAddress[address] = event
-                                while (cachedByAddress.size > MAX_CACHED_LISTINGS) {
-                                    val oldestKey = cachedByAddress.minByOrNull { it.value.created_at }?.key ?: break
-                                    cachedByAddress.remove(oldestKey)
-                                }
-                                if (activeSubscriptionId == subId) {
-                                    publishVisibleCache(selectedScope, authors, userPubkey)
-                                }
-                            }
-                        }
-                }
+                eventCollector.join()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
@@ -191,9 +202,11 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
     fun addOrUpdate(event: NostrEvent) {
         if (event.kind != Nip99.KIND_LISTING || Nip99.dTag(event).isBlank()) return
         val key = event.pubkey + ":" + Nip99.dTag(event)
-        val previous = cachedByAddress[key]
-        if (previous == null || event.created_at >= previous.created_at) {
-            cachedByAddress[key] = event
+        synchronized(cacheLock) {
+            val previous = cachedByAddress[key]
+            if (previous == null || event.created_at >= previous.created_at) {
+                cachedByAddress[key] = event
+            }
         }
         publishVisibleCache(_scope.value, currentAuthors, currentUserPubkey)
     }
