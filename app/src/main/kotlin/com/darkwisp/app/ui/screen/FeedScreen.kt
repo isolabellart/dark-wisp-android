@@ -1414,7 +1414,9 @@ fun FeedScreen(
             }
             } // Column
         }
+        } // Scaffold layout-direction provider
     }
+    } // Drawer layout-direction provider
 
     if (showEmojiLibrary) {
         val sheetUnicodeEmojis by viewModel.customEmojiRepo.unicodeEmojis.collectAsState()

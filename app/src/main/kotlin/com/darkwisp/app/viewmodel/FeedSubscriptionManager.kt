@@ -604,6 +604,7 @@ class FeedSubscriptionManager(
                 )
             }
             FeedType.TRENDING -> return  // guarded above, but required for exhaustiveness
+            FeedType.WITH_REPLIES -> return  // replies use the bounded initial subscription
         }
 
         val loadMoreSubId = if (_feedType.value == FeedType.RELAY) "relay-loadmore" else "loadmore"
