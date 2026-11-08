@@ -9,6 +9,7 @@ import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.nostr.RelayMessage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -775,7 +776,7 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
         val firstAccepted = CompletableDeferred<Unit>()
         var accepted = 0
         var sent = 0
-        val collector = scope.launch {
+        val collector = scope.launch(start = CoroutineStart.UNDISPATCHED) {
             publishResults
                 .filter { it.eventId == eventId }
                 .collect { result ->

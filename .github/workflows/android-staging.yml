@@ -7,6 +7,7 @@ on:
       - integration/deepl-plus-blossom
       - feat/repost-undo-feed-scroll
       - feat/feed-redesign-navigation
+      - feature/nip99-marketplace-integrated-fixes
   workflow_dispatch:
 
 permissions:
@@ -37,7 +38,7 @@ jobs:
       - name: Upload staging APK
         uses: actions/upload-artifact@v4
         with:
-          name: dark-wisp-integrated-staging
+          name: dark-wisp-marketplace-integrated-staging
           path: app/build/outputs/apk/staging/*.apk
           if-no-files-found: error
 

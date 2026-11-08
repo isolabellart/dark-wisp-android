@@ -65,7 +65,7 @@ class FeedSubscriptionManager(
     private val prefs: SharedPreferences
 ) {
     companion object {
-        val FEED_KINDS = listOf(1, 6, 1068, 6969, 30023, 20, 21, 22)
+        val FEED_KINDS = listOf(1, 6, 1068, 6969, 30023, 30402, 20, 21, 22)
         // How many of a poll's advertised relays to reach past the persistent
         // pool. iOS uses 3 and gets complete tallies; the votes land on the
         // first few relays a poll lists, not the long tail.

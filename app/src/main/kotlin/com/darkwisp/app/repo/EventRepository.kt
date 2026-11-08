@@ -553,6 +553,14 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         return !netRepo.isInQualifiedNetwork(pubkey)
     }
 
+    /** Apply the account's moderation and trust filters to auxiliary event views. */
+    fun isEventVisibleToUser(event: NostrEvent): Boolean {
+        if (muteRepo?.isBlocked(event.pubkey) == true) return false
+        if (muteRepo?.isEventMuted(event) == true) return false
+        if (deletedEventsRepo?.isDeleted(event.id) == true) return false
+        return !isWotFiltered(event.pubkey, event.kind)
+    }
+
     fun addEvent(event: NostrEvent) {
         if (event.kind == Nip88.KIND_POLL_RESPONSE) {
             val isNew = event.id !in seenEventIds
@@ -571,7 +579,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         }
         if (event.created_at > System.currentTimeMillis() / 1000 + 30) return  // reject future-dated notes (30s grace for clock skew)
         if (muteRepo?.isBlocked(event.pubkey) == true) return
-        if ((event.kind == 1 || event.kind == Nip22.KIND_COMMENT || event.kind == 30023 || event.kind == 20 || event.kind == 21 || event.kind == 22 || event.kind == Nip69.KIND_ZAP_POLL) && muteRepo?.isEventMuted(event) == true) return
+        if ((event.kind == 1 || event.kind == Nip22.KIND_COMMENT || event.kind == 30023 || event.kind == 30402 || event.kind == 20 || event.kind == 21 || event.kind == 22 || event.kind == Nip69.KIND_ZAP_POLL) && muteRepo?.isEventMuted(event) == true) return
         if (event.kind == 1 || event.kind == Nip22.KIND_COMMENT) {
             // NIP-22 replies-to-comments reference the thread root only via
             // uppercase E scope — prefer it over the lowercase-e parent.
@@ -620,7 +628,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
                 // NIP-22 comments never appear in feeds — cached only, rendered in
                 // thread/article views and counted as replies.
             }
-            30023 -> {
+            30023, 30402 -> {
                 binaryInsert(event, fromFeed = true)
             }
             20, 21, 22 -> {
