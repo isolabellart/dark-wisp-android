@@ -3437,8 +3437,6 @@ fun BroadcastStatusBar(
                 }
             }
         }
-        }
-    }
     }
 }
 
