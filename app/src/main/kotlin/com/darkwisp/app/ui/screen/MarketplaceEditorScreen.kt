@@ -392,7 +392,8 @@ fun MarketplaceEditorScreen(
                                     relayPool.cycleWriteRelays(timeoutMs = 8_000)
                                     relayPool.ensureMarketplaceWriteRelaysConnected(
                                         MarketplaceRelays.WRITE,
-                                        timeoutMs = 8_000
+                                        timeoutMs = 8_000,
+                                        forceReconnect = true
                                     )
                                     outcome = relayPool.publishWithConfirmation(
                                         event.id,
