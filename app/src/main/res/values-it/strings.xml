@@ -727,4 +727,25 @@
     <string name="translation_deepl_show_key">Mostra chiave API</string>
     <string name="translation_deepl_hide_key">Nascondi chiave API</string>
 
+    <string name="fiat_settings_title">Modalità fiat</string>
+    <string name="fiat_settings_enable">Attiva modalità fiat</string>
+    <string name="fiat_settings_enable_subtitle">Mostra gli importi in tutta l’app nella valuta scelta.</string>
+    <string name="fiat_settings_rates_never">Tassi di cambio non ancora aggiornati</string>
+    <string name="fiat_settings_rates_updated">Tassi di cambio aggiornati %1$s</string>
+    <string name="fiat_settings_refresh">Aggiorna</string>
+    <string name="settings_media_layout">Disposizione di più immagini</string>
+    <string name="settings_media_layout_description">Galleria: scorri orizzontalmente tutte le foto e i video. Sequenza: ogni elemento occupa tutta la larghezza, uno sotto l’altro.</string>
+    <string name="settings_media_layout_gallery">Galleria</string>
+    <string name="settings_media_layout_stack">Sequenza</string>
+    <string name="settings_notifications">Notifiche</string>
+    <string name="settings_notif_list_style">Stile dell’elenco</string>
+    <string name="settings_notif_list_style_description">Espanso: ogni notifica mostra direttamente la nota, il messaggio dello zap o il sondaggio. Compatto: righe di una sola linea da toccare per aprire.</string>
+    <string name="settings_notif_list_style_expanded">Espanso</string>
+    <string name="settings_notif_list_style_compact">Compatto</string>
+    <string name="settings_posting">Pubblicazione</string>
+    <string name="settings_undo_countdown">Conto alla rovescia per annullare</string>
+    <string name="settings_undo_countdown_description">I nuovi post attendono alcuni secondi prima della pubblicazione, così puoi annullarli.</string>
+    <string name="settings_undo_include_replies">Includi le risposte</string>
+    <string name="settings_undo_include_replies_description">Disattivato per impostazione predefinita: le risposte vengono inviate subito. Attiva questa opzione per applicare loro lo stesso conto alla rovescia.</string>
+    <string name="settings_accent_color_hint">Tocca per personalizzare</string>
 </resources>

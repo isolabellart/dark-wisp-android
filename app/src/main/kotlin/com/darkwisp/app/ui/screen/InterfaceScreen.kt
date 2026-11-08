@@ -378,7 +378,7 @@ fun InterfaceScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Tap to customize",
+                                text = stringResource(R.string.settings_accent_color_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

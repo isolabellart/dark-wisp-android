@@ -987,4 +987,5 @@
     <string name="translation_deepl_show_key">Show API key</string>
     <string name="translation_deepl_hide_key">Hide API key</string>
 
+    <string name="settings_accent_color_hint">Tap to customize</string>
 </resources>
