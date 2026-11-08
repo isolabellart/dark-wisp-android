@@ -52,7 +52,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
-private val NOSTR_URI_REGEX = Regex("nostr:(npub1[a-z0-9]{58}|nprofile1[a-z0-9]+|note1[a-z0-9]{58}|nevent1[a-z0-9]+)")
+private val NOSTR_URI_REGEX = Regex("nostr:(npub1[a-z0-9]{58}|nprofile1[a-z0-9]+|note1[a-z0-9]{58}|nevent1[a-z0-9]+|naddr1[a-z0-9]+)")
 // Matches bare bech32 IDs not already preceded by "nostr:" or embedded in a URL
 private val BARE_BECH32_REGEX = Regex("(?<!nostr:)(?<![a-z0-9/.:#])((note1|nevent1|npub1|nprofile1|naddr1)[a-z0-9]{10,})")
 private val HASHTAG_REGEX = Regex("(?:^|(?<=\\s))#([\\p{L}\\p{M}0-9_]+)")
@@ -684,11 +684,23 @@ class ComposeViewModel(app: Application, private val savedStateHandle: SavedStat
             tags.addAll(Nip10.buildReplyTags(replyTo, hint))
         }
 
-        val (mentionedPubkeys, _) = extractNostrRefs(content)
-        val existingPubkeys = tags.filter { it.firstOrNull() == "p" }.map { it[1] }.toSet()
+        val (mentionedPubkeys, _, mentionedAddresses) = extractNostrRefs(content)
+        val existingPubkeys = tags.filter { it.firstOrNull() == "p" }.mapNotNull { it.getOrNull(1) }.toSet()
         for (pubkey in mentionedPubkeys) {
             if (pubkey !in existingPubkeys) {
                 tags.add(listOf("p", pubkey))
+            }
+        }
+        // NIP-27 addressable references carry an "a" tag. Preserve an optional
+        // relay hint from naddr so readers can retrieve listings from their source.
+        val existingAddresses = tags.filter { it.firstOrNull() == "a" }.mapNotNull { it.getOrNull(1) }.toSet()
+        for (address in mentionedAddresses) {
+            val kind = address.kind ?: continue
+            val author = address.author ?: continue
+            val coordinate = "$kind:$author:${address.dTag}"
+            if (coordinate !in existingAddresses) {
+                val relayHint = address.relays.firstOrNull { it.startsWith("wss://") }
+                tags.add(if (relayHint != null) listOf("a", coordinate, relayHint) else listOf("a", coordinate))
             }
         }
 
@@ -1028,21 +1040,27 @@ class ComposeViewModel(app: Application, private val savedStateHandle: SavedStat
         return out to pubkeys
     }
 
-    private fun extractNostrRefs(content: String): Pair<Set<String>, Set<String>> {
+    private fun extractNostrRefs(
+        content: String
+    ): Triple<Set<String>, Set<String>, List<com.darkwisp.app.nostr.NostrUriData.AddressRef>> {
         val pubkeys = mutableSetOf<String>()
         val eventIds = mutableSetOf<String>()
+        val addresses = mutableListOf<com.darkwisp.app.nostr.NostrUriData.AddressRef>()
         for (match in NOSTR_URI_REGEX.findAll(content)) {
             val bech32 = match.groupValues[1]
             try {
                 when (val data = Nip19.decodeNostrUri("nostr:$bech32")) {
                     is com.darkwisp.app.nostr.NostrUriData.ProfileRef -> pubkeys.add(data.pubkey)
                     is com.darkwisp.app.nostr.NostrUriData.NoteRef -> eventIds.add(data.eventId)
-                    is com.darkwisp.app.nostr.NostrUriData.AddressRef -> {}
+                    is com.darkwisp.app.nostr.NostrUriData.AddressRef -> {
+                        data.author?.let(pubkeys::add)
+                        addresses.add(data)
+                    }
                     null -> {}
                 }
             } catch (_: Exception) {}
         }
-        return pubkeys to eventIds
+        return Triple(pubkeys, eventIds, addresses.distinctBy { "${it.kind}:${it.author}:${it.dTag}" })
     }
 
     private fun readFileFromUri(
