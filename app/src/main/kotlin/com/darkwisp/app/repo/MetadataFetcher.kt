@@ -3,6 +3,7 @@ package com.darkwisp.app.repo
 import com.darkwisp.app.nostr.ClientMessage
 import com.darkwisp.app.nostr.Filter
 import com.darkwisp.app.nostr.Nip19
+import com.darkwisp.app.nostr.MarketplaceRelays
 import com.darkwisp.app.nostr.Nip22
 import com.darkwisp.app.nostr.NostrUriData
 import com.darkwisp.app.relay.OutboxRouter
@@ -289,7 +290,8 @@ class MetadataFetcher(
         val msg = ClientMessage.req(subId, filter)
 
         val topRelays = quoteRelayProvider?.invoke() ?: emptyList()
-        val targetUrls = (topRelays + relayHints).distinct()
+        val marketplaceRelays = if (kind == 30402) MarketplaceRelays.READ else emptyList()
+        val targetUrls = (topRelays + relayHints + marketplaceRelays).distinct()
         if (targetUrls.isNotEmpty()) {
             for (url in targetUrls) {
                 relayPool.sendToRelayOrEphemeral(url, msg)
