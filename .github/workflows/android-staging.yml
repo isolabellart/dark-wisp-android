@@ -42,3 +42,4 @@ jobs:
           if-no-files-found: error
 
 # Keep the combined DeepL + Blossom verification build traceable.
+# Keep the staging verification available for the revised localized feed tabs.
