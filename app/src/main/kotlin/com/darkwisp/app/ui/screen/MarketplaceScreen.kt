@@ -1,6 +1,7 @@
 package com.darkwisp.app.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.ExperimentalFoundationApi
 import com.darkwisp.app.ui.component.ProfilePicture
 import androidx.compose.runtime.rememberCoroutineScope
@@ -31,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.Badge
@@ -42,6 +44,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -58,10 +61,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import com.darkwisp.app.R
 import com.darkwisp.app.nostr.Nip99
@@ -111,9 +120,17 @@ fun MarketplaceScreen(
                     IconButton(
                         onClick = {
                             viewModel.load(selectedScope, relayPool, eventRepository, followedPubkeys, userPubkey)
-                        }
+                        },
+                        enabled = !loading
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.marketplace_refresh))
+                        if (loading) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.marketplace_refresh))
+                        }
                     }
                 }
             )
@@ -127,6 +144,9 @@ fun MarketplaceScreen(
         Column(
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
+            if (loading && listings.isNotEmpty()) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -202,8 +222,8 @@ private fun MarketplaceListingCard(event: NostrEvent, eventRepository: EventRepo
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (image != null) {
-                AsyncImage(
-                    model = image,
+                ZoomableMarketplaceImage(
+                    imageUrl = image,
                     contentDescription = Nip99.title(event),
                     modifier = Modifier.size(112.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
                     contentScale = ContentScale.Crop
@@ -308,8 +328,8 @@ fun MarketplaceDetailScreen(
                 if (images.isNotEmpty()) {
                     androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(images) { image ->
-                            AsyncImage(
-                                model = image,
+                            ZoomableMarketplaceImage(
+                                imageUrl = image,
                                 contentDescription = title,
                                 modifier = Modifier.width(280.dp).height(280.dp).clip(RoundedCornerShape(16.dp)),
                                 contentScale = ContentScale.Crop
@@ -391,6 +411,77 @@ fun MarketplaceDetailScreen(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun ZoomableMarketplaceImage(
+    imageUrl: String,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop
+) {
+    var showZoom by remember(imageUrl) { mutableStateOf(false) }
+
+    AsyncImage(
+        model = imageUrl,
+        contentDescription = contentDescription,
+        modifier = modifier.clickable { showZoom = true },
+        contentScale = contentScale
+    )
+
+    if (showZoom) {
+        Dialog(
+            onDismissRequest = { showZoom = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            var zoom by remember(imageUrl) { mutableStateOf(1f) }
+            var pan by remember(imageUrl) { mutableStateOf(Offset.Zero) }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+            ) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = contentDescription,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(imageUrl) {
+                            detectTransformGestures { _, panChange, zoomChange, _ ->
+                                val nextZoom = (zoom * zoomChange).coerceIn(1f, 6f)
+                                zoom = nextZoom
+                                pan = if (nextZoom <= 1.001f) Offset.Zero else pan + panChange
+                            }
+                        }
+                        .graphicsLayer {
+                            scaleX = zoom
+                            scaleY = zoom
+                            val maxX = (size.width * (zoom - 1f) / 2f).coerceAtLeast(0f)
+                            val maxY = (size.height * (zoom - 1f) / 2f).coerceAtLeast(0f)
+                            translationX = pan.x.coerceIn(-maxX, maxX)
+                            translationY = pan.y.coerceIn(-maxY, maxY)
+                        },
+                    contentScale = ContentScale.Fit
+                )
+
+                IconButton(
+                    onClick = { showZoom = false },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(50))
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Close image",
+                        tint = Color.White
+                    )
                 }
             }
         }
