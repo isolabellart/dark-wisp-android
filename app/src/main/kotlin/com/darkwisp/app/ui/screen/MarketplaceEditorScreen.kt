@@ -57,6 +57,7 @@ import com.darkwisp.app.R
 import com.darkwisp.app.nostr.ClientMessage
 import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.MarketplaceRelays
+import com.darkwisp.app.nostr.MarketplaceCurrencies
 import com.darkwisp.app.ui.screen.MarketplaceLightningEstimate
 
 import com.darkwisp.app.nostr.NostrEvent
@@ -69,10 +70,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-private val MARKETPLACE_CURRENCY_CODES = listOf(
-    "EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "NZD", "SEK", "NOK",
-    "BTC", "SATS"
-)
+private val MARKETPLACE_CURRENCY_CODES = MarketplaceCurrencies.ALL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
