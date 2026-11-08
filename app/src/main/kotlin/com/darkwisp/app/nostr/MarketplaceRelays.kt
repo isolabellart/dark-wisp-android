@@ -26,7 +26,6 @@ object MarketplaceRelays {
         "wss://adre.su",
         "wss://nostr.mom",
         "wss://relay.nostr.band",
-        "wss://conduitl2.fly.dev",
         "wss://relay.damus.io",
         "wss://relay.primal.net",
         "wss://nos.lol"
