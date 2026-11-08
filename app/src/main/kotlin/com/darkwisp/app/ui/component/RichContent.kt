@@ -111,6 +111,7 @@ import com.darkwisp.app.nostr.Noffer
 import com.darkwisp.app.nostr.NofferData
 import com.darkwisp.app.nostr.Nip19
 import com.darkwisp.app.nostr.Nip30
+import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.toHex
 import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.nostr.NostrUriData
@@ -1039,6 +1040,18 @@ fun RichContent(
                     is ContentSegment.NostrAddressableSegment -> {
                         val kind = segment.kind
                         when {
+                            kind == Nip99.KIND_LISTING -> {
+                                if (eventRepo != null && segment.author != null) {
+                                    MarketplaceListingCard(
+                                        dTag = segment.dTag,
+                                        author = segment.author,
+                                        relayHints = segment.relays,
+                                        eventRepo = eventRepo
+                                    )
+                                } else {
+                                    UnsupportedKindBadge(kind = kind, style = style)
+                                }
+                            }
                             kind == 1 || kind == 0 -> {
                                 if (eventRepo != null && segment.author != null) {
                                     QuotedAddressableNote(
@@ -1522,6 +1535,149 @@ private fun UnsupportedKindBadge(kind: Int?, style: TextStyle) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(14.dp)
         )
+    }
+}
+
+@Composable
+private fun MarketplaceListingCard(
+    dTag: String,
+    author: String,
+    relayHints: List<String>,
+    eventRepo: EventRepository
+) {
+    val event = rememberAddressableEvent(eventRepo, Nip99.KIND_LISTING, author, dTag)
+    val profile = rememberProfile(eventRepo, author)
+
+    LaunchedEffect(eventRepo, dTag, author, relayHints) {
+        if (eventRepo.findAddressableEvent(Nip99.KIND_LISTING, author, dTag) == null) {
+            eventRepo.requestAddressableEvent(Nip99.KIND_LISTING, author, dTag, relayHints)
+        }
+    }
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+    ) {
+        if (event == null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(14.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.width(14.dp).height(14.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Loading marketplace listing...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val image = Nip99.images(event).firstOrNull()
+                if (image != null) {
+                    LoadingAsyncImage(
+                        model = image,
+                        contentDescription = Nip99.title(event),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(104.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(104.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Image,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "MARKETPLACE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = Nip99.title(event).ifBlank { "Untitled listing" },
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Nip99.priceLabel(event)?.let { price ->
+                        Text(
+                            text = price,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1
+                        )
+                    }
+                    val summary = Nip99.summary(event)
+                    if (summary.isNotBlank()) {
+                        Text(
+                            text = summary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    val location = Nip99.location(event)
+                    if (location.isNotBlank()) {
+                        Text(
+                            text = location,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ProfilePicture(url = profile?.picture, size = 18)
+                        Spacer(Modifier.width(5.dp))
+                        Text(
+                            text = profile?.displayString ?: "${author.take(8)}…${author.takeLast(4)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (Nip99.isSold(event)) {
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "SOLD",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
