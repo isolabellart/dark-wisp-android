@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import com.darkwisp.app.R
 import com.darkwisp.app.repo.MarketplacePriceConverter
+import com.darkwisp.app.nostr.MarketplaceCurrencies
 import java.text.NumberFormat
 
 /**
@@ -19,9 +20,7 @@ import java.text.NumberFormat
  */
 @Composable
 fun MarketplaceLightningEstimate(amount: String, currency: String) {
-    if (currency.equals("BTC", ignoreCase = true) ||
-        currency.equals("SATS", ignoreCase = true)
-    ) return
+    if (currency.uppercase() !in MarketplaceCurrencies.FIAT) return
 
     if (amount.trim().replace(',', '.').toBigDecimalOrNull()?.signum()?.let { it > 0 } != true) {
         return
