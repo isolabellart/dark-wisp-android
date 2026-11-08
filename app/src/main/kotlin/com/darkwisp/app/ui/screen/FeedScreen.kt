@@ -962,29 +962,38 @@ fun FeedScreen(
                             .padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Keep the menu avatar on the same physical edge as the drawer.
+                        if (!drawerOnRight) {
+                            IconButton(
+                                onClick = { scope.launch { drawerState.open() } },
+                                modifier = Modifier.size(44.dp)
+                            ) {
+                                ProfilePicture(url = userProfile?.picture, size = 32)
+                            }
+                        }
                         Row(
                             modifier = Modifier
                                 .weight(1f)
                                 .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            FeedModePill(
+                            FeedModeTab(
                                 label = stringResource(R.string.tab_for_you),
                                 selected = feedType == FeedType.FOR_YOU,
                                 onClick = { viewModel.setFeedType(FeedType.FOR_YOU) }
                             )
-                            FeedModePill(
+                            FeedModeTab(
                                 label = stringResource(R.string.tab_following),
                                 selected = feedType == FeedType.FOLLOWS,
                                 onClick = { viewModel.setFeedType(FeedType.FOLLOWS) }
                             )
-                            FeedModePill(
+                            FeedModeTab(
                                 label = stringResource(R.string.tab_with_reply),
                                 selected = feedType == FeedType.WITH_REPLIES,
                                 onClick = { viewModel.setFeedType(FeedType.WITH_REPLIES) }
                             )
-                            FeedModePill(
+                            FeedModeTab(
                                 label = stringResource(R.string.tab_extended),
                                 selected = feedType == FeedType.EXTENDED_FOLLOWS,
                                 onClick = {
@@ -996,7 +1005,7 @@ fun FeedScreen(
                                 }
                             )
                             Box {
-                                FeedModePill(
+                                FeedModeTab(
                                     label = stringResource(R.string.tab_more),
                                     selected = feedType == FeedType.RELAY ||
                                         feedType == FeedType.LIST || feedType == FeedType.TRENDING,
@@ -1048,11 +1057,13 @@ fun FeedScreen(
                                 }
                             }
                         }
-                        IconButton(
-                            onClick = { scope.launch { drawerState.open() } },
-                            modifier = Modifier.size(44.dp)
-                        ) {
-                            ProfilePicture(url = userProfile?.picture, size = 32)
+                        if (drawerOnRight) {
+                            IconButton(
+                                onClick = { scope.launch { drawerState.open() } },
+                                modifier = Modifier.size(44.dp)
+                            ) {
+                                ProfilePicture(url = userProfile?.picture, size = 32)
+                            }
                         }
                     }
 
@@ -1060,30 +1071,27 @@ fun FeedScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(40.dp)
-                            .padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            .padding(horizontal = 8.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        FeedFilterTab(
-                            modifier = Modifier.weight(1f),
+                        FeedModePill(
                             label = stringResource(R.string.tab_all),
                             selected = contentFilter == FeedContentFilter.ALL,
                             onClick = { viewModel.setFeedContentFilter(FeedContentFilter.ALL) }
                         )
-                        FeedFilterTab(
-                            modifier = Modifier.weight(1f),
+                        FeedModePill(
                             label = stringResource(R.string.tab_text),
                             selected = contentFilter == FeedContentFilter.TEXT_ONLY,
                             onClick = { viewModel.setFeedContentFilter(FeedContentFilter.TEXT_ONLY) }
                         )
-                        FeedFilterTab(
-                            modifier = Modifier.weight(1f),
+                        FeedModePill(
                             label = stringResource(R.string.tab_gallery),
                             selected = contentFilter == FeedContentFilter.GALLERY_ONLY,
                             onClick = { viewModel.setFeedContentFilter(FeedContentFilter.GALLERY_ONLY) }
                         )
-                        FeedFilterTab(
-                            modifier = Modifier.weight(1f),
+                        FeedModePill(
                             label = stringResource(R.string.tab_polls),
                             selected = contentFilter == FeedContentFilter.POLLS_ONLY,
                             onClick = { viewModel.setFeedContentFilter(FeedContentFilter.POLLS_ONLY) }
@@ -3440,6 +3448,52 @@ fun BroadcastStatusBar(
     }
 }
 
+@Composable
+private fun FeedModeTab(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    showChevron: Boolean = false
+) {
+    Column(
+        modifier = Modifier
+            .height(44.dp)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 7.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+            if (showChevron) {
+                Icon(
+                    Icons.Filled.ArrowDropDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Spacer(Modifier.height(5.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(
+                    if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
+                    RoundedCornerShape(2.dp)
+                )
+        )
+        Spacer(Modifier.height(5.dp))
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FeedModePill(
@@ -3473,40 +3527,6 @@ private fun FeedModePill(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun FeedFilterTab(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Bottom
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
-        )
-        Spacer(Modifier.height(4.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(2.dp)
-                .background(
-                    if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
-                    RoundedCornerShape(2.dp)
-                )
-        )
     }
 }
 
