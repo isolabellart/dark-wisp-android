@@ -17,7 +17,6 @@ object MarketplaceRelays {
         "wss://purplepag.es",
         "wss://relay.barattolo.store",
         "wss://relay.nostr.band",
-        "wss://conduitl2.fly.dev"
     )
 
     val WRITE = listOf(
