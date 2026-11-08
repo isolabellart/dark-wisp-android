@@ -47,7 +47,7 @@ object MarketplacePriceConverter {
         if (now < cacheExpiresAt) return@withLock cachedRates
 
         val freshRates = withContext(Dispatchers.IO) {
-            runCatching {
+            try {
                 val request = Request.Builder()
                     .url(RATES_URL)
                     .header("Accept", "application/json")
@@ -62,14 +62,19 @@ object MarketplacePriceConverter {
                     val parsed = mutableMapOf<String, BigDecimal>()
                     val keys = ratesJson.keys()
                     while (keys.hasNext()) {
-                        val key = keys.next().uppercase()
-                        ratesJson.optString(key).toBigDecimalOrNull()?.let { value ->
+                        val rawKey = keys.next()
+                        val key = rawKey.uppercase()
+                        ratesJson.optString(rawKey).toBigDecimalOrNull()?.let { value ->
                             if (value > BigDecimal.ZERO) parsed[key] = value
                         }
                     }
                     parsed.takeIf { it.isNotEmpty() }
                 }
-            }.getOrNull()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
         }
 
         if (freshRates != null) {
