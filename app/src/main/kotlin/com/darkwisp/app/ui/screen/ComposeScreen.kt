@@ -162,7 +162,8 @@ fun ComposeScreen(
     onNotePublished: (() -> Unit)? = null,
     powManager: PowManager? = null,
     powPrefs: PowPreferences? = null,
-    resolvedEmojis: Map<String, String> = emptyMap()
+    resolvedEmojis: Map<String, String> = emptyMap(),
+    onMarketplaceListingClick: ((NostrEvent) -> Unit)? = null
 ) {
     val content by viewModel.content.collectAsState()
     val publishing by viewModel.publishing.collectAsState()
@@ -1226,7 +1227,8 @@ fun ComposeScreen(
                                 RichContent(
                                     content = content.text,
                                     emojiMap = resolvedEmojis,
-                                    eventRepo = eventRepo
+                                    eventRepo = eventRepo,
+                                    onMarketplaceListingClick = onMarketplaceListingClick
                                 )
                                 // Poll preview
                                 if (pollEnabled) {
