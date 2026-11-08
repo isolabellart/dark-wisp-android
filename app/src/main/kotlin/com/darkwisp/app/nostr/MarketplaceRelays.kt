@@ -25,6 +25,7 @@ object MarketplaceRelays {
         "wss://espelho.girino.org",
         "wss://adre.su",
         "wss://nostr.mom",
+        "wss://purplepag.es",
         "wss://relay.nostr.band",
         "wss://relay.damus.io",
         "wss://relay.primal.net",
