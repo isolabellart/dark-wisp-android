@@ -16,6 +16,7 @@ object MarketplaceRelays {
         "wss://nostr.mom",
         "wss://purplepag.es",
         "wss://relay.barattolo.store",
+        "wss://relay.conduit.market",
         "wss://relay.nostr.band",
     )
 
@@ -26,6 +27,7 @@ object MarketplaceRelays {
         "wss://adre.su",
         "wss://nostr.mom",
         "wss://purplepag.es",
+        "wss://relay.conduit.market",
         "wss://relay.nostr.band",
         "wss://relay.damus.io",
         "wss://relay.primal.net",
