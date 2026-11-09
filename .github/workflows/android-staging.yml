@@ -8,6 +8,7 @@ on:
       - feat/repost-undo-feed-scroll
       - feat/feed-redesign-navigation
       - feature/nip99-marketplace-integrated-fixes
+      - fix/marketplace-stability-zoom
   workflow_dispatch:
 
 permissions:
