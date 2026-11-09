@@ -101,8 +101,8 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
           "$APKSIGNER" verify --verbose --print-certs "$APK" | tee "$RUNNER_TEMP/apk-signature.txt"
-          grep -Eiq "Signer #1 certificate SHA-256 digest: 86868a366? ?$" "$RUNNER_TEMP/apk-signature.txt" || \
-            grep -Eiq "86868a366? ?[0-9a-f]{0,}" "$RUNNER_TEMP/apk-signature.txt"
+          EXPECTED_CERT_SHA256="86868a3659729a6531f3e8a31d5dcfe04405e2a86866f3e0eb0abb6965cdb841"
+          grep -Eiq "Signer #1 certificate SHA-256 digest: ${EXPECTED_CERT_SHA256}" "$RUNNER_TEMP/apk-signature.txt"
           sha256sum "$APK" | tee "$RUNNER_TEMP/apk-sha256.txt"
 
       - name: Determine release metadata
@@ -147,11 +147,11 @@ jobs:
           cat > "$NOTES" <<EOF
           Dark Wisp Enhanced Android release.
 
-          - Package: `com.isolabellart.darkwispenhanced`
-          - Signed APK: `Dark-Wisp-Enhanced-${RELEASE_TAG}.apk`
-          - SHA-256: `$APK_SHA256`
+          Package: com.isolabellart.darkwispenhanced
+          Signed APK: Dark-Wisp-Enhanced-${RELEASE_TAG}.apk
+          SHA-256: $APK_SHA256
 
-          Please keep the original APK signing keystore safe. Future updates must use the same signing identity.
+          Keep the original APK signing keystore safe. Future updates must use the same signing identity.
           EOF
           args=()
           [[ "$IS_PRERELEASE" == "true" ]] && args+=(--prerelease)
