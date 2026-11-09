@@ -743,7 +743,7 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
 
             // An earlier lookup may have left a read-only ephemeral connection.
             // Replace that temporary socket so this marketplace target can be written to.
-            if (existing != null && url in ephemeralRelays && !existing.config.write) {
+            if (existing != null && ephemeralRelays.containsKey(url) && !existing.config.write) {
                 ephemeralRelays.remove(url)
                 ephemeralLastUsed.remove(url)
                 if (relayIndex[url] === existing) relayIndex.remove(url)
@@ -757,7 +757,7 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
             // Do not override an explicit read-only setting on a persistent user relay.
             // Existing writable marketplace sockets are explicitly reconnected on retry.
             if (existing != null) {
-                if (url in ephemeralRelays && existing.config.write) {
+                if (ephemeralRelays.containsKey(url) && existing.config.write) {
                     if (forceReconnect) {
                         existing.forceDisconnect()
                         existing.resetBackoff()
