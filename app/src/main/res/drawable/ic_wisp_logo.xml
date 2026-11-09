@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Dark Wisp Enhanced in-app Wisp mark.
-  Used by the splash, drawer header and QR sheets.
--->
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:width="68dp" android:height="72dp">
-        <bitmap
-            android:src="@drawable/ic_wisp_enhanced_mark"
-            android:gravity="fill" />
-    </item>
-</layer-list>
+<!-- Direct bitmap drawable for reliable decoding in Compose and Android views. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_wisp_enhanced_mark"
+    android:gravity="fill" />

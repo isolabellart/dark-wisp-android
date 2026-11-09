@@ -35,10 +35,10 @@ base64 -i dark-wisp-enhanced-release.jks | tr -d '\n' | pbcopy
 
 Do not paste the keystore or either password into source files, issues, pull requests or chat messages.
 
-After the secrets are configured, push a new commit to `release/dark-wisp-enhanced` to trigger the signed release workflow. The first run before secrets are configured skips safely without publishing an APK.
+The release workflow is manual-only while the staging build is being validated. Start it from GitHub Actions only after the staging APK has been installed and tested.
 
 The workflow runs unit tests, builds `assembleRelease`, verifies the APK signature against the certificate fingerprint above, uploads the APK as a workflow artifact, and creates a GitHub pre-release with the APK attached. GitHub Release assets expose download counts; Actions artifacts do not.
 
 ## Versioning
 
-The initial Enhanced release starts at versionCode `1`, versionName `1.0.0`. Increase versionCode for every subsequent Android update. Keep the application ID and signing key unchanged for all updates in this release line.
+The corrected validation line uses versionCode `3`, versionName `1.0.2`. The earlier `1.0.0` and `1.0.1` artifacts are superseded and should not be distributed. Increase versionCode for every subsequent Android update. Keep the application ID and signing key unchanged for all updates in this release line.

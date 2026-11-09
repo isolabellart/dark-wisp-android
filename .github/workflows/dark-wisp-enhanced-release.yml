@@ -1,9 +1,7 @@
 name: Dark Wisp Enhanced release
 
+# Manual-only while staging startup is being validated.
 on:
-  push:
-    branches:
-      - release/dark-wisp-enhanced
   workflow_dispatch:
     inputs:
       release_tag:

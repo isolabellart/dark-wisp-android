@@ -31,6 +31,7 @@ jobs:
       - name: Upload staging APK
         uses: actions/upload-artifact@v4
         with:
-          name: dark-wisp-enhanced-staging
+          name: dark-wisp-enhanced-staging-1.0.2
           path: app/build/outputs/apk/staging/*.apk
           if-no-files-found: error
+          retention-days: 90
