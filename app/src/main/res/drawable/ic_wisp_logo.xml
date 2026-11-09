@@ -1,29 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  In-app wisp mark — the glyph with bright star-shaped eyes. Used by the splash,
-  the drawer header and the QR sheets. Viewport matches the source art's
-  729x768, so square size modifiers letterbox rather than distort.
+  Dark Wisp Enhanced in-app Wisp mark.
+  Used by the splash, drawer header and QR sheets.
 -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="68dp"
-    android:height="72dp"
-    android:viewportWidth="729"
-    android:viewportHeight="768">
-    <path android:fillType="evenOdd" android:pathData="M351.197 768C183.146 767.997 46.9861 632.139 46.9858 464.64C46.9858 353.702 106.711 256.661 195.849 203.762C209.902 195.228 224.194 188.295 238.605 182.732C273.434 168.886 311.43 161.28 351.197 161.28C360.01 161.28 368.736 161.669 377.35 162.401C398.404 163.078 415.437 167.497 432.765 171.977C450.117 176.463 467.873 181.044 490.936 182.451C533.636 185.054 565.023 162.667 577.969 131.365C590.93 100.022 585.576 59.2324 553.362 24.915C548.383 19.6106 548.312 12.151 550.78 7.00963C552.036 4.39318 554.16 1.92861 557.172 0.725019C560.362 -0.548122 563.88 -0.13135 567.115 1.87142C676.72 69.7387 736.192 216.691 728.304 364.697C720.403 512.896 644.939 663.233 483.324 737.93C443.362 757.177 398.544 768 351.197 768Z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="radial"
-                android:centerX="333.608"
-                android:centerY="245.446"
-                android:gradientRadius="530">
-                <item android:offset="0" android:color="#FFBA60"/>
-                <item android:offset="0.961823" android:color="#E97941"/>
-            </gradient>
-        </aapt:attr>
-    </path>
-    <path android:fillColor="#FFFFD85A" android:strokeColor="#FF7B351D" android:strokeWidth="8" android:strokeLineJoin="round" android:pathData="M210.0,377.0 L 222.3,406.0 L 253.7,408.8 L 230.0,429.5 L 237.0,460.2 L 210.0,444.0 L 183.0,460.2 L 190.0,429.5 L 166.3,408.8 L 197.7,406.0 Z"/>
-            <path android:fillColor="#FFFFD85A" android:strokeColor="#FF7B351D" android:strokeWidth="8" android:strokeLineJoin="round" android:pathData="M408.0,377.0 L 420.3,406.0 L 451.7,408.8 L 428.0,429.5 L 435.0,460.2 L 408.0,444.0 L 381.0,460.2 L 388.0,429.5 L 364.3,408.8 L 395.7,406.0 Z"/>
-    
-    <path android:fillColor="#000000" android:pathData="M225,529.024h142v35h-142z"/>
-</vector>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="68dp" android:height="72dp">
+        <bitmap
+            android:src="@drawable/ic_wisp_enhanced_mark"
+            android:gravity="fill" />
+    </item>
+</layer-list>
