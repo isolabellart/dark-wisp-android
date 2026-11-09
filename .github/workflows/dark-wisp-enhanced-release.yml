@@ -101,7 +101,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
           "$APKSIGNER" verify --verbose --print-certs "$APK" | tee "$RUNNER_TEMP/apk-signature.txt"
-          EXPECTED_CERT_SHA256="86868a3659729a6531f3e8a31d5dcfe04405e2a86866f3e0eb0abb6965cdb841"
+          EXPECTED_CERT_SHA256="86:86:8a:36:59:72:9a:65:31:f3:e8:a3:1d:5d:cf:e0:44:05:e2:a8:68:66:f3:e0:eb:0a:bb:69:65:cd:b8:41"
           grep -Eiq "Signer #1 certificate SHA-256 digest: ${EXPECTED_CERT_SHA256}" "$RUNNER_TEMP/apk-signature.txt"
           sha256sum "$APK" | tee "$RUNNER_TEMP/apk-sha256.txt"
 
