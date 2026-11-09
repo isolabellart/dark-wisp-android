@@ -41,4 +41,4 @@ The workflow runs unit tests, builds `assembleRelease`, verifies the APK signatu
 
 ## Versioning
 
-The first published build had an invalid launcher foreground image and is superseded. The corrected release is versionCode `2`, versionName `1.0.1`. Increase versionCode for every subsequent Android update. Keep the application ID and signing key unchanged for all updates in this release line.
+The initial Enhanced release starts at versionCode `1`, versionName `1.0.0`. Increase versionCode for every subsequent Android update. Keep the application ID and signing key unchanged for all updates in this release line.
