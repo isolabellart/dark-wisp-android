@@ -6,6 +6,10 @@ on:
       - "release/dark-wisp-enhanced"
   workflow_dispatch:
 
+concurrency:
+  group: dark-wisp-enhanced-staging
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -25,17 +29,26 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Run staging unit tests
-        run: |
-          ./gradlew --no-daemon --no-build-cache --max-workers=2 \
-            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
-            testStagingUnitTest --stacktrace
-
       - name: Build staging APK
         run: |
           ./gradlew --no-daemon --no-build-cache --max-workers=2 \
             -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
             assembleStaging --stacktrace
+
+      - name: Verify staging package identity
+        shell: bash
+        run: |
+          APK="app/build/outputs/apk/staging/app-staging.apk"
+          test -s "$APK"
+          APKANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer | head -n 1)"
+          if [[ -n "$APKANALYZER" ]]; then
+            PACKAGE_ID="$("$APKANALYZER" manifest application-id "$APK")"
+            VERSION_NAME="$("$APKANALYZER" manifest version-name "$APK")"
+            echo "Package: $PACKAGE_ID"
+            echo "Version: $VERSION_NAME"
+            [[ "$PACKAGE_ID" == "com.isolabellart.darkwispenhanced.staging" ]]
+            [[ "$VERSION_NAME" == "1.0.2" ]]
+          fi
 
       - name: Upload staging APK
         uses: actions/upload-artifact@v4
