@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Dark Wisp Enhanced adaptive-icon foreground.
-  The lilac Wisp mark is kept inside Android's adaptive-icon safe zone.
+  Reuse the validated in-app lilac mark and size it inside Android's
+  adaptive-icon safe zone. The launcher background is supplied separately.
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:width="108dp" android:height="108dp">
+    <item
+        android:width="68dp"
+        android:height="72dp"
+        android:gravity="center">
         <bitmap
-            android:src="@drawable/ic_launcher_foreground_image"
+            android:src="@drawable/ic_wisp_enhanced_mark"
             android:gravity="fill" />
     </item>
 </layer-list>
