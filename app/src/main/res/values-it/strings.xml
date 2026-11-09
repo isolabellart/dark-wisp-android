@@ -769,6 +769,17 @@
     <string name="marketplace_status_label">Stato dell’annuncio</string>
     <string name="marketplace_active">Disponibile</string>
     <string name="marketplace_sold">Venduto</string>
+    <string name="marketplace_withdraw_listing">Ritira annuncio</string>
+    <string name="marketplace_withdraw_title">Ritirare questo annuncio?</string>
+    <string name="marketplace_withdraw_confirmation">Pubblicheremo una richiesta di cancellazione NIP-09 per questo annuncio. I relay compatibili saranno invitati a rimuoverne tutte le versioni, ma non possiamo garantire che ogni relay o client rispetti la richiesta.</string>
+    <string name="marketplace_withdraw_confirm">Ritira annuncio</string>
+    <string name="marketplace_withdraw_cancel">Mantieni annuncio</string>
+    <string name="marketplace_withdrawal_reason">Annuncio ritirato dal venditore.</string>
+    <string name="marketplace_withdraw_wrong_account">Accedi con l’account che ha pubblicato questo annuncio.</string>
+    <string name="marketplace_withdraw_invalid_address">L’annuncio non contiene un identificatore valido.</string>
+    <string name="marketplace_withdraw_failed">Impossibile ritirare l’annuncio: %1$s</string>
+    <string name="marketplace_copy_naddr">Copia naddr</string>
+    <string name="marketplace_naddr_copied">naddr copiato negli appunti</string>
     <string name="marketplace_photos">Fotografie</string>
     <string name="marketplace_add_photos">Aggiungi foto</string>
     <string name="marketplace_uploading">Caricamento delle foto…</string>

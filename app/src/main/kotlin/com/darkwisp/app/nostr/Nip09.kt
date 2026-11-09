@@ -1,6 +1,8 @@
 package com.darkwisp.app.nostr
 
 object Nip09 {
+    const val KIND_DELETION = 5
+
     fun buildDeletionTags(eventId: String, kind: Int): List<List<String>> {
         return listOf(
             listOf("e", eventId),

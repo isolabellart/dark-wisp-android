@@ -330,7 +330,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     /** Visibility filter shared by all observation snapshots (no disk I/O). */
     private fun isVisible(event: NostrEvent): Boolean {
         if (muteRepo?.isBlocked(event.pubkey) == true) return false
-        if (deletedEventsRepo?.isDeleted(event.id) == true) return false
+        if (deletedEventsRepo?.isEventDeleted(event) == true) return false
         return true
     }
 
@@ -557,7 +557,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     fun isEventVisibleToUser(event: NostrEvent): Boolean {
         if (muteRepo?.isBlocked(event.pubkey) == true) return false
         if (muteRepo?.isEventMuted(event) == true) return false
-        if (deletedEventsRepo?.isDeleted(event.id) == true) return false
+        if (deletedEventsRepo?.isEventDeleted(event) == true) return false
         return !isWotFiltered(event.pubkey, event.kind)
     }
 
@@ -586,7 +586,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
             val threadRoot = Nip22.getRootScopeId(event) ?: Nip10.getRootId(event) ?: Nip10.getReplyTarget(event) ?: event.id
             if (muteRepo?.isThreadMuted(threadRoot) == true) return
         }
-        if (deletedEventsRepo?.isDeleted(event.id) == true) return
+        if (deletedEventsRepo?.isEventDeleted(event) == true) return
         if (isWotFiltered(event.pubkey, event.kind)) return
         // Track liveness: only count followed authors with recent active-content kinds,
         // so historical fetches, profile metadata, and strangers don't inflate the online count.

@@ -214,6 +214,14 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
         publishVisibleCache(_scope.value, currentAuthors, currentUserPubkey)
     }
 
+    fun removeByAddress(pubkey: String, dTag: String) {
+        if (dTag.isBlank()) return
+        synchronized(cacheLock) {
+            cachedByAddress.remove("$pubkey:$dTag")
+        }
+        publishVisibleCache(_scope.value, currentAuthors, currentUserPubkey)
+    }
+
     override fun onCleared() {
         activeSubscriptionId = null
         loadJob?.cancel()

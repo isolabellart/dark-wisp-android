@@ -1173,6 +1173,16 @@ fun WispNavHost(
                     navController.navigate("marketplace/detail/${event.id}") {
                         launchSingleTop = true
                     }
+                },
+                onWithdrawn = {
+                    existingEvent?.let {
+                        marketplaceViewModel.removeByAddress(it.pubkey, Nip99.dTag(it))
+                    }
+                    if (!navController.popBackStack(Routes.MARKETPLACE, inclusive = false)) {
+                        navController.navigate(Routes.MARKETPLACE) {
+                            launchSingleTop = true
+                        }
+                    }
                 }
             )
         }

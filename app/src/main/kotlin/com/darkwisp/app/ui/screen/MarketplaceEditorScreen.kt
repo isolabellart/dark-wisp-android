@@ -1,5 +1,6 @@
 package com.darkwisp.app.ui.screen
 
+import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -55,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.darkwisp.app.R
 import com.darkwisp.app.nostr.ClientMessage
+import com.darkwisp.app.nostr.Nip09
 import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.MarketplaceRelays
 import com.darkwisp.app.nostr.MarketplaceCurrencies
@@ -72,6 +76,38 @@ import java.util.UUID
 
 private val MARKETPLACE_CURRENCY_CODES = MarketplaceCurrencies.ALL
 
+private suspend fun publishMarketplaceEvent(
+    relayPool: RelayPool,
+    event: NostrEvent,
+    context: Context
+) {
+    val message = ClientMessage.event(event)
+    relayPool.ensureWriteRelaysConnected(timeoutMs = 8_000)
+    relayPool.ensureMarketplaceWriteRelaysConnected(
+        MarketplaceRelays.WRITE,
+        timeoutMs = 8_000
+    )
+    var outcome = relayPool.publishWithConfirmation(event.id) {
+        relayPool.sendToWriteRelays(message) +
+            relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
+    }
+    if (outcome.sentCount == 0 || !outcome.confirmed) {
+        relayPool.cycleWriteRelays(timeoutMs = 8_000)
+        relayPool.ensureMarketplaceWriteRelaysConnected(
+            MarketplaceRelays.WRITE,
+            timeoutMs = 8_000,
+            forceReconnect = true
+        )
+        outcome = relayPool.publishWithConfirmation(event.id) {
+            relayPool.sendToWriteRelays(message) +
+                relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
+        }
+    }
+    if (outcome.sentCount == 0 || !outcome.confirmed) {
+        throw IllegalStateException(context.getString(R.string.marketplace_publish_unconfirmed))
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketplaceEditorScreen(
@@ -81,7 +117,8 @@ fun MarketplaceEditorScreen(
     relayPool: RelayPool,
     eventRepository: EventRepository,
     onBack: () -> Unit,
-    onPublished: (NostrEvent) -> Unit
+    onPublished: (NostrEvent) -> Unit,
+    onWithdrawn: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -108,6 +145,8 @@ fun MarketplaceEditorScreen(
 
     var uploading by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
+    var withdrawing by remember { mutableStateOf(false) }
+    var showWithdrawConfirmation by remember(existingEvent?.id) { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
     val imagePicker = rememberLauncherForActivityResult(
@@ -280,6 +319,21 @@ fun MarketplaceEditorScreen(
                             )
                         }
                     }
+                    if (existingEvent != null && existingEvent.pubkey == userPubkey) {
+                        item {
+                            TextButton(
+                                onClick = { showWithdrawConfirmation = true },
+                                enabled = !saving && !uploading && !withdrawing &&
+                                    signer?.pubkeyHex == existingEvent.pubkey,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    stringResource(R.string.marketplace_withdraw_listing),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -372,40 +426,7 @@ fun MarketplaceEditorScreen(
                                     content = description.trim(),
                                     tags = tags
                                 )
-                                val message = ClientMessage.event(event)
-                                // Bring the user's declared write relays and the public NIP-99
-                                // marketplace relays online before attempting the broadcast.
-                                relayPool.ensureWriteRelaysConnected(timeoutMs = 8_000)
-                                relayPool.ensureMarketplaceWriteRelaysConnected(
-                                    MarketplaceRelays.WRITE,
-                                    timeoutMs = 8_000
-                                )
-                                var outcome = relayPool.publishWithConfirmation(
-                                    event.id,
-                                    send = {
-                                        relayPool.sendToWriteRelays(message) +
-                                            relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
-                                    }
-                                )
-                                if (outcome.sentCount == 0 || !outcome.confirmed) {
-                                    // Recycle potentially half-open user sockets and retry once.
-                                    relayPool.cycleWriteRelays(timeoutMs = 8_000)
-                                    relayPool.ensureMarketplaceWriteRelaysConnected(
-                                        MarketplaceRelays.WRITE,
-                                        timeoutMs = 8_000,
-                                        forceReconnect = true
-                                    )
-                                    outcome = relayPool.publishWithConfirmation(
-                                        event.id,
-                                        send = {
-                                            relayPool.sendToWriteRelays(message) +
-                                                relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
-                                        }
-                                    )
-                                }
-                                if (outcome.sentCount == 0 || !outcome.confirmed) {
-                                    throw IllegalStateException(context.getString(R.string.marketplace_publish_unconfirmed))
-                                }
+                                publishMarketplaceEvent(relayPool, event, context)
                                 eventRepository.addEvent(event)
                                 onPublished(event)
                             } catch (e: Exception) {
@@ -416,7 +437,7 @@ fun MarketplaceEditorScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !saving && !uploading && signer != null
+                    enabled = !saving && !uploading && !withdrawing && signer != null
                 ) {
                     if (saving) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -427,5 +448,79 @@ fun MarketplaceEditorScreen(
                 Spacer(Modifier.height(10.dp))
             }
         }
+    }
+
+    if (showWithdrawConfirmation && existingEvent != null) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!withdrawing) showWithdrawConfirmation = false
+            },
+            title = { Text(stringResource(R.string.marketplace_withdraw_title)) },
+            text = { Text(stringResource(R.string.marketplace_withdraw_confirmation)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (withdrawing) return@TextButton
+                        scope.launch {
+                            withdrawing = true
+                            error = null
+                            try {
+                                val currentSigner = signer
+                                    ?: throw IllegalStateException(context.getString(R.string.marketplace_login_required))
+                                if (currentSigner.pubkeyHex != existingEvent.pubkey) {
+                                    throw IllegalStateException(context.getString(R.string.marketplace_withdraw_wrong_account))
+                                }
+                                val listingDTag = Nip99.dTag(existingEvent)
+                                require(listingDTag.isNotBlank()) {
+                                    context.getString(R.string.marketplace_withdraw_invalid_address)
+                                }
+                                val deletionEvent = currentSigner.signEvent(
+                                    kind = Nip09.KIND_DELETION,
+                                    content = context.getString(R.string.marketplace_withdrawal_reason),
+                                    tags = Nip09.buildAddressableDeletionTags(
+                                        kind = Nip99.KIND_LISTING,
+                                        pubkey = existingEvent.pubkey,
+                                        dTag = listingDTag
+                                    )
+                                )
+                                publishMarketplaceEvent(relayPool, deletionEvent, context)
+                                eventRepository.addEvent(deletionEvent)
+                                showWithdrawConfirmation = false
+                                onWithdrawn()
+                            } catch (e: Exception) {
+                                error = context.getString(
+                                    R.string.marketplace_withdraw_failed,
+                                    e.message ?: ""
+                                )
+                                showWithdrawConfirmation = false
+                            } finally {
+                                withdrawing = false
+                            }
+                        }
+                    },
+                    enabled = !withdrawing && !saving && !uploading
+                ) {
+                    if (withdrawing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(
+                        stringResource(R.string.marketplace_withdraw_confirm),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showWithdrawConfirmation = false },
+                    enabled = !withdrawing
+                ) {
+                    Text(stringResource(R.string.marketplace_withdraw_cancel))
+                }
+            }
+        )
     }
 }

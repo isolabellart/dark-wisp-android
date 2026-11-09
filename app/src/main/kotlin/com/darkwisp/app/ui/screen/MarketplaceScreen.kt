@@ -1,5 +1,9 @@
 package com.darkwisp.app.ui.screen
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -33,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.Badge
@@ -46,6 +51,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -66,6 +72,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -73,6 +80,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import com.darkwisp.app.R
+import com.darkwisp.app.nostr.MarketplaceRelays
+import com.darkwisp.app.nostr.Nip19
 import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.relay.RelayPool
@@ -297,6 +306,15 @@ fun MarketplaceDetailScreen(
         mutableStateOf("")
     }
     val suggestedMessage = stringResource(R.string.marketplace_message_intro, title)
+    val context = LocalContext.current
+    val listingNaddr = remember(event.pubkey, event.id) {
+        Nip19.naddrEncode(
+            dTag = Nip99.dTag(event),
+            authorHex = event.pubkey,
+            kind = Nip99.KIND_LISTING,
+            relays = MarketplaceRelays.READ.take(3)
+        )
+    }
 
     LaunchedEffect(event.id, suggestedMessage) {
         if (message.isBlank()) message = suggestedMessage
@@ -361,6 +379,18 @@ fun MarketplaceDetailScreen(
                     Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(8.dp)) {
                         Text(stringResource(R.string.marketplace_active), modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
                     }
+                }
+                OutlinedButton(
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("naddr", listingNaddr))
+                        Toast.makeText(context, R.string.marketplace_naddr_copied, Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.marketplace_copy_naddr))
                 }
                 if (summary.isNotBlank()) Text(summary, style = MaterialTheme.typography.titleMedium)
                 val location = Nip99.location(event)

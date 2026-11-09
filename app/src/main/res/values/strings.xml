@@ -1009,6 +1009,17 @@
     <string name="marketplace_status_label">Listing status</string>
     <string name="marketplace_active">Active</string>
     <string name="marketplace_sold">Sold</string>
+    <string name="marketplace_withdraw_listing">Withdraw listing</string>
+    <string name="marketplace_withdraw_title">Withdraw this listing?</string>
+    <string name="marketplace_withdraw_confirmation">This publishes a NIP-09 deletion request for this listing. Compatible relays are asked to remove every version, but not every relay or client is guaranteed to honor the request.</string>
+    <string name="marketplace_withdraw_confirm">Withdraw listing</string>
+    <string name="marketplace_withdraw_cancel">Keep listing</string>
+    <string name="marketplace_withdrawal_reason">Listing withdrawn by the seller.</string>
+    <string name="marketplace_withdraw_wrong_account">Sign in with the account that published this listing.</string>
+    <string name="marketplace_withdraw_invalid_address">The listing has no valid address identifier.</string>
+    <string name="marketplace_withdraw_failed">Could not withdraw listing: %1$s</string>
+    <string name="marketplace_copy_naddr">Copy naddr</string>
+    <string name="marketplace_naddr_copied">naddr copied to clipboard</string>
     <string name="marketplace_photos">Photos</string>
     <string name="marketplace_add_photos">Add photos</string>
     <string name="marketplace_uploading">Uploading photos…</string>
