@@ -85,12 +85,24 @@ jobs:
             echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD"
           } >> "$GITHUB_ENV"
 
-      - name: Run tests and build signed release APK
+      # Compile the staging test variant and release variant in separate Gradle
+      # invocations. Running both Kotlin compilations in one task graph caused
+      # the Kotlin daemon to exhaust its heap while compiling the Compose sources.
+      - name: Run staging unit tests
         if: steps.signing.outputs.ready == 'true'
         shell: bash
         run: |
           ./gradlew --no-daemon --no-build-cache --max-workers=2 \
-            testStagingUnitTest assembleRelease --stacktrace
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
+            testStagingUnitTest --stacktrace
+
+      - name: Build signed release APK
+        if: steps.signing.outputs.ready == 'true'
+        shell: bash
+        run: |
+          ./gradlew --no-daemon --no-build-cache --max-workers=2 \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
+            assembleRelease --stacktrace
 
       - name: Verify APK signature and certificate
         if: steps.signing.outputs.ready == 'true'
