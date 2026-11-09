@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Adaptive-icon foreground — the wisp glyph wearing pixel shades.
+  Adaptive-icon foreground — the wisp glyph with bright star-shaped eyes.
 
   Pure vector, 1024-unit viewport. The art is 729x768 (wider than the
-  bare glyph, since the shades overhang to the left), placed by the inner
+  bare glyph, since the eye accents remain within the silhouette), placed by the inner
   group's translate so its centre lands on the canvas centre.
 
   The radial gradient is approximated as a circular one — the source SVG
@@ -11,7 +11,7 @@
   AAPT vector drawables don't support, but the visual difference at
   launcher-icon sizes is negligible.
 
-  The source SVG clipped the shades to a rect; measured against the path
+  The source SVG clipped the eyes to a rect; measured against the path
   bounds that clip is a no-op, so it is dropped here.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -47,8 +47,9 @@
                     </gradient>
                 </aapt:attr>
             </path>
-            <path android:fillColor="#000000" android:pathData="M0 360.024H617V384.624H0V360.024ZM0 384.624H172.76V409.224H0V384.624ZM197.44 384.624H222.12V409.224H197.44V384.624ZM246.8 384.624H271.48V433.824H246.8V384.624ZM320.84 384.624H493.6V409.224H320.84V384.624ZM518.28 384.624H542.96V409.224H518.28V384.624ZM567.64 384.624H617V409.224H567.64V384.624ZM24.68 409.224H148.08V433.824H24.68V409.224ZM172.76 409.224H197.44V433.824H172.76V409.224ZM222.12 409.224H246.8V458.424H222.12V409.224ZM320.84 409.224H468.92V433.824H320.84V409.224ZM493.6 409.224H518.28V433.824H493.6V409.224ZM542.96 409.224H592.32V433.824H542.96V409.224ZM49.36 433.824H123.4V458.424H49.36V433.824ZM148.08 433.824H172.76V483.024H148.08V433.824ZM197.44 433.824H222.12V483.024H197.44V433.824ZM345.52 433.824H444.24V458.424H345.52V433.824ZM468.92 433.824H493.6V483.024H468.92V433.824ZM518.28 433.824H567.64V458.424H518.28V433.824ZM74.04 458.424H148.08V483.024H74.04V458.424ZM172.76 458.424H197.44V483.024H172.76V458.424ZM370.2 458.424H468.92V483.024H370.2V458.424ZM493.6 458.424H542.96V483.024H493.6V458.424Z"/>
-            <path android:fillColor="#50524F" android:pathData="M172.76 384.624H197.44V409.224H172.76V384.624ZM222.12 384.624H246.8V409.224H222.12V384.624ZM493.6 384.624H518.28V409.224H493.6V384.624ZM542.96 384.624H567.64V409.224H542.96V384.624ZM148.08 409.224H172.76V433.824H148.08V409.224ZM197.44 409.224H222.12V433.824H197.44V409.224ZM468.92 409.224H493.6V433.824H468.92V409.224ZM518.28 409.224H542.96V433.824H518.28V409.224ZM123.4 433.824H148.08V458.424H123.4V433.824ZM172.76 433.824H197.44V458.424H172.76V433.824ZM444.24 433.824H468.92V458.424H444.24V433.824ZM493.6 433.824H518.28V458.424H493.6V433.824Z"/>
+            <path android:fillColor="#FFFFD85A" android:strokeColor="#FF7B351D" android:strokeWidth="8" android:strokeLineJoin="round" android:pathData="M210.0,377.0 L 222.3,406.0 L 253.7,408.8 L 230.0,429.5 L 237.0,460.2 L 210.0,444.0 L 183.0,460.2 L 190.0,429.5 L 166.3,408.8 L 197.7,406.0 Z"/>
+            <path android:fillColor="#FFFFD85A" android:strokeColor="#FF7B351D" android:strokeWidth="8" android:strokeLineJoin="round" android:pathData="M408.0,377.0 L 420.3,406.0 L 451.7,408.8 L 428.0,429.5 L 435.0,460.2 L 408.0,444.0 L 381.0,460.2 L 388.0,429.5 L 364.3,408.8 L 395.7,406.0 Z"/>
+            
             <path android:fillColor="#000000" android:pathData="M225,529.024h142v35h-142z"/>
         </group>
     </group>

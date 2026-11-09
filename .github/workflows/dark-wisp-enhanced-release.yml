@@ -1,0 +1,161 @@
+name: Dark Wisp Enhanced release
+
+on:
+  push:
+    branches:
+      - release/dark-wisp-enhanced
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Optional release tag (defaults to the Gradle versionName)
+        required: false
+        type: string
+      prerelease:
+        description: Publish as a GitHub pre-release
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check signing secrets
+        id: signing
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.DARK_WISP_ENHANCED_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.DARK_WISP_ENHANCED_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.DARK_WISP_ENHANCED_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.DARK_WISP_ENHANCED_KEY_PASSWORD }}
+        run: |
+          missing=()
+          [[ -z "$KEYSTORE_B64" ]] && missing+=("DARK_WISP_ENHANCED_KEYSTORE_BASE64")
+          [[ -z "$STORE_PASSWORD" ]] && missing+=("DARK_WISP_ENHANCED_STORE_PASSWORD")
+          [[ -z "$KEY_ALIAS" ]] && missing+=("DARK_WISP_ENHANCED_KEY_ALIAS")
+          [[ -z "$KEY_PASSWORD" ]] && missing+=("DARK_WISP_ENHANCED_KEY_PASSWORD")
+          if (( ${#missing[@]} > 0 )); then
+            echo "::notice title=Signing not configured::Add repository Actions secrets: ${missing[*]}"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Explain skipped release
+        if: steps.signing.outputs.ready != 'true'
+        run: |
+          echo "No APK was built or published."
+          echo "Configure the four Dark Wisp Enhanced signing secrets, then push a new commit to this branch."
+
+      - name: Check out source
+        if: steps.signing.outputs.ready == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        if: steps.signing.outputs.ready == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        if: steps.signing.outputs.ready == 'true'
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode release keystore
+        if: steps.signing.outputs.ready == 'true'
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.DARK_WISP_ENHANCED_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.DARK_WISP_ENHANCED_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.DARK_WISP_ENHANCED_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.DARK_WISP_ENHANCED_KEY_PASSWORD }}
+        run: |
+          KEYSTORE_PATH="$RUNNER_TEMP/dark-wisp-enhanced-release.jks"
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+          {
+            echo "RELEASE_STORE_FILE=$KEYSTORE_PATH"
+            echo "RELEASE_STORE_PASSWORD=$STORE_PASSWORD"
+            echo "RELEASE_KEY_ALIAS=$KEY_ALIAS"
+            echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Run tests and build signed release APK
+        if: steps.signing.outputs.ready == 'true'
+        shell: bash
+        run: |
+          ./gradlew --no-daemon --no-build-cache --max-workers=2 \
+            testStagingUnitTest assembleRelease --stacktrace
+
+      - name: Verify APK signature and certificate
+        if: steps.signing.outputs.ready == 'true'
+        shell: bash
+        run: |
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee "$RUNNER_TEMP/apk-signature.txt"
+          grep -Eiq "Signer #1 certificate SHA-256 digest: 86868a366? ?$" "$RUNNER_TEMP/apk-signature.txt" || \
+            grep -Eiq "86868a366? ?[0-9a-f]{0,}" "$RUNNER_TEMP/apk-signature.txt"
+          sha256sum "$APK" | tee "$RUNNER_TEMP/apk-sha256.txt"
+
+      - name: Determine release metadata
+        if: steps.signing.outputs.ready == 'true'
+        id: release
+        shell: bash
+        env:
+          RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
+          PRERELEASE_INPUT: ${{ inputs.prerelease }}
+        run: |
+          VERSION_NAME="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
+          test -n "$VERSION_NAME"
+          TAG="$RELEASE_TAG_INPUT"
+          [[ -n "$TAG" ]] || TAG="v$VERSION_NAME"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if [[ "$PRERELEASE_INPUT" == "false" ]]; then
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload signed APK as workflow artifact
+        if: steps.signing.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dark-wisp-enhanced-${{ steps.release.outputs.tag }}
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish GitHub Release
+        if: steps.signing.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          IS_PRERELEASE: ${{ steps.release.outputs.prerelease }}
+        shell: bash
+        run: |
+          APK="app/build/outputs/apk/release/app-release.apk"
+          APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
+          NOTES="$RUNNER_TEMP/release-notes.md"
+          cat > "$NOTES" <<EOF
+          Dark Wisp Enhanced Android release.
+
+          - Package: `com.isolabellart.darkwispenhanced`
+          - Signed APK: `Dark-Wisp-Enhanced-${RELEASE_TAG}.apk`
+          - SHA-256: `$APK_SHA256`
+
+          Please keep the original APK signing keystore safe. Future updates must use the same signing identity.
+          EOF
+          args=()
+          [[ "$IS_PRERELEASE" == "true" ]] && args+=(--prerelease)
+          gh release create "$RELEASE_TAG" "$APK#Dark-Wisp-Enhanced-${RELEASE_TAG}.apk" \
+            --title "Dark Wisp Enhanced ${RELEASE_TAG}" \
+            --target "$GITHUB_SHA" \
+            --notes-file "$NOTES" "${args[@]}"

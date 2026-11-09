@@ -26,9 +26,9 @@ android {
         applicationId = baseApplicationId
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.3.0"
-        resValue("string", "app_name", "Dark Wisp")
+        versionCode = 1
+        versionName = "1.0.0"
+        resValue("string", "app_name", "Dark Wisp Enhanced")
 
         ndk {
             abiFilters += "arm64-v8a"
@@ -52,7 +52,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = debugApplicationIdSuffix
-            resValue("string", "app_name", "Dark Wisp Debug")
+            resValue("string", "app_name", "Dark Wisp Enhanced Debug")
         }
 
         release {
@@ -73,7 +73,7 @@ android {
             // it without the release keystore. Installs alongside debug/release.
             initWith(getByName("release"))
             applicationIdSuffix = ".staging"
-            resValue("string", "app_name", "Dark Wisp Staging")
+            resValue("string", "app_name", "Dark Wisp Enhanced Staging")
             signingConfig = signingConfigs.getByName("debug")
         }
     }

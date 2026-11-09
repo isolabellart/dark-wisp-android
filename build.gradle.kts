@@ -1,4 +1,4 @@
-extra["baseApplicationId"] = "com.darkwisp.app"
+extra["baseApplicationId"] = "com.isolabellart.darkwispenhanced"
 extra["debugApplicationIdSuffix"] = ".debug"
 
 plugins {

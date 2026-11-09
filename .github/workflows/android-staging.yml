@@ -9,6 +9,7 @@ on:
       - feat/feed-redesign-navigation
       - feature/nip99-marketplace-integrated-fixes
       - fix/marketplace-stability-zoom
+      - release/dark-wisp-enhanced
   workflow_dispatch:
 
 permissions:
