@@ -1,8 +1,10 @@
-# Dark Wisp
+# Dark Wisp Enhanced
 
-A minimal, performant Android client for the [Nostr](https://nostr.com) protocol. Built with Kotlin and Jetpack Compose (Material 3), Dark Wisp prioritizes decentralization, intelligent relay routing, strong privacy, and a clean native experience.
+An independent Enhanced build of [Dark Wisp](https://github.com/barrydeen/dark-wisp-android) for Android. It is built with Kotlin and Jetpack Compose (Material 3), carrying the original project's Nostr foundations into a separately maintained release line.
 
-> **Status:** v1.0.0 — stable, actively developed.
+Dark Wisp Enhanced is an independent downstream fork, not an official release of the upstream project. It uses its own Android application ID, so it can be installed alongside the original Dark Wisp.
+
+> **Status:** v1.0.5 — current stable release. [Download the latest APK](../../releases/latest).
 
 ---
 
@@ -241,7 +243,9 @@ Also: **Blossom** media servers (BUDs 01–03), **NWC** transport, and **bolt11*
 
 ### Installation
 
-APK downloads are available on the [Releases](../../releases) page.
+Download the current stable APK from the [latest GitHub Release](../../releases/latest). The current release is **Dark Wisp Enhanced v1.0.5**.
+
+Dark Wisp Enhanced is a separate Android application with package ID `com.isolabellart.darkwispenhanced`; it can be installed alongside the original Dark Wisp without replacing it. This build targets Android 8.0 (API 26) or later and currently packages the `arm64-v8a` architecture.
 
 ### First Launch
 
@@ -264,8 +268,8 @@ APK downloads are available on the [Releases](../../releases) page.
 ### Build
 
 ```bash
-# Clone the repository
-git clone https://github.com/barrydeen/dark-wisp-android.git
+# Clone the Enhanced fork
+git clone https://github.com/isolabellart/dark-wisp-android.git
 cd dark-wisp-android
 
 # Build debug APK
@@ -278,7 +282,7 @@ cd dark-wisp-android
 ./gradlew assembleRelease
 ```
 
-Release builds use R8 minification; keep rules live in `app/proguard-rules.pro` and cover kotlinx.serialization, secp256k1 JNI, Bouncy Castle, OkHttp, Coil, Security Crypto, Media3, and ZXing.
+Release builds use R8 minification; keep rules live in `app/proguard-rules.pro` and cover kotlinx.serialization, secp256k1 JNI, Bouncy Castle, OkHttp, Coil, Security Crypto, Media3, and ZXing. A local release build is signed only when the permanent release-signing properties are configured; otherwise Gradle produces an unsigned release APK. For the signing identity, GitHub Actions secrets, and publishing procedure, see [RELEASE_SIGNING.md](RELEASE_SIGNING.md).
 
 ---
 
@@ -314,14 +318,9 @@ Contributions are welcome. Dark Wisp is open source and community help makes it 
 - Translations and localization
 - Documentation improvements
 
-### Reporting Issues
+### Bug reports
 
-[Open an issue](../../issues) with:
-
-- Steps to reproduce (for bugs)
-- Expected vs actual behavior
-- Device and Android version
-- Relevant logs from the in-app relay console (if applicable)
+GitHub Issues are currently disabled for this repository, so the `/issues` page is not an active bug-reporting channel. Please do not rely on it for support or issue tracking.
 
 ---
 
@@ -349,7 +348,7 @@ Contributions are welcome. Dark Wisp is open source and community help makes it 
 
 ## License
 
-Dark Wisp is released under the [MIT License](LICENSE).
+Dark Wisp Enhanced retains the upstream project's [MIT License](LICENSE) and original copyright notice.
 
 ```
 MIT License
