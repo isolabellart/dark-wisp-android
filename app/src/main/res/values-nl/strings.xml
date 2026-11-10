@@ -780,4 +780,5 @@
     <string name="marketplace_dm_privacy">Er wordt een privé NIP-17-chat geopend. Je kunt je bericht daar controleren en verzenden.</string>
     <string name="marketplace_dm_relay_required">Deze verkoper heeft geen NIP-17 DM-relaylijst (kind 10050) gepubliceerd. Om je privacy te beschermen gebruikt Dark Wisp geen terugvalrelays.</string>
     <string name="marketplace_seller_label">Verkoper</string>
+    <string name="drawer_set_up_wallet">Wallet instellen</string>
 </resources>
