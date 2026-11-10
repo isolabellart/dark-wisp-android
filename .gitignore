@@ -15,3 +15,8 @@ node_modules/
 app/temp/
 .kotlin/
 .vscode/
+
+# Local credentials and developer settings; never commit these files.
+.env
+.env.*
+!.env.example
