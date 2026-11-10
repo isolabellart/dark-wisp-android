@@ -212,6 +212,8 @@
     <string name="tab_muted_users">ミュートユーザー</string>
     <string name="tab_replies">返信</string>
     <string name="tab_with_reply">返信あり</string>
+    <string name="tab_conversations">会話</string>
+    <string name="feed_conversations_end">会話の最後に到達しました。</string>
     <string name="tab_media">メディア</string>
     <string name="tab_following">フォロー中</string>
     <string name="tab_relays">リレー</string>
