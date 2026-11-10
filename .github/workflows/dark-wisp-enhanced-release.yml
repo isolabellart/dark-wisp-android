@@ -1,11 +1,7 @@
 name: Dark Wisp Enhanced release
 
-# Publish the tested 1.0.5 release from the Enhanced branch.
-# Push trigger is removed again after this one-time publication.
+# Manual publication only. Build and certificate checks run before any release is created.
 on:
-  push:
-    branches:
-      - "release/dark-wisp-enhanced"
   workflow_dispatch:
     inputs:
       release_tag:
@@ -186,7 +182,7 @@ jobs:
       - name: Publish GitHub Release
         if: steps.signing.outputs.ready == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.DARK_WISP_ENHANCED_RELEASE_TOKEN || github.token }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
           IS_PRERELEASE: ${{ steps.release.outputs.prerelease }}
         shell: bash
@@ -209,10 +205,10 @@ jobs:
           - The mini-wallet entry, including **Set up wallet**, is available in the drawer.
 
           ## Separate installation and wallet safety
-          Dark Wisp Enhanced uses its own Android application ID: `com.isolabellart.darkwispenhanced`. Installing it does not overwrite the original Dark Wisp app or erase its local data. The two apps keep separate local app data; accounts and wallet access in Enhanced should be imported or restored using the normal secure recovery process. Keep your recovery phrase/private-key backup offline and never share it.
+          Dark Wisp Enhanced uses its own Android application ID: \`com.isolabellart.darkwispenhanced\`. Installing it does not overwrite the original Dark Wisp app or erase its local data. The two apps keep separate local app data; accounts and wallet access in Enhanced should be imported or restored using the normal secure recovery process. Keep your recovery phrase/private-key backup offline and never share it.
 
           Future Enhanced updates use the same permanent APK signing certificate:
-          `86868a3659729a6531f3e8a31d5dcfe04405e2a86866f3e0eb0abb6965cdb841`.
+          \`86868a3659729a6531f3e8a31d5dcfe04405e2a86866f3e0eb0abb6965cdb841\`.
 
           Package: com.isolabellart.darkwispenhanced
           Version: 1.0.5 (6)
@@ -235,7 +231,7 @@ jobs:
           - Mini-wallet nel drawer, compresa la voce **Set up wallet**.
 
           ## Installazione separata e sicurezza del wallet
-          Dark Wisp Enhanced usa un proprio identificativo Android: `com.isolabellart.darkwispenhanced`. L'installazione non sovrascrive Dark Wisp originale e non cancella i suoi dati locali. Le due app mantengono dati locali separati; per usare account e wallet in Enhanced occorre importarli o ripristinarli con la normale procedura sicura. Conserva offline il backup della frase di recupero/chiave privata e non condividerlo mai.
+          Dark Wisp Enhanced usa un proprio identificativo Android: \`com.isolabellart.darkwispenhanced\`. L'installazione non sovrascrive Dark Wisp originale e non cancella i suoi dati locali. Le due app mantengono dati locali separati; per usare account e wallet in Enhanced occorre importarli o ripristinarli con la normale procedura sicura. Conserva offline il backup della frase di recupero/chiave privata e non condividerlo mai.
 
           Le future versioni Enhanced manterranno lo stesso certificato di firma permanente.
 
