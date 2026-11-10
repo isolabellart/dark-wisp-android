@@ -3612,12 +3612,14 @@ private fun FeedModeTab(
         fontSize = 15.sp,
         fontWeight = fontWeight
     )
-    val measuredTextWidth = textMeasurer.measure(
-        text = label,
-        style = baseTextStyle,
-        softWrap = false,
-        maxLines = 1
-    ).size.width
+    val measuredTextWidth = remember(label, baseTextStyle) {
+        textMeasurer.measure(
+            text = label,
+            style = baseTextStyle,
+            softWrap = false,
+            maxLines = 1
+        ).size.width
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -3625,9 +3627,9 @@ private fun FeedModeTab(
             .clickable(onClick = onClick)
             .padding(horizontal = if (equalWidth) 2.dp else 7.dp)
     ) {
-        val availableTextWidthPx = (
-            (maxWidth.value - if (showChevron) 18f else 0f) * density.density
-        ).toInt().coerceAtLeast(1)
+        val availableTextWidthPx = with(density) {
+            (maxWidth - if (showChevron) 18.dp else 0.dp).roundToPx()
+        }.coerceAtLeast(1)
         val fitScale = (availableTextWidthPx.toFloat() / measuredTextWidth.coerceAtLeast(1))
             .coerceAtMost(1f)
         val fittedFontSize = (15f * fitScale).coerceAtLeast(10f).sp
