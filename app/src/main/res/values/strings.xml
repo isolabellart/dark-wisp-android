@@ -213,6 +213,8 @@
     <string name="tab_notes">Notes</string>
     <string name="tab_for_you">For you</string>
     <string name="tab_with_reply">With reply</string>
+    <string name="tab_conversations">Conversations</string>
+    <string name="feed_conversations_end">You have reached the end of conversations.</string>
     <string name="tab_more">More</string>
     <string name="tab_text">Text</string>
     <string name="tab_gallery">Gallery</string>
