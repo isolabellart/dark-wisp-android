@@ -47,13 +47,13 @@ jobs:
             echo "Package: $PACKAGE_ID"
             echo "Version: $VERSION_NAME"
             [[ "$PACKAGE_ID" == "com.isolabellart.darkwispenhanced.staging" ]]
-            [[ "$VERSION_NAME" == "1.0.2" ]]
+            [[ "$VERSION_NAME" == "1.0.3" ]]
           fi
 
       - name: Upload staging APK
         uses: actions/upload-artifact@v4
         with:
-          name: dark-wisp-enhanced-staging-1.0.2
+          name: dark-wisp-enhanced-staging-1.0.3
           path: app/build/outputs/apk/staging/*.apk
           if-no-files-found: error
           retention-days: 90

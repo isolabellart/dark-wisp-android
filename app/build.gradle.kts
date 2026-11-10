@@ -26,8 +26,8 @@ android {
         applicationId = baseApplicationId
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
         resValue("string", "app_name", "Dark Wisp Enhanced")
 
         ndk {
@@ -65,12 +65,9 @@ android {
         }
 
         create("staging") {
-            // Reliable on-device validation build: leave R8 and resource shrinking off
-            // until startup has been confirmed. The final signed release remains minified.
-            // It is still non-debuggable, so Android can use the packaged baseline profile.
+            // Match the known-working Build #61 configuration: non-debuggable,
+            // R8-minified and resource-shrunk, with a separate debug signing identity.
             initWith(getByName("release"))
-            isMinifyEnabled = false
-            isShrinkResources = false
             applicationIdSuffix = ".staging"
             resValue("string", "app_name", "Dark Wisp Enhanced Staging")
             signingConfig = signingConfigs.getByName("debug")

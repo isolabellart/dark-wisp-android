@@ -41,4 +41,4 @@ The workflow runs unit tests, builds `assembleRelease`, verifies the APK signatu
 
 ## Versioning
 
-The corrected validation line uses versionCode `3`, versionName `1.0.2`. The earlier `1.0.0` and `1.0.1` artifacts are superseded and should not be distributed. Increase versionCode for every subsequent Android update. Keep the application ID and signing key unchanged for all updates in this release line.
+The next validation build uses versionCode `4`, versionName `1.0.3`. Earlier `1.0.0`, `1.0.1` and `1.0.2` artifacts are superseded and should not be distributed. Staging now keeps the same R8 and resource-shrinking configuration as the known-working Build #61. Increase versionCode for every subsequent Android update. Keep the application ID and signing key unchanged for all updates in this release line.
