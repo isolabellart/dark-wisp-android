@@ -178,8 +178,22 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         if (event.pubkey !in replyFeedAuthors) return false
         return when (event.kind) {
             1 -> Nip10.isReply(event)
-            Nip22.KIND_COMMENT -> event.tags.any { tag ->
-                tag.size >= 2 && tag[0] in setOf("e", "E", "a", "A")
+            Nip22.KIND_COMMENT -> {
+                val tags = event.tags
+                val hasRootScope = tags.any {
+                    it.size >= 2 && it[0] in setOf("E", "A", "I") && it[1].isNotBlank()
+                }
+                val hasRootKind = tags.any {
+                    it.size >= 2 && it[0] == "K" && it[1].isNotBlank()
+                }
+                val hasParentScope = tags.any {
+                    it.size >= 2 && it[0] in setOf("e", "a", "i") && it[1].isNotBlank()
+                }
+                val hasParentKind = tags.any {
+                    it.size >= 2 && it[0] == "k" && it[1].isNotBlank()
+                }
+                // NIP-22 requires both root (E/A/I + K) and parent (e/a/i + k) scopes.
+                hasRootScope && hasRootKind && hasParentScope && hasParentKind
             }
             else -> false
         }
@@ -683,8 +697,13 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
                     val target = eventCache[id]
                     val repostTarget = repostTargetsByEventId.get(id)
                     val repostRecord = repostTarget?.let { repostEvents.get(it)?.get(id) }
-                    val authorMatches = repostRecord == null || repostRecord.author == event.pubkey
-                    if ((target == null || target.pubkey == event.pubkey) && authorMatches) {
+                    // A NIP-09 deletion is authoritative only when its target is known
+                    // and the target (or repost record) belongs to the deletion author.
+                    // Unknown IDs must never create tombstones before an event arrives.
+                    val authorMatches =
+                        target?.pubkey == event.pubkey ||
+                            repostRecord?.author == event.pubkey
+                    if (authorMatches) {
                         deletedEventsRepo?.markDeleted(id)
                         if (repostRecord != null) removeRepostEvent(id, event.pubkey)
                         removeEvent(id)
