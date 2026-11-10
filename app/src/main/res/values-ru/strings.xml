@@ -741,4 +741,5 @@
     <string name="marketplace_dm_privacy">Откроется приватный чат NIP-17. Вы сможете проверить сообщение и отправить его оттуда.</string>
     <string name="marketplace_dm_relay_required">Продавец не опубликовал список DM-ретрансляторов NIP-17 (kind 10050). Для защиты конфиденциальности Dark Wisp не будет использовать запасные relay.</string>
     <string name="marketplace_seller_label">Продавец</string>
+    <string name="drawer_set_up_wallet">Настроить кошелёк</string>
 </resources>
