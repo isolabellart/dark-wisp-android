@@ -60,7 +60,7 @@ jobs:
           RELEASE_TOKEN: ${{ secrets.DARK_WISP_ENHANCED_RELEASE_TOKEN }}
         run: |
           if [[ -z "$RELEASE_TOKEN" ]]; then
-            echo "::error::Add repository secret DARK_WISP_ENHANCED_RELEASE_TOKEN with a fine-grained PAT limited to this repository and Contents: Read and write."
+            echo "::error::Add repository secret DARK_WISP_ENHANCED_RELEASE_TOKEN with a fine-grained PAT limited to this repository and Contents: Read and write plus Workflows: Read and write."
             exit 1
           fi
 
