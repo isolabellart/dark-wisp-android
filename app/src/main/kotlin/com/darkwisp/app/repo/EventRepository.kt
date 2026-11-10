@@ -15,6 +15,7 @@ import com.darkwisp.app.nostr.NostrEvent.Companion.fromJson
 import com.darkwisp.app.nostr.ProfileData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
@@ -146,31 +147,70 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     private val _replyFeed = MutableStateFlow<List<NostrEvent>>(emptyList())
     val replyFeed: StateFlow<List<NostrEvent>> = _replyFeed
     @Volatile private var replyFeedAuthors: Set<String> = emptySet()
+    private var replyFeedScanJob: Job? = null
+    @Volatile private var replyFeedScanGeneration = 0L
 
     fun setReplyFeedAuthors(authors: Set<String>) {
-        replyFeedAuthors = authors
-        val since = System.currentTimeMillis() / 1000 - 7 * 24 * 3600L
-        val cachedReplies = eventCache.values.asSequence()
-            .filter { it.created_at >= since && isReplyFeedEvent(it) }
-            .filter { muteRepo?.isBlocked(it.pubkey) != true }
-            .filter { muteRepo?.isEventMuted(it) != true }
-            .filter { deletedEventsRepo?.isDeleted(it.id) != true }
-            .filter { !isWotFiltered(it.pubkey, it.kind) }
-            .filter {
-                val root = Nip22.getRootScopeId(it) ?: Nip10.getRootId(it) ?: Nip10.getReplyTarget(it) ?: it.id
-                muteRepo?.isThreadMuted(root) != true
-            }
-            .sortedByDescending { it.created_at }
-            .take(500)
-            .toList()
+        val nextAuthors = authors.toSet()
+        if (nextAuthors == replyFeedAuthors) return
+
+        replyFeedAuthors = nextAuthors
+        val generation = ++replyFeedScanGeneration
+        replyFeedScanJob?.cancel()
+
+        // Immediately remove replies from authors that are no longer followed.
+        // The cache scan below repopulates newly eligible replies asynchronously.
         synchronized(replyFeedList) {
+            val retained = replyFeedList.filter { it.pubkey in nextAuthors }
             replyFeedList.clear()
+            replyFeedList.addAll(retained)
             replyFeedIds.clear()
-            cachedReplies.forEach {
-                replyFeedList.add(it)
-                replyFeedIds.add(it.id)
-            }
+            replyFeedIds.addAll(retained.map { it.id })
             _replyFeed.value = ArrayList(replyFeedList)
+        }
+
+        if (nextAuthors.isEmpty()) {
+            replyFeedScanJob = null
+            return
+        }
+
+        // Cache scanning and sorting can touch thousands of events. Keep it off the
+        // caller/UI thread, while merging any live events inserted during the scan.
+        replyFeedScanJob = scope.launch(Dispatchers.Default) {
+            val since = System.currentTimeMillis() / 1000 - 7 * 24 * 3600L
+            val cachedReplies = eventCache.values.asSequence()
+                .filter { it.created_at >= since && isReplyFeedEvent(it) }
+                .filter { muteRepo?.isBlocked(it.pubkey) != true }
+                .filter { muteRepo?.isEventMuted(it) != true }
+                .filter { deletedEventsRepo?.isDeleted(it.id) != true }
+                .filter { !isWotFiltered(it.pubkey, it.kind) }
+                .filter {
+                    val root = Nip22.getRootScopeId(it) ?: Nip10.getRootId(it) ?: Nip10.getReplyTarget(it) ?: it.id
+                    muteRepo?.isThreadMuted(root) != true
+                }
+                .toList()
+
+            if (generation != replyFeedScanGeneration) return@launch
+
+            synchronized(replyFeedList) {
+                if (generation != replyFeedScanGeneration) return@synchronized
+                val merged = LinkedHashMap<String, NostrEvent>()
+                cachedReplies.forEach { merged[it.id] = it }
+                // A live event may have arrived after the cache snapshot was taken.
+                replyFeedList.forEach { event ->
+                    if (event.created_at >= since && isReplyFeedEvent(event)) {
+                        merged[event.id] = event
+                    }
+                }
+                val sorted = merged.values
+                    .sortedByDescending { it.created_at }
+                    .take(500)
+                replyFeedList.clear()
+                replyFeedList.addAll(sorted)
+                replyFeedIds.clear()
+                replyFeedIds.addAll(sorted.map { it.id })
+                _replyFeed.value = ArrayList(replyFeedList)
+            }
         }
     }
 
