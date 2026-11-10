@@ -212,6 +212,8 @@
     <string name="tab_muted_users">Utilisateurs Masqués</string>
     <string name="tab_replies">Réponses</string>
     <string name="tab_with_reply">Avec des réponses</string>
+    <string name="tab_conversations">Conversations</string>
+    <string name="feed_conversations_end">Vous avez atteint la fin des conversations.</string>
     <string name="tab_media">Médias</string>
     <string name="tab_following">Abonnements</string>
     <string name="tab_relays">Relais</string>
