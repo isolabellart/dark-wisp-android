@@ -1,7 +1,11 @@
 name: Dark Wisp Enhanced release
 
-# Manual-only while staging startup is being validated.
+# Publish the tested 1.0.5 release from the Enhanced branch.
+# Push trigger is removed again after this one-time publication.
 on:
+  push:
+    branches:
+      - "release/dark-wisp-enhanced"
   workflow_dispatch:
     inputs:
       release_tag:
@@ -11,7 +15,7 @@ on:
       prerelease:
         description: Publish as a GitHub pre-release
         required: true
-        default: true
+        default: false
         type: boolean
 
 permissions:
@@ -108,6 +112,18 @@ jobs:
         run: |
           APK="app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
+
+          APKANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer | head -n 1)"
+          test -x "$APKANALYZER"
+          PACKAGE_ID="$("$APKANALYZER" manifest application-id "$APK")"
+          VERSION_NAME="$("$APKANALYZER" manifest version-name "$APK")"
+          VERSION_CODE="$("$APKANALYZER" manifest version-code "$APK")"
+          echo "Package: $PACKAGE_ID"
+          echo "Version: $VERSION_NAME ($VERSION_CODE)"
+          [[ "$PACKAGE_ID" == "com.isolabellart.darkwispenhanced" ]]
+          [[ "$VERSION_NAME" == "1.0.5" ]]
+          [[ "$VERSION_CODE" == "6" ]]
+
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
           SIGNATURE_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "$APK" 2>&1)"
@@ -140,10 +156,14 @@ jobs:
           TAG="$RELEASE_TAG_INPUT"
           [[ -n "$TAG" ]] || TAG="v$VERSION_NAME"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          if [[ "$PRERELEASE_INPUT" == "false" ]]; then
+          # A push to the designated Enhanced release branch publishes a
+          # normal GitHub Release. Manual dispatch can still opt into prerelease.
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
-          else
+          elif [[ "$PRERELEASE_INPUT" == "true" ]]; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Upload signed APK as workflow artifact
@@ -167,13 +187,54 @@ jobs:
           APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
           NOTES="$RUNNER_TEMP/release-notes.md"
           cat > "$NOTES" <<EOF
-          Dark Wisp Enhanced Android release.
+          # Dark Wisp Enhanced 1.0.5
+
+          **An independent Enhanced build of Dark Wisp for Android.**
+
+          Dark Wisp Enhanced keeps the solid foundations of Dark Wisp and adds optional interface and workflow improvements. It is a separate project line: not an official upstream release, not a replacement for the original app, and not a promise of a bug-free nightly. Some ideas may be proposed to the upstream project in the future.
+
+          ## Highlights
+          - Drawer placement can be chosen on the left or right, with online-user and connected-relay indicators.
+          - DeepL translation integrated into the app.
+          - Improved Conversations feed and event handling, including NIP-22 and NIP-09 safeguards.
+          - Enhanced NIP-99 Marketplace experience, with seller profile/avatar, listing detail recovery and copyable naddr.
+          - The mini-wallet entry, including **Set up wallet**, is available in the drawer.
+
+          ## Separate installation and wallet safety
+          Dark Wisp Enhanced uses its own Android application ID: `com.isolabellart.darkwispenhanced`. Installing it does not overwrite the original Dark Wisp app or erase its local data. The two apps keep separate local app data; accounts and wallet access in Enhanced should be imported or restored using the normal secure recovery process. Keep your recovery phrase/private-key backup offline and never share it.
+
+          Future Enhanced updates use the same permanent APK signing certificate:
+          `86868a3659729a6531f3e8a31d5dcfe04405e2a86866f3e0eb0abb6965cdb841`.
 
           Package: com.isolabellart.darkwispenhanced
+          Version: 1.0.5 (6)
           Signed APK: Dark-Wisp-Enhanced-${RELEASE_TAG}.apk
           SHA-256: $APK_SHA256
 
-          Keep the original APK signing keystore safe. Future updates must use the same signing identity.
+          ---
+
+          # Dark Wisp Enhanced 1.0.5 (Italiano)
+
+          **Una versione Enhanced indipendente di Dark Wisp per Android.**
+
+          Conserva le basi solide di Dark Wisp e aggiunge miglioramenti facoltativi all'interfaccia e al modo di usarla. È una linea di sviluppo separata: non è una release ufficiale upstream, non sostituisce Dark Wisp originale e non promette una nightly priva di bug. Alcune idee potranno essere proposte al progetto originale in futuro.
+
+          ## Novità principali
+          - Drawer spostabile a sinistra o a destra, con indicatori di utenti online e relay connessi.
+          - Traduzione DeepL integrata.
+          - Feed Conversations e gestione degli eventi migliorati, con protezioni NIP-22 e NIP-09.
+          - Marketplace NIP-99 arricchito: profilo e avatar del venditore, recupero del dettaglio e copia di naddr.
+          - Mini-wallet nel drawer, compresa la voce **Set up wallet**.
+
+          ## Installazione separata e sicurezza del wallet
+          Dark Wisp Enhanced usa un proprio identificativo Android: `com.isolabellart.darkwispenhanced`. L'installazione non sovrascrive Dark Wisp originale e non cancella i suoi dati locali. Le due app mantengono dati locali separati; per usare account e wallet in Enhanced occorre importarli o ripristinarli con la normale procedura sicura. Conserva offline il backup della frase di recupero/chiave privata e non condividerlo mai.
+
+          Le future versioni Enhanced manterranno lo stesso certificato di firma permanente.
+
+          Package: com.isolabellart.darkwispenhanced
+          Versione: 1.0.5 (6)
+          APK firmato: Dark-Wisp-Enhanced-${RELEASE_TAG}.apk
+          SHA-256: $APK_SHA256
           EOF
           args=()
           [[ "$IS_PRERELEASE" == "true" ]] && args+=(--prerelease)
