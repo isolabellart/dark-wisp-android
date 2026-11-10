@@ -47,6 +47,8 @@ base64 -i dark-wisp-enhanced-release.jks | tr -d '\n' | pbcopy
 
 Do not paste the keystore or any password/token into source files, issues, pull requests, logs, or chat messages.
 
+On the Mac used to publish with `zsp`, keep the temporary `SIGN_WITH=bunker://…` value in a local `.env` file at the repository root. This file is ignored by Git. Restrict it to your user with `chmod 600 .env`, and remove the bunker connection from Amber when the publishing session is finished. Never put a bunker URL in `zapstore.yaml`, source code, or a committed file.
+
 ## Build and release workflow
 
 The dedicated workflow is `.github/workflows/dark-wisp-enhanced-release.yml` on the `release/dark-wisp-enhanced` branch. It is **manual-only**: a push does not publish a release.
