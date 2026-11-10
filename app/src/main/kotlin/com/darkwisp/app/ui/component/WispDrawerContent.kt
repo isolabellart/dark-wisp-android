@@ -528,6 +528,18 @@ fun WispDrawerContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Restore the compact wallet entry in the drawer. It shows
+        // "Set up wallet" until a wallet is configured, then the live
+        // balance and visibility control, matching the original 1.3.0 UX.
+        if (!isWatchOnly) {
+            DrawerMiniWalletRow(
+                pubkey = pubkey,
+                walletConfigured = walletConfigured,
+                balanceMsats = walletBalanceMsats,
+                onOpenWallet = onWallet
+            )
+        }
+
         NavigationDrawerItem(
             icon = { Icon(Icons.Outlined.Person, contentDescription = null) },
             label = { Text(stringResource(R.string.drawer_my_profile)) },
