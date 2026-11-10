@@ -254,7 +254,7 @@ jobs:
           sed -i "s|@@RELEASE_TAG@@|$RELEASE_TAG|g; s|@@APK_SHA256@@|$APK_SHA256|g" "$NOTES"
           args=()
           [[ "$IS_PRERELEASE" == "true" ]] && args+=(--prerelease)
-          gh release create "$RELEASE_TAG" "$APK#Dark-Wisp-Enhanced-@@RELEASE_TAG@@.apk" \
-            --title "Dark Wisp Enhanced @@RELEASE_TAG@@" \
+          gh release create "$RELEASE_TAG" "$APK#Dark-Wisp-Enhanced-${RELEASE_TAG}.apk" \
+            --title "Dark Wisp Enhanced ${RELEASE_TAG}" \
             --target "$GITHUB_SHA" \
             --notes-file "$NOTES" "${args[@]}"
