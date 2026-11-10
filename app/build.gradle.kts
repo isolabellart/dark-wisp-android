@@ -26,8 +26,8 @@ android {
         applicationId = baseApplicationId
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
         resValue("string", "app_name", "Dark Wisp Enhanced")
 
         ndk {
@@ -65,12 +65,19 @@ android {
         }
 
         create("staging") {
-            // Match the known-working Build #61 configuration: non-debuggable,
-            // R8-minified and resource-shrunk, with a separate debug signing identity.
+            // Keep staging non-debuggable, R8-minified and resource-shrunk.
+            // CI supplies the permanent signing key so staging upgrades remain stable
+            // and the tested APK uses the same certificate as the eventual release.
+            // Local builds without release secrets fall back to the debug key.
             initWith(getByName("release"))
             applicationIdSuffix = ".staging"
             resValue("string", "app_name", "Dark Wisp Enhanced Staging")
-            signingConfig = signingConfigs.getByName("debug")
+            val releaseConfig = signingConfigs.getByName("release")
+            signingConfig = if (releaseConfig.storeFile != null) {
+                releaseConfig
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
