@@ -781,4 +781,5 @@
     <string name="marketplace_dm_privacy">Ein privater NIP-17-Chat wird geöffnet. Du kannst deine Nachricht dort prüfen und senden.</string>
     <string name="marketplace_dm_relay_required">Dieser Verkäufer hat keine NIP-17-DM-Relayliste (Kind 10050) veröffentlicht. Zum Schutz deiner Privatsphäre verwendet Dark Wisp keine Ausweich-Relays.</string>
     <string name="marketplace_seller_label">Verkäufer</string>
+    <string name="drawer_set_up_wallet">Wallet einrichten</string>
 </resources>
