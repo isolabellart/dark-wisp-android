@@ -212,6 +212,8 @@
     <string name="tab_muted_users">Usuarios Silenciados</string>
     <string name="tab_replies">Respuestas</string>
     <string name="tab_with_reply">Con respuestas</string>
+    <string name="tab_conversations">Conversaciones</string>
+    <string name="feed_conversations_end">Has llegado al final de las conversaciones.</string>
     <string name="tab_media">Medios</string>
     <string name="tab_following">Siguiendo</string>
     <string name="tab_relays">Relays</string>
