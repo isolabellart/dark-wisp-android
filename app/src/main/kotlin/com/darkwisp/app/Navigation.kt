@@ -1068,26 +1068,34 @@ fun WispNavHost(
             arguments = listOf(navArgument("eventId") { type = NavType.StringType })
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: return@composable
-            val event = feedViewModel.eventRepo.peekEvent(eventId)
+            val event by feedViewModel.eventRepo
+                .observeEvent(eventId)
+                .collectAsState(initial = feedViewModel.eventRepo.peekEvent(eventId))
+            LaunchedEffect(eventId) {
+                if (feedViewModel.eventRepo.peekEvent(eventId) == null) {
+                    feedViewModel.eventRepo.requestQuotedEvent(eventId)
+                }
+            }
             if (event == null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     androidx.compose.material3.CircularProgressIndicator()
                 }
             } else {
+                val listing = event!!
                 MarketplaceDetailScreen(
-                    event = event,
+                    event = listing,
                     userPubkey = feedViewModel.getUserPubkey(),
                     onBack = { navController.popBackStack() },
                     onEdit = { navController.navigate("marketplace/edit?eventId=${android.net.Uri.encode(eventId)}") },
                     onContactSeller = { message ->
                         val listingAddress = Nip19.naddrEncode(
-                            dTag = Nip99.dTag(event),
-                            authorHex = event.pubkey,
+                            dTag = Nip99.dTag(listing),
+                            authorHex = listing.pubkey,
                             kind = Nip99.KIND_LISTING
                         )
                         val messageWithReference = message.trim() + "\n\nnostr:" + listingAddress
                         val encodedMessage = android.net.Uri.encode(messageWithReference)
-                        navController.navigate("dm/${event.pubkey}?prefill=$encodedMessage&strictDm=true")
+                        navController.navigate("dm/${listing.pubkey}?prefill=$encodedMessage&strictDm=true")
                     },
                     eventRepository = feedViewModel.eventRepo
                 )
