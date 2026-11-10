@@ -780,4 +780,5 @@
     <string name="marketplace_dm_privacy">NIP-17の非公開チャットが開きます。メッセージを確認してから送信できます。</string>
     <string name="marketplace_dm_relay_required">この出品者はNIP-17 DMリレー一覧（kind 10050）を公開していません。プライバシー保護のため、Dark Wispは代替リレーへ送信しません。</string>
     <string name="marketplace_seller_label">出品者</string>
+    <string name="drawer_set_up_wallet">ウォレットを設定</string>
 </resources>
