@@ -94,8 +94,8 @@ jobs:
           echo "Package: $PACKAGE_ID"
           echo "Version: $VERSION_NAME ($VERSION_CODE)"
           [[ "$PACKAGE_ID" == "com.isolabellart.darkwispenhanced.staging" ]]
-          [[ "$VERSION_NAME" == "1.0.4" ]]
-          [[ "$VERSION_CODE" == "5" ]]
+          [[ "$VERSION_NAME" == "1.0.5" ]]
+          [[ "$VERSION_CODE" == "6" ]]
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
@@ -116,7 +116,7 @@ jobs:
       - name: Upload signed staging APK
         uses: actions/upload-artifact@v4
         with:
-          name: dark-wisp-enhanced-staging-1.0.4
+          name: dark-wisp-enhanced-staging-1.0.5
           path: app/build/outputs/apk/staging/app-staging.apk
           if-no-files-found: error
           retention-days: 90
