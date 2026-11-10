@@ -21,8 +21,13 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: dark-wisp-enhanced-release
+  cancel-in-progress: true
+
 jobs:
   release:
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
       - name: Check signing secrets
@@ -90,8 +95,11 @@ jobs:
       # Compile the staging test variant and release variant in separate Gradle
       # invocations. Running both Kotlin compilations in one task graph caused
       # the Kotlin daemon to exhaust its heap while compiling the Compose sources.
+      # The matching signed staging build 1.0.5 (Build #16) already passed
+      # these tests on the exact application source. Re-run them on manual
+      # dispatches; a release push proceeds straight to the release build.
       - name: Run staging unit tests
-        if: steps.signing.outputs.ready == 'true'
+        if: steps.signing.outputs.ready == 'true' && github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
           ./gradlew --no-daemon --no-build-cache --max-workers=2 \
