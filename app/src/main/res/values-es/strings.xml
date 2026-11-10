@@ -780,4 +780,5 @@
     <string name="marketplace_dm_privacy">Se abrirá un chat privado NIP-17. Podrás revisar el mensaje y enviarlo desde allí.</string>
     <string name="marketplace_dm_relay_required">Este vendedor no ha publicado una lista de relays DM NIP-17 (kind 10050). Para proteger tu privacidad, Dark Wisp no usará relays alternativos.</string>
     <string name="marketplace_seller_label">Vendedor</string>
+    <string name="drawer_set_up_wallet">Configurar monedero</string>
 </resources>
