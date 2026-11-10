@@ -805,4 +805,5 @@
     <string name="marketplace_sats_loading">Recupero del cambio BTC aggiornato…</string>
     <string name="marketplace_sats_estimate">≈ %1$s sats via Lightning al cambio indicativo attuale; il venditore conferma l’importo finale</string>
     <string name="marketplace_sats_unavailable">Stima Lightning non disponibile. L’importo finale dipende dalla fattura del venditore.</string>
+    <string name="drawer_set_up_wallet">Configura il portafoglio</string>
 </resources>
