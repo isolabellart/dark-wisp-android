@@ -8,8 +8,20 @@ Dark Wisp Enhanced is an independent downstream fork, not an official release of
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" alt="Dark Wisp Enhanced screenshot 1" width="23%" />
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" alt="Dark Wisp Enhanced screenshot 2" width="23%" />
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.png" alt="Dark Wisp Enhanced screenshot 3" width="23%" />
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/04.png" alt="Dark Wisp Enhanced screenshot 4" width="23%" />
+</p>
+
+---
+
 ## Table of Contents
 
+- [Screenshots](#screenshots)
 - [Why Dark Wisp](#why-dark-wisp)
 - [Key Features](#key-features)
 - [Architecture](#architecture)
