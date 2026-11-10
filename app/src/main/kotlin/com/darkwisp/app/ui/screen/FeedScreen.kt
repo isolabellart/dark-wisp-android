@@ -1002,18 +1002,20 @@ fun FeedScreen(
                                 onClick = { viewModel.setFeedContentFilter(FeedContentFilter.TEXT_ONLY) },
                                 modifier = Modifier.weight(1f)
                             )
-                            FeedContentFilterIconTab(
-                                filter = FeedContentFilter.GALLERY_ONLY,
-                                selected = contentFilter == FeedContentFilter.GALLERY_ONLY,
-                                onClick = { viewModel.setFeedContentFilter(FeedContentFilter.GALLERY_ONLY) },
-                                modifier = Modifier.weight(1f)
-                            )
-                            FeedContentFilterIconTab(
-                                filter = FeedContentFilter.POLLS_ONLY,
-                                selected = contentFilter == FeedContentFilter.POLLS_ONLY,
-                                onClick = { viewModel.setFeedContentFilter(FeedContentFilter.POLLS_ONLY) },
-                                modifier = Modifier.weight(1f)
-                            )
+                            if (feedType != FeedType.WITH_REPLIES) {
+                                FeedContentFilterIconTab(
+                                    filter = FeedContentFilter.GALLERY_ONLY,
+                                    selected = contentFilter == FeedContentFilter.GALLERY_ONLY,
+                                    onClick = { viewModel.setFeedContentFilter(FeedContentFilter.GALLERY_ONLY) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                FeedContentFilterIconTab(
+                                    filter = FeedContentFilter.POLLS_ONLY,
+                                    selected = contentFilter == FeedContentFilter.POLLS_ONLY,
+                                    onClick = { viewModel.setFeedContentFilter(FeedContentFilter.POLLS_ONLY) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
@@ -1064,7 +1066,7 @@ fun FeedScreen(
                             equalWidth = true
                         )
                         FeedModeTab(
-                            label = stringResource(R.string.tab_with_reply),
+                            label = stringResource(R.string.tab_conversations),
                             selected = feedType == FeedType.WITH_REPLIES,
                             onClick = { viewModel.setFeedType(FeedType.WITH_REPLIES) },
                             modifier = Modifier.weight(1f),
@@ -1426,8 +1428,16 @@ fun FeedScreen(
                                             .padding(vertical = 16.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        TextButton(onClick = { viewModel.loadMore() }) {
-                                            Text(stringResource(R.string.btn_load_more))
+                                        if (feedType == FeedType.WITH_REPLIES) {
+                                            Text(
+                                                text = stringResource(R.string.feed_conversations_end),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        } else {
+                                            TextButton(onClick = { viewModel.loadMore() }) {
+                                                Text(stringResource(R.string.btn_load_more))
+                                            }
                                         }
                                     }
                                 }
