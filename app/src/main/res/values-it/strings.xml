@@ -202,6 +202,8 @@
     <string name="tab_follows">Seguiti</string>
     <string name="tab_for_you">Per te</string>
     <string name="tab_with_reply">Con risposte</string>
+    <string name="tab_conversations">Conversazioni</string>
+    <string name="feed_conversations_end">Hai raggiunto la fine delle conversazioni.</string>
     <string name="tab_more">Altro</string>
     <string name="tab_text">Testo</string>
     <string name="tab_gallery">Galleria</string>
