@@ -53,6 +53,17 @@ jobs:
           echo "No APK was built or published."
           echo "Configure the four Dark Wisp Enhanced signing secrets, then push a new commit to this branch."
 
+      - name: Check release publishing permission
+        if: steps.signing.outputs.ready == 'true'
+        shell: bash
+        env:
+          RELEASE_TOKEN: ${{ secrets.DARK_WISP_ENHANCED_RELEASE_TOKEN }}
+        run: |
+          if [[ -z "$RELEASE_TOKEN" ]]; then
+            echo "::error::Add repository secret DARK_WISP_ENHANCED_RELEASE_TOKEN with a fine-grained PAT limited to this repository and Contents: Read and write."
+            exit 1
+          fi
+
       - name: Check out source
         if: steps.signing.outputs.ready == 'true'
         uses: actions/checkout@v4
@@ -182,7 +193,7 @@ jobs:
       - name: Publish GitHub Release
         if: steps.signing.outputs.ready == 'true'
         env:
-          GH_TOKEN: ${{ secrets.DARK_WISP_ENHANCED_RELEASE_TOKEN || github.token }}
+          GH_TOKEN: ${{ secrets.DARK_WISP_ENHANCED_RELEASE_TOKEN }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
           IS_PRERELEASE: ${{ steps.release.outputs.prerelease }}
         shell: bash
@@ -190,7 +201,7 @@ jobs:
           APK="app/build/outputs/apk/release/app-release.apk"
           APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
           NOTES="$RUNNER_TEMP/release-notes.md"
-          cat > "$NOTES" <<EOF
+          cat > "$NOTES" <<'EOF'
           # Dark Wisp Enhanced 1.0.5
 
           **An independent Enhanced build of Dark Wisp for Android.**
@@ -212,8 +223,8 @@ jobs:
 
           Package: com.isolabellart.darkwispenhanced
           Version: 1.0.5 (6)
-          Signed APK: Dark-Wisp-Enhanced-${RELEASE_TAG}.apk
-          SHA-256: $APK_SHA256
+          Signed APK: Dark-Wisp-Enhanced-@@RELEASE_TAG@@.apk
+          SHA-256: @@APK_SHA256@@
 
           ---
 
@@ -237,12 +248,13 @@ jobs:
 
           Package: com.isolabellart.darkwispenhanced
           Versione: 1.0.5 (6)
-          APK firmato: Dark-Wisp-Enhanced-${RELEASE_TAG}.apk
-          SHA-256: $APK_SHA256
+          APK firmato: Dark-Wisp-Enhanced-@@RELEASE_TAG@@.apk
+          SHA-256: @@APK_SHA256@@
           EOF
+          sed -i "s|@@RELEASE_TAG@@|$RELEASE_TAG|g; s|@@APK_SHA256@@|$APK_SHA256|g" "$NOTES"
           args=()
           [[ "$IS_PRERELEASE" == "true" ]] && args+=(--prerelease)
-          gh release create "$RELEASE_TAG" "$APK#Dark-Wisp-Enhanced-${RELEASE_TAG}.apk" \
-            --title "Dark Wisp Enhanced ${RELEASE_TAG}" \
+          gh release create "$RELEASE_TAG" "$APK#Dark-Wisp-Enhanced-@@RELEASE_TAG@@.apk" \
+            --title "Dark Wisp Enhanced @@RELEASE_TAG@@" \
             --target "$GITHUB_SHA" \
             --notes-file "$NOTES" "${args[@]}"
