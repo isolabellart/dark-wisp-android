@@ -197,6 +197,8 @@
     <string name="tab_muted_users">Заглушённые пользователи</string>
     <string name="tab_replies">Ответы</string>
     <string name="tab_with_reply">С ответами</string>
+    <string name="tab_conversations">Беседы</string>
+    <string name="feed_conversations_end">Вы достигли конца бесед.</string>
     <string name="tab_media">Медиа</string>
     <string name="tab_following">Подписки</string>
     <string name="tab_relays">Рилэи</string>
