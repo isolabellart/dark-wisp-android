@@ -4,7 +4,7 @@ An independent Enhanced build of [Dark Wisp](https://github.com/barrydeen/dark-w
 
 Dark Wisp Enhanced is an independent downstream fork, not an official release of the upstream project. It uses its own Android application ID, so it can be installed alongside the original Dark Wisp.
 
-> **Status:** v1.0.5 — current stable release. [Download the latest APK](../../releases/latest).
+> **Status:** v1.0.5 — current stable release. [Download the latest APK](https://github.com/isolabellart/dark-wisp-android/releases/latest).
 
 ---
 
@@ -243,7 +243,7 @@ Also: **Blossom** media servers (BUDs 01–03), **NWC** transport, and **bolt11*
 
 ### Installation
 
-Download the current stable APK from the [latest GitHub Release](../../releases/latest). The current release is **Dark Wisp Enhanced v1.0.5**.
+Download the current stable APK from the [latest GitHub Release](https://github.com/isolabellart/dark-wisp-android/releases/latest). The current release is **Dark Wisp Enhanced v1.0.5**.
 
 Dark Wisp Enhanced is a separate Android application with package ID `com.isolabellart.darkwispenhanced`; it can be installed alongside the original Dark Wisp without replacing it. This build targets Android 8.0 (API 26) or later and currently packages the `arm64-v8a` architecture.
 
