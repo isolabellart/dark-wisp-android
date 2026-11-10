@@ -258,13 +258,13 @@ fun TranslationSettingsSection(interfacePrefs: InterfacePreferences) {
                             onClick = {
                                 val key = apiKey.trim()
                                 if (key.isNotEmpty()) {
-                                    keyStore.saveApiKey(key)
                                     isChecking = true
                                     feedback = context.getString(R.string.translation_deepl_testing)
                                     feedbackIsError = false
                                     scope.launch {
                                         try {
                                             val usage = apiClient.getUsage(key)
+                                            keyStore.saveApiKey(key)
                                             feedback = context.getString(
                                                 R.string.translation_deepl_usage,
                                                 usage.characterCount.toString(),
