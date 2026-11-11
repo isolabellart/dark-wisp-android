@@ -1111,6 +1111,10 @@ fun WispNavHost(
                     userPubkey = feedViewModel.getUserPubkey(),
                     onBack = { navController.popBackStack() },
                     onOpenProfile = { pubkey -> navController.navigate("profile/$pubkey") },
+                    onBookmarkSetChanged = { bookmarkEvent ->
+                        feedViewModel.bookmarkSetRepo.setOwner(bookmarkEvent.pubkey)
+                        feedViewModel.bookmarkSetRepo.updateFromEvent(bookmarkEvent)
+                    },
                     onEdit = { navController.navigate("marketplace/edit?eventId=${android.net.Uri.encode(listing.id)}") },
                     onContactSeller = { message ->
                         val listingAddress = Nip19.naddrEncode(
@@ -1179,6 +1183,10 @@ fun WispNavHost(
                     userPubkey = feedViewModel.getUserPubkey(),
                     onBack = { navController.popBackStack() },
                     onOpenProfile = { pubkey -> navController.navigate("profile/$pubkey") },
+                    onBookmarkSetChanged = { bookmarkEvent ->
+                        feedViewModel.bookmarkSetRepo.setOwner(bookmarkEvent.pubkey)
+                        feedViewModel.bookmarkSetRepo.updateFromEvent(bookmarkEvent)
+                    },
                     onEdit = { navController.navigate("marketplace/edit?eventId=${android.net.Uri.encode(event!!.id)}") },
                     onContactSeller = { message ->
                         val listingAddress = Nip19.naddrEncode(
@@ -3391,7 +3399,8 @@ fun WispNavHost(
                 } else null,
                 onToggleFollow = { pubkey -> feedViewModel.toggleFollow(pubkey) },
                 onBlockUser = { pubkey -> feedViewModel.blockUser(pubkey) },
-                translationRepo = feedViewModel.translationRepo
+                translationRepo = feedViewModel.translationRepo,
+                 onMarketplaceListingClick = { event -> navController.navigate("marketplace/detail/" + event.id) }
             )
         }
 
