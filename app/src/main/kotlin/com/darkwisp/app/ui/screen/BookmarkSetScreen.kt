@@ -53,12 +53,17 @@ fun BookmarkSetScreen(
     onToggleFollow: (String) -> Unit = {},
     onBlockUser: (String) -> Unit = {},
     translationRepo: TranslationRepository? = null,
-    onMarketplaceListingClick: ((NostrEvent) -> Unit)? = null
+    onMarketplaceListingClick: ((NostrEvent) -> Unit)? = null,
+    priceTracker: com.darkwisp.app.repo.MarketplaceWatchlistPriceTracker? = null
 ) {
     val profileVersion by eventRepo.profileVersion.collectAsState()
     val reactionVersion by eventRepo.reactionVersion.collectAsState()
     val eventCacheVersion by eventRepo.eventCacheVersion.collectAsState()
     val translationVersion by translationRepo?.version?.collectAsState() ?: remember { mutableStateOf(0) }
+    val emptyPriceChanges = remember {
+        mutableStateOf<Map<String, com.darkwisp.app.repo.MarketplaceWatchlistPriceTracker.PriceChange>>(emptyMap())
+    }
+    val priceChanges by (priceTracker?.priceChanges?.collectAsState() ?: emptyPriceChanges)
 
     val bookmarkCoordinates = bookmarkSet?.coordinates.orEmpty()
 
@@ -167,11 +172,46 @@ fun BookmarkSetScreen(
                         translationRepo?.getState(event.id) ?: com.darkwisp.app.repo.TranslationState()
                     }
                     if (event.kind == Nip99.KIND_LISTING) {
-                        MarketplaceListingCard(
-                            event = event,
-                            eventRepository = eventRepo,
-                            onClick = { onMarketplaceListingClick?.invoke(event) ?: onNoteClick(event) }
-                        )
+                        val address = Nip99.addressTag(event)
+                        val priceChange = priceChanges[address]
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (priceChange != null) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.errorContainer,
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                        Text(
+                                            stringResource(R.string.marketplace_watchlist_price_changed),
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
+                                            style = MaterialTheme.typography.labelLarge
+                                        )
+                                        Text(
+                                            "${priceChange.previousPrice} → ${priceChange.currentPrice}",
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        TextButton(
+                                            onClick = {
+                                                priceTracker?.acknowledge(address)
+                                                onMarketplaceListingClick?.invoke(event) ?: onNoteClick(event)
+                                            }
+                                        ) {
+                                            Text(stringResource(R.string.marketplace_watchlist_open_listing))
+                                        }
+                                    }
+                                }
+                            }
+                            MarketplaceListingCard(
+                                event = event,
+                                eventRepository = eventRepo,
+                                onClick = {
+                                    priceTracker?.acknowledge(address)
+                                    onMarketplaceListingClick?.invoke(event) ?: onNoteClick(event)
+                                }
+                            )
+                        }
                     } else {
                         PostCard(
                             event = event,
