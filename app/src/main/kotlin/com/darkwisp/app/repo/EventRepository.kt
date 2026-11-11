@@ -10,6 +10,7 @@ import com.darkwisp.app.nostr.Bolt11
 import com.darkwisp.app.nostr.Nip57
 import com.darkwisp.app.nostr.Nip69
 import com.darkwisp.app.nostr.Nip88
+import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.nostr.NostrEvent.Companion.fromJson
 import com.darkwisp.app.nostr.ProfileData
