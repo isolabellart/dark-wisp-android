@@ -362,21 +362,21 @@ class UserProfileViewModel(app: Application) : AndroidViewModel(app) {
                         }
                         1, Nip22.KIND_COMMENT -> {
                             eventRepo.cacheEvent(event)
-                            if (Nip10.getReplyTarget(event) == null) {
-                                if (event.created_at < oldestNoteTimestamp) oldestNoteTimestamp = event.created_at
-                                val current = _rootNotes.value.toMutableList()
-                                if (current.none { it.id == event.id }) {
-                                    current.add(event)
-                                    current.sortByDescending { _repostSortTime[it.id] ?: it.created_at }
-                                    _rootNotes.value = current
-                                }
-                            } else {
+                            if (event.kind == Nip22.KIND_COMMENT || Nip10.getReplyTarget(event) != null) {
                                 if (event.created_at < oldestReplyTimestamp) oldestReplyTimestamp = event.created_at
                                 val current = _replies.value.toMutableList()
                                 if (current.none { it.id == event.id }) {
                                     current.add(event)
                                     current.sortByDescending { it.created_at }
                                     _replies.value = current
+                                }
+                            } else {
+                                if (event.created_at < oldestNoteTimestamp) oldestNoteTimestamp = event.created_at
+                                val current = _rootNotes.value.toMutableList()
+                                if (current.none { it.id == event.id }) {
+                                    current.add(event)
+                                    current.sortByDescending { _repostSortTime[it.id] ?: it.created_at }
+                                    _rootNotes.value = current
                                 }
                             }
                         }
@@ -637,12 +637,12 @@ class UserProfileViewModel(app: Application) : AndroidViewModel(app) {
             eventRepo.cacheEvent(event)
             when (event.kind) {
                 1, Nip22.KIND_COMMENT -> {
-                    if (Nip10.getReplyTarget(event) == null) {
-                        if (event.created_at < oldestNoteTimestamp) oldestNoteTimestamp = event.created_at
-                        if (roots.none { it.id == event.id }) roots.add(event)
-                    } else {
+                    if (event.kind == Nip22.KIND_COMMENT || Nip10.getReplyTarget(event) != null) {
                         if (event.created_at < oldestReplyTimestamp) oldestReplyTimestamp = event.created_at
                         if (replies.none { it.id == event.id }) replies.add(event)
+                    } else {
+                        if (event.created_at < oldestNoteTimestamp) oldestNoteTimestamp = event.created_at
+                        if (roots.none { it.id == event.id }) roots.add(event)
                     }
                 }
                 30023, 1068, 6969 -> {
@@ -724,7 +724,7 @@ class UserProfileViewModel(app: Application) : AndroidViewModel(app) {
         if (oldestNoteTimestamp == Long.MAX_VALUE) { isLoadingMoreNotes = false; return }
 
         val pool = relayPoolRef ?: run { isLoadingMoreNotes = false; return }
-        val filter = Filter(kinds = listOf(1, Nip22.KIND_COMMENT, 5, 6, 1068, 6969, 30023, 20, 21, 22), authors = listOf(targetPubkey), until = oldestNoteTimestamp - 1, limit = 50)
+        val filter = Filter(kinds = listOf(1, 5, 6, 1068, 6969, 30023, 20, 21, 22), authors = listOf(targetPubkey), until = oldestNoteTimestamp - 1, limit = 50)
         val eoseWaiter = startProfileEoseWait(pool, "userposts-more")
         sendProfilePaginationQuery(pool, "userposts-more", filter)
 
