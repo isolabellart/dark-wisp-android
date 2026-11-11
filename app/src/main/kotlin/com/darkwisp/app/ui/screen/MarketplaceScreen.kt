@@ -393,12 +393,12 @@ fun MarketplaceDetailScreen(
     var commentSending by remember(event.id) { mutableStateOf(false) }
     var commentError by remember(event.id) { mutableStateOf<String?>(null) }
     val commentAddress = remember(event.pubkey, event.id) { Nip22.addressableRootTag(event) }
+    val listingAddress = remember(event.pubkey, Nip99.dTag(event)) { Nip99.addressTag(event) }
     val reactionVersion by eventRepository.reactionVersion.collectAsState(initial = 0)
-    val reactionCount = remember(event.id, reactionVersion) { eventRepository.getReactionCount(event.id) }
+    val reactionCount = remember(listingAddress, reactionVersion) { eventRepository.getReactionCount(listingAddress) }
     val zapVersion by eventRepository.zapVersion.collectAsState(initial = 0)
     val zapSats = remember(event.id, zapVersion) { eventRepository.getZapSats(event.id) }
-    val userHasReacted = userPubkey?.let { eventRepository.hasUserReacted(event.id, it) } ?: false
-    val listingAddress = remember(event.pubkey, Nip99.dTag(event)) { Nip99.addressTag(event) }
+    val userHasReacted = userPubkey?.let { eventRepository.hasUserReacted(listingAddress, it) } ?: false
     val isOwnListing = event.pubkey == userPubkey
     var watchlistEvent by remember(userPubkey) { mutableStateOf<NostrEvent?>(null) }
     var bookmarkReady by remember(userPubkey, event.id) { mutableStateOf(userPubkey == null || isOwnListing) }
@@ -465,8 +465,13 @@ fun MarketplaceDetailScreen(
                 .filter { it.subscriptionId == subId }
                 .collect { frame ->
                     val reaction = frame.event
-                    if (reaction.kind == 7 &&
-                        reaction.tags.any { it.size >= 2 && it[0] == "e" && it[1] == event.id }) {
+                    val targetsRevision = reaction.tags.any {
+                        it.size >= 2 && it[0] == "e" && it[1] == event.id
+                    }
+                    val targetsListing = reaction.tags.any {
+                        it.size >= 2 && it[0] == "a" && it[1] == listingAddress
+                    }
+                    if (reaction.kind == 7 && (targetsRevision || targetsListing)) {
                         eventRepository.addEvent(reaction)
                         eventRepository.requestProfileIfMissing(reaction.pubkey)
                     }
@@ -474,11 +479,15 @@ fun MarketplaceDetailScreen(
         }
         val request = ClientMessage.req(
             subId,
-            Filter(kinds = listOf(7), eTags = listOf(event.id), limit = 500)
+            listOf(
+                Filter(kinds = listOf(7), eTags = listOf(event.id), limit = 500),
+                Filter(kinds = listOf(7), aTags = listOf(listingAddress), limit = 1000)
+            )
         )
-        (relayPool.getReadRelayUrls() + MarketplaceRelays.READ).distinct().forEach { relay ->
-            relayPool.sendToRelayOrEphemeral(relay, request, skipBadCheck = true)
-        }
+        (relayPool.getReadRelayUrls() + MarketplaceRelays.READ + RelayConfig.DEFAULT_INDEXER_RELAYS)
+            .distinct().forEach { relay ->
+                relayPool.sendToRelayOrEphemeral(relay, request, skipBadCheck = true)
+            }
         try { awaitCancellation() } finally {
             collector.cancel()
             relayPool.closeOnAllRelays(subId)
