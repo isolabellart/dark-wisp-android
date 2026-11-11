@@ -809,47 +809,48 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
 
     private fun addReaction(event: NostrEvent) {
         if (isWotFiltered(event.pubkey, event.kind)) return
-        val targetEventId = event.tags.lastOrNull { it.size >= 2 && it[0] == "e" }?.get(1)
+        val eventTargetId = event.tags.lastOrNull { it.size >= 2 && it[0] == "e" }?.get(1)
             ?: resolveAddressableTarget(event)
             ?: return
-        // Per-target dedup — evicts alongside the count cache so re-fetched data can be re-counted
-        val dedupSet = countedReactionIds.get(targetEventId)
-            ?: mutableSetOf<String>().also { countedReactionIds.put(targetEventId, it) }
-        synchronized(dedupSet) { if (!dedupSet.add(event.id)) return }
+        val addressTarget = event.tags.lastOrNull { it.size >= 2 && it[0] == "a" }
+            ?.get(1)
+            ?.takeIf { it.startsWith("${Nip99.KIND_LISTING}:") }
+        val targetKeys = listOfNotNull(eventTargetId, addressTarget).distinct()
         val emoji = if (event.content.isBlank() || event.content == "+") "❤️" else event.content
-
-        // Cache custom emoji URLs from reaction event tags
         val emojiTags = Nip30.parseEmojiTags(event)
-        if (emojiTags.isNotEmpty()) {
-            val urlMap = reactionEmojiUrls.get(targetEventId)
-                ?: ConcurrentHashMap<String, String>().also { reactionEmojiUrls.put(targetEventId, it) }
-            for ((shortcode, url) in emojiTags) {
-                urlMap[":$shortcode:"] = url
+
+        for (targetKey in targetKeys) {
+            // The same reaction is indexed under its event ID and stable listing
+            // coordinate, allowing older likes to survive later listing revisions.
+            val dedupSet = countedReactionIds.get(targetKey)
+                ?: mutableSetOf<String>().also { countedReactionIds.put(targetKey, it) }
+            val wasAdded = synchronized(dedupSet) { dedupSet.add(event.id) }
+            if (!wasAdded) continue
+
+            if (emojiTags.isNotEmpty()) {
+                val urlMap = reactionEmojiUrls.get(targetKey)
+                    ?: ConcurrentHashMap<String, String>().also { reactionEmojiUrls.put(targetKey, it) }
+                for ((shortcode, url) in emojiTags) urlMap[":$shortcode:"] = url
             }
-        }
 
-        val counts = reactionCounts.get(targetEventId)
-            ?: ConcurrentHashMap<String, Int>().also { reactionCounts.put(targetEventId, it) }
-        counts[emoji] = (counts[emoji] ?: 0) + 1
+            val counts = reactionCounts.get(targetKey)
+                ?: ConcurrentHashMap<String, Int>().also { reactionCounts.put(targetKey, it) }
+            counts[emoji] = (counts[emoji] ?: 0) + 1
 
-        // Track reactor pubkeys per emoji
-        val details = reactionDetails.get(targetEventId)
-            ?: ConcurrentHashMap<String, MutableList<String>>().also { reactionDetails.put(targetEventId, it) }
-        val pubkeys = details.getOrPut(emoji) { java.util.Collections.synchronizedList(mutableListOf()) }
-        synchronized(pubkeys) { if (event.pubkey !in pubkeys) pubkeys.add(event.pubkey) }
+            val details = reactionDetails.get(targetKey)
+                ?: ConcurrentHashMap<String, MutableList<String>>().also { reactionDetails.put(targetKey, it) }
+            val pubkeys = details.getOrPut(emoji) { java.util.Collections.synchronizedList(mutableListOf()) }
+            synchronized(pubkeys) { if (event.pubkey !in pubkeys) pubkeys.add(event.pubkey) }
 
-        // Only track the current user's reactions — other users' reactions are in
-        // reactionDetails already.  Storing every reactor would fill the 5000-entry LRU,
-        // evicting the current user's entries and losing highlight state while counts
-        // (keyed by eventId alone) remain correct.
-        if (event.pubkey == currentUserPubkey) {
-            val key = "${targetEventId}:${event.pubkey}"
-            val emojiMap = userReactions.get(key)
-                ?: ConcurrentHashMap<String, String>().also { userReactions.put(key, it) }
-            emojiMap[emoji] = event.id
+            if (event.pubkey == currentUserPubkey) {
+                val key = "${targetKey}:${event.pubkey}"
+                val emojiMap = userReactions.get(key)
+                    ?: ConcurrentHashMap<String, String>().also { userReactions.put(key, it) }
+                emojiMap[emoji] = event.id
+            }
+            markEventVersionDirty(targetKey)
         }
         reactionDirty = true
-        markEventVersionDirty(targetEventId)
     }
 
     private fun addPollVote(event: NostrEvent) {
@@ -1363,47 +1364,62 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         return reactionCounts.get(eventId)?.values?.sum() ?: 0
     }
 
-    fun hasUserReacted(eventId: String, userPubkey: String): Boolean {
-        val map = userReactions.get("${eventId}:${userPubkey}") ?: return false
-        return map.isNotEmpty()
+    /**
+     * NIP-99 listings have a stable address across revisions. Read/write reaction
+     * state against both the exact revision ID and its 30402:author:d coordinate.
+     */
+    private fun reactionTargetKeys(eventId: String): List<String> {
+        if (eventId.startsWith("${Nip99.KIND_LISTING}:")) return listOf(eventId)
+        val target = getEvent(eventId)
+        val address = target
+            ?.takeIf { it.kind == Nip99.KIND_LISTING }
+            ?.let { Nip99.addressTag(it) }
+        return listOfNotNull(eventId, address).distinct()
     }
 
-    fun getUserReactionEmoji(eventId: String, userPubkey: String): String? {
-        return userReactions.get("${eventId}:${userPubkey}")?.keys?.firstOrNull()
-    }
+    fun hasUserReacted(eventId: String, userPubkey: String): Boolean =
+        reactionTargetKeys(eventId).any { key ->
+            userReactions.get("${key}:${userPubkey}")?.isNotEmpty() == true
+        }
 
-    fun getUserReactionEmojis(eventId: String, userPubkey: String): Set<String> {
-        return userReactions.get("${eventId}:${userPubkey}")?.keys?.toSet() ?: emptySet()
-    }
+    fun getUserReactionEmoji(eventId: String, userPubkey: String): String? =
+        reactionTargetKeys(eventId).firstNotNullOfOrNull { key ->
+            userReactions.get("${key}:${userPubkey}")?.keys?.firstOrNull()
+        }
 
-    fun getUserReactionEventId(eventId: String, userPubkey: String, emoji: String): String? {
-        return userReactions.get("${eventId}:${userPubkey}")?.get(emoji)
-    }
+    fun getUserReactionEmojis(eventId: String, userPubkey: String): Set<String> =
+        reactionTargetKeys(eventId).flatMap { key ->
+            userReactions.get("${key}:${userPubkey}")?.keys.orEmpty()
+        }.toSet()
+
+    fun getUserReactionEventId(eventId: String, userPubkey: String, emoji: String): String? =
+        reactionTargetKeys(eventId).firstNotNullOfOrNull { key ->
+            userReactions.get("${key}:${userPubkey}")?.get(emoji)
+        }
 
     fun removeReaction(eventId: String, userPubkey: String, emoji: String) {
-        val key = "${eventId}:${userPubkey}"
-        val emojiMap = userReactions.get(key) ?: return
-        emojiMap.remove(emoji)
+        for (targetKey in reactionTargetKeys(eventId)) {
+            val key = "${targetKey}:${userPubkey}"
+            val emojiMap = userReactions.get(key) ?: continue
+            if (emojiMap.remove(emoji) == null) continue
 
-        // Decrement reaction count
-        val counts = reactionCounts.get(eventId)
-        if (counts != null) {
-            val current = counts[emoji] ?: 0
-            if (current > 1) counts[emoji] = current - 1 else counts.remove(emoji)
-        }
-
-        // Remove from reaction details
-        val details = reactionDetails.get(eventId)
-        if (details != null) {
-            val pubkeys = details[emoji]
-            if (pubkeys != null) {
-                synchronized(pubkeys) { pubkeys.remove(userPubkey) }
-                if (pubkeys.isEmpty()) details.remove(emoji)
+            val counts = reactionCounts.get(targetKey)
+            if (counts != null) {
+                val current = counts[emoji] ?: 0
+                if (current > 1) counts[emoji] = current - 1 else counts.remove(emoji)
             }
-        }
 
+            val details = reactionDetails.get(targetKey)
+            if (details != null) {
+                val pubkeys = details[emoji]
+                if (pubkeys != null) {
+                    synchronized(pubkeys) { pubkeys.remove(userPubkey) }
+                    if (pubkeys.isEmpty()) details.remove(emoji)
+                }
+            }
+            markEventVersionDirty(targetKey)
+        }
         reactionDirty = true
-        markEventVersionDirty(eventId)
     }
 
     fun addZapSats(eventId: String, sats: Long) {
