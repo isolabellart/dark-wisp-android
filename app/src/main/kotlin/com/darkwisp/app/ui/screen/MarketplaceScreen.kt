@@ -702,23 +702,12 @@ fun MarketplaceDetailScreen(
                                         try {
                                             val currentSet = watchlistEvent?.let { Nip51.parseBookmarkSet(it) }
                                             val coordinates = currentSet?.coordinates?.toMutableSet() ?: mutableSetOf()
-                                            val eventIds = currentSet?.eventIds?.toMutableSet() ?: mutableSetOf()
-                                            if (listingAddress in coordinates) {
-                                                coordinates.remove(listingAddress)
-                                                eventIds.remove(event.id)
-                                                eventIds.removeAll { savedId ->
-                                                    eventRepository.getEvent(savedId)?.let { saved ->
-                                                        saved.kind == Nip99.KIND_LISTING && Nip99.addressTag(saved) == listingAddress
-                                                    } == true
-                                                }
-                                            } else {
-                                                coordinates.add(listingAddress)
-                                                eventIds.add(event.id)
-                                            }
+                                            if (listingAddress in coordinates) coordinates.remove(listingAddress)
+                                            else coordinates.add(listingAddress)
 
                                             val tags = Nip51.buildBookmarkSetTags(
                                                 dTag = MARKETPLACE_WATCHLIST_DTAG,
-                                                eventIds = eventIds,
+                                                eventIds = currentSet?.eventIds ?: emptySet(),
                                                 coordinates = coordinates,
                                                 hashtags = currentSet?.hashtags ?: emptySet(),
                                                 title = currentSet?.name ?: "Marketplace Watchlist"
