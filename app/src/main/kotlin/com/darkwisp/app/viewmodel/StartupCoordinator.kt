@@ -1075,16 +1075,11 @@ class StartupCoordinator(
 
                         val previous = latestByAuthor[author]
                         if (previous != null && candidate.created_at <= previous.created_at) return@collect
-                        val oldCoordinates = previous?.let { Nip51.parseBookmarkSet(it)?.coordinates }.orEmpty()
-                        val added = if (previous == null) {
-                            if (candidate.created_at > subscriptionStartedAt) parsed.coordinates else emptySet()
-                        } else {
-                            parsed.coordinates - oldCoordinates
-                        }
-                        added.filter { it.startsWith("${Nip99.KIND_LISTING}:$myPubkey:") }
-                            .forEach { coordinate ->
-                                notifRepo.addMarketplaceBookmark(candidate, myPubkey, coordinate)
-                            }
+                        notifRepo.processMarketplaceWatchlistSnapshot(
+                            candidate,
+                            myPubkey,
+                            notifyOnFirstObservation = true
+                        )
                         latestByAuthor[author] = candidate
                     }
             }
@@ -1114,17 +1109,18 @@ class StartupCoordinator(
                     .collect { eoseCount++ }
             }
 
-            baselineByAuthor.forEach { (author, event) -> latestByAuthor[author] = event }
+            baselineByAuthor.forEach { (author, event) ->
+                latestByAuthor[author] = event
+                notifRepo.processMarketplaceWatchlistSnapshot(event, myPubkey)
+            }
             baselineReady = true
             pendingNewByAuthor.forEach { (author, event) ->
                 val previous = latestByAuthor[author]
-                val oldCoordinates = previous?.let { Nip51.parseBookmarkSet(it)?.coordinates }.orEmpty()
-                val newCoordinates = Nip51.parseBookmarkSet(event)?.coordinates.orEmpty()
-                val added = if (previous == null) newCoordinates else newCoordinates - oldCoordinates
-                added.filter { it.startsWith("${Nip99.KIND_LISTING}:$myPubkey:") }
-                    .forEach { coordinate ->
-                        notifRepo.addMarketplaceBookmark(event, myPubkey, coordinate)
-                    }
+                notifRepo.processMarketplaceWatchlistSnapshot(
+                    event,
+                    myPubkey,
+                    notifyOnFirstObservation = true
+                )
                 if (previous == null || event.created_at > previous.created_at) latestByAuthor[author] = event
             }
             Log.d(
