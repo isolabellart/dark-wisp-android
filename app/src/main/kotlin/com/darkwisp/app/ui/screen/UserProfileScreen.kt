@@ -48,6 +48,7 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.CurrencyBitcoin
+import androidx.compose.material.icons.outlined.Storefront
 import com.darkwisp.app.nostr.Nip30
 import com.darkwisp.app.ui.component.Nip05Badge
 import com.darkwisp.app.ui.component.PaymentTargetSheet
@@ -199,7 +200,8 @@ fun UserProfileScreen(
     fetchGroupPreview: (suspend (String, String) -> com.darkwisp.app.repo.GroupPreview?)? = null,
     onAddEmojiSet: ((String, String) -> Unit)? = null,
     onRemoveEmojiSet: ((String, String) -> Unit)? = null,
-    isEmojiSetAdded: ((String, String) -> Boolean)? = null
+    isEmojiSetAdded: ((String, String) -> Boolean)? = null,
+    onOpenStorefront: (() -> Unit)? = null
 ) {
     val resolvedEmojisState = rememberUpdatedState(resolvedEmojis)
     val unicodeEmojisState = rememberUpdatedState(unicodeEmojis)
@@ -665,6 +667,8 @@ fun UserProfileScreen(
                     onUnmuteUser = onUnblockUser,
                     paymentTargets = paymentTargets,
                     onPaymentTargetClick = { paymentTargetSheetTarget = it }
+                    onPaymentTargetClick = { paymentTargetSheetTarget = it },
+                    onOpenStorefront = onOpenStorefront
                 )
             }
 
@@ -1251,7 +1255,8 @@ private fun ProfileHeader(
     onMuteUser: (() -> Unit)? = null,
     onUnmuteUser: (() -> Unit)? = null,
     paymentTargets: List<NipA3.PaymentTarget> = emptyList(),
-    onPaymentTargetClick: (NipA3.PaymentTarget) -> Unit = {}
+    onPaymentTargetClick: (NipA3.PaymentTarget) -> Unit = {},
+    onOpenStorefront: (() -> Unit)? = null
 ) {
     var fullScreenImageUrl by remember { mutableStateOf<String?>(null) }
 
@@ -1401,6 +1406,16 @@ private fun ProfileHeader(
                         )
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
+            }
+        }
+
+        profile?.nip05?.let { nip05 ->
+        if (onOpenStorefront != null) {
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = onOpenStorefront) {
+                Icon(Icons.Outlined.Storefront, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.marketplace_storefront))
             }
         }
 

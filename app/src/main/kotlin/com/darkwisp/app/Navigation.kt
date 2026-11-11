@@ -143,6 +143,7 @@ object Routes {
     const val AUTH = "auth"
     const val FEED = "feed"
     const val MARKETPLACE = "marketplace"
+    const val MARKETPLACE_SELLER = "marketplace/seller/{pubkey}"
     const val MARKETPLACE_DETAIL = "marketplace/detail/{eventId}"
     const val MARKETPLACE_ADDRESS = "marketplace/address/{author}/{dTag}?relays={relays}"
     const val MARKETPLACE_EDITOR = "marketplace/edit?eventId={eventId}"
@@ -1064,6 +1065,29 @@ fun WispNavHost(
         }
 
         composable(
+            Routes.MARKETPLACE_SELLER,
+            arguments = listOf(navArgument("pubkey") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val sellerPubkey = backStackEntry.arguments?.getString("pubkey") ?: return@composable
+            val sellerProfileVersion by feedViewModel.eventRepo.profileVersion.collectAsState(initial = 0)
+            val sellerProfile = remember(sellerPubkey, sellerProfileVersion) { feedViewModel.eventRepo.getProfileData(sellerPubkey) }
+            LaunchedEffect(sellerPubkey) { feedViewModel.eventRepo.requestProfileIfMissing(sellerPubkey) }
+            MarketplaceScreen(
+                viewModel = marketplaceViewModel,
+                relayPool = feedViewModel.relayPool,
+                eventRepository = feedViewModel.eventRepo,
+                followedPubkeys = feedViewModel.contactRepo.getFollowList().map { it.pubkey },
+                userPubkey = feedViewModel.getUserPubkey(),
+                onBack = { navController.popBackStack() },
+                onOpenListing = { event -> navController.navigate("marketplace/detail/${event.id}") },
+                onCreateListing = { navController.navigate("marketplace/edit") },
+                sellerPubkey = sellerPubkey,
+                sellerName = sellerProfile?.displayString,
+                canCreateListing = sellerPubkey == feedViewModel.getUserPubkey()
+            )
+        }
+
+        composable(
             Routes.MARKETPLACE_DETAIL,
             arguments = listOf(navArgument("eventId") { type = NavType.StringType })
         ) { backStackEntry ->
@@ -1098,6 +1122,20 @@ fun WispNavHost(
                         navController.navigate("dm/${listing.pubkey}?prefill=$encodedMessage&strictDm=true")
                     },
                     eventRepository = feedViewModel.eventRepo
+                )
+                    eventRepository = feedViewModel.eventRepo,
+                    relayPool = feedViewModel.relayPool,
+                    signer = activeSigner,
+                    onReact = { feedViewModel.sendReaction(listing) },
+                    onZap = { amount, msg, anonymous, private ->
+                        feedViewModel.sendZap(listing, amount, msg, anonymous, private, eventATag = Nip99.addressTag(listing))
+                    },
+                    isWalletConnected = feedViewModel.activeWalletProvider.hasConnection(),
+                    zapPrefsRepo = feedViewModel.zapPrefs,
+                    onGoToWallet = { navController.navigate(Routes.WALLET) },
+                    recipientHasLud16 = zapRecipientHasLud16(feedViewModel, listing.pubkey),
+                    profileLookup = { feedViewModel.profileRepo.get(it) },
+                    fetchPaymentTargets = feedViewModel::fetchPaymentTargets
                 )
             }
         }
@@ -1153,6 +1191,20 @@ fun WispNavHost(
                         navController.navigate("dm/${event!!.pubkey}?prefill=$encodedMessage&strictDm=true")
                     },
                     eventRepository = feedViewModel.eventRepo
+                )
+                    eventRepository = feedViewModel.eventRepo,
+                    relayPool = feedViewModel.relayPool,
+                    signer = activeSigner,
+                    onReact = { feedViewModel.sendReaction(event!!) },
+                    onZap = { amount, msg, anonymous, private ->
+                        feedViewModel.sendZap(event!!, amount, msg, anonymous, private, eventATag = Nip99.addressTag(event!!))
+                    },
+                    isWalletConnected = feedViewModel.activeWalletProvider.hasConnection(),
+                    zapPrefsRepo = feedViewModel.zapPrefs,
+                    onGoToWallet = { navController.navigate(Routes.WALLET) },
+                    recipientHasLud16 = zapRecipientHasLud16(feedViewModel, event!!.pubkey),
+                    profileLookup = { feedViewModel.profileRepo.get(it) },
+                    fetchPaymentTargets = feedViewModel::fetchPaymentTargets
                 )
             }
         }
@@ -1455,6 +1507,8 @@ fun WispNavHost(
                     val encodedRelay = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(relayUrl.toByteArray())
                     navController.navigate("group_room/$encodedRelay/${android.net.Uri.encode(groupId)}")
                 },
+                onLiveStreamClick = { hostPubkey, dTag, relayHint ->
+                onOpenStorefront = { navController.navigate("marketplace/seller/$pubkey") },
                 onLiveStreamClick = { hostPubkey, dTag, relayHint ->
                     val route = buildString {
                         append("live_stream/$hostPubkey/${android.net.Uri.encode(dTag)}")
