@@ -441,9 +441,17 @@ fun MarketplaceDetailScreen(
                 }
             }
         }
-        relayPool.sendToReadRelays(ClientMessage.req(
-            subId, Filter(kinds = listOf(Nip22.KIND_COMMENT), bigATags = listOf(commentAddress), limit = 100)
-        ))
+        val commentRequest = ClientMessage.req(
+            subId,
+            Filter(kinds = listOf(Nip22.KIND_COMMENT), bigATags = listOf(commentAddress), limit = 100)
+        )
+        (
+            relayPool.getReadRelayUrls() +
+                MarketplaceRelays.READ +
+                RelayConfig.DEFAULT_INDEXER_RELAYS
+            ).distinct().forEach { relay ->
+                relayPool.sendToRelayOrEphemeral(relay, commentRequest, skipBadCheck = true)
+            }
         try { awaitCancellation() } finally {
             collector.cancel()
             relayPool.closeOnAllRelays(subId)
