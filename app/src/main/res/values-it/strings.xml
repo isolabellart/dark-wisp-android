@@ -833,4 +833,6 @@
     <string name="marketplace_watchlist_update_failed">Impossibile aggiornare la lista pubblica.</string>
     <string name="marketplace_interested_buyers">Possibili acquirenti interessati (%1$d)</string>
     <string name="marketplace_watchlist_title">Lista desideri Marketplace</string>
+    <string name="marketplace_watchlist_price_changed">Prezzo modificato</string>
+    <string name="marketplace_watchlist_open_listing">Apri annuncio</string>
 </resources>
