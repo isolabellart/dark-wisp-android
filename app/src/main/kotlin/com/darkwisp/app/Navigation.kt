@@ -300,6 +300,11 @@ fun WispNavHost(
         }
     }
 
+    val watchlistOwnerPubkey = feedViewModel.getUserPubkey()
+    val marketplaceWatchlistPriceTracker = remember(watchlistOwnerPubkey) {
+        com.darkwisp.app.repo.MarketplaceWatchlistPriceTracker(context.applicationContext, watchlistOwnerPubkey)
+    }
+
     // Push signer into FeedViewModel when it becomes available
     LaunchedEffect(activeSigner, accountSwitching) {
         if (!accountSwitching) {
@@ -904,6 +909,12 @@ fun WispNavHost(
                     navController.navigate("profile/$pubkey")
                 },
                 onMarketplace = { navController.navigate(Routes.MARKETPLACE) },
+                onMarketplaceWatchlist = {
+                    feedViewModel.getUserPubkey()?.let { pubkey ->
+                        navController.navigate("bookmark_set/$pubkey/dark-wisp-marketplace-watchlist")
+                    }
+                },
+                marketplaceWatchlistPriceTracker = marketplaceWatchlistPriceTracker,
                 onListingClick = { event -> navController.navigate("marketplace/detail/${event.id}") },
                 onDms = {
                     navController.navigate(Routes.DM_LIST)
@@ -1452,7 +1463,19 @@ fun WispNavHost(
                     navController.popBackStack()
                 },
                 onUnblockUser = { feedViewModel.unblockUser(pubkey) },
-                onNoteClick = { event -> navController.navigate("thread/${event.id}") },
+                onNoteClick = { event ->
+                    val rootAddress = if (event.kind == com.darkwisp.app.nostr.Nip22.KIND_COMMENT) {
+                        com.darkwisp.app.nostr.Nip22.getAddressableRootTag(event)
+                    } else if (event.kind == Nip99.KIND_LISTING) {
+                        Nip99.addressTag(event)
+                    } else null
+                    val parts = rootAddress?.split(":", limit = 3)
+                    if (parts?.size == 3 && parts[0] == Nip99.KIND_LISTING.toString()) {
+                        navController.navigate("marketplace/address/${parts[1]}/${android.net.Uri.encode(parts[2])}")
+                    } else {
+                        navController.navigate("thread/${event.id}")
+                    }
+                },
                 onQuotedNoteClick = { eventId -> navController.navigate("thread/$eventId") },
                 onReact = { event, emoji -> feedViewModel.toggleReaction(event, emoji) },
                 onZap = { event, amountMsats, message, isAnonymous, isPrivate -> feedViewModel.sendZap(event, amountMsats, message, isAnonymous, isPrivate) },
@@ -3400,7 +3423,8 @@ fun WispNavHost(
                 onToggleFollow = { pubkey -> feedViewModel.toggleFollow(pubkey) },
                 onBlockUser = { pubkey -> feedViewModel.blockUser(pubkey) },
                 translationRepo = feedViewModel.translationRepo,
-                 onMarketplaceListingClick = { event -> navController.navigate("marketplace/detail/" + event.id) }
+                 onMarketplaceListingClick = { event -> navController.navigate("marketplace/detail/" + event.id) },
+                priceTracker = marketplaceWatchlistPriceTracker
             )
         }
 
@@ -3652,7 +3676,18 @@ fun WispNavHost(
                 },
                 onBack = { navController.popBackStack() },
                 onNoteClick = { eventId ->
-                    navController.navigate("thread/$eventId")
+                    val referenced = feedViewModel.eventRepo.getEvent(eventId)
+                    val address = when {
+                        eventId.startsWith("${Nip99.KIND_LISTING}:") -> eventId
+                        referenced?.kind == Nip99.KIND_LISTING -> Nip99.addressTag(referenced)
+                        else -> null
+                    }
+                    val parts = address?.split(":", limit = 3)
+                    if (parts?.size == 3 && parts[0] == Nip99.KIND_LISTING.toString()) {
+                        navController.navigate("marketplace/address/${parts[1]}/${android.net.Uri.encode(parts[2])}")
+                    } else {
+                        navController.navigate("thread/$eventId")
+                    }
                 },
                 onProfileClick = { pubkey ->
                     navController.navigate("profile/$pubkey")
