@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
+import com.darkwisp.app.R
 import com.darkwisp.app.nostr.BookmarkSet
 import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.NostrEvent
