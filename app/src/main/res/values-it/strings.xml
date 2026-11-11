@@ -789,6 +789,8 @@
     <string name="marketplace_login_required">Accedi con un account Nostr abilitato alla pubblicazione per creare un annuncio.</string>
     <string name="marketplace_required_fields">Inserisci un titolo e una descrizione prima di pubblicare.</string>
     <string name="marketplace_publish_unconfirmed">Nessun relay ha confermato la pubblicazione dell’annuncio.</string>
+    <string name="marketplace_publish_confirmed">Annuncio pubblicato e confermato da un relay.</string>
+    <string name="marketplace_update_confirmed">Modifica dell’annuncio confermata da un relay.</string>
     <string name="marketplace_publish_failed">Impossibile pubblicare l’annuncio: %1$s</string>
     <string name="marketplace_publish">Pubblica annuncio</string>
     <string name="marketplace_update">Aggiorna annuncio</string>
