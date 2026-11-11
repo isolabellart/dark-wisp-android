@@ -832,4 +832,5 @@
     <string name="marketplace_watchlist_load_failed">Impossibile caricare la tua lista pubblica. Controlla la connessione ai relay e riapri l’annuncio.</string>
     <string name="marketplace_watchlist_update_failed">Impossibile aggiornare la lista pubblica.</string>
     <string name="marketplace_interested_buyers">Possibili acquirenti interessati (%1$d)</string>
+    <string name="marketplace_watchlist_title">Lista desideri Marketplace</string>
 </resources>
