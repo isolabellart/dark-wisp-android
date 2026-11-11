@@ -1,6 +1,6 @@
 package com.darkwisp.app.nostr
 
-enum class NotificationType { REACTION, ZAP, REPOST, REPLY, QUOTE, MENTION, VOTE, DM, DM_REACTION, DM_ZAP, PROFILE_ZAP }
+enum class NotificationType { REACTION, ZAP, REPOST, REPLY, QUOTE, MENTION, VOTE, DM, DM_REACTION, DM_ZAP, PROFILE_ZAP, MARKETPLACE_BOOKMARK }
 
 data class FlatNotificationItem(
     val id: String,
