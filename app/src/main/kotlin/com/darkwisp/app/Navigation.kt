@@ -3680,6 +3680,8 @@ fun WispNavHost(
                     val address = when {
                         eventId.startsWith("${Nip99.KIND_LISTING}:") -> eventId
                         referenced?.kind == Nip99.KIND_LISTING -> Nip99.addressTag(referenced)
+                        referenced?.kind == com.darkwisp.app.nostr.Nip22.KIND_COMMENT ->
+                            com.darkwisp.app.nostr.Nip22.getAddressableRootTag(referenced)
                         else -> null
                     }
                     val parts = address?.split(":", limit = 3)
