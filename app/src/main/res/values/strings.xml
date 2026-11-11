@@ -1071,4 +1071,5 @@
     <string name="marketplace_watchlist_load_failed">Could not load your public watchlist. Check your relay connection and reopen this listing.</string>
     <string name="marketplace_watchlist_update_failed">Could not update the public watchlist.</string>
     <string name="marketplace_interested_buyers">Interested buyers (%1$d)</string>
+    <string name="marketplace_watchlist_title">Marketplace Watchlist</string>
 </resources>
