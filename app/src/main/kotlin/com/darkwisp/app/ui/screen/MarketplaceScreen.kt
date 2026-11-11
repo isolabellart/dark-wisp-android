@@ -578,7 +578,7 @@ fun MarketplaceDetailScreen(
         ZapDialog(
             isWalletConnected = isWalletConnected,
             onDismiss = { showZapDialog = false },
-            onZap = { amount, zapMessage, anonymous, private ->
+            onZap = { amount, zapMessage, anonymous, isPrivate ->
                 onZap(amount, zapMessage, anonymous, private)
                 showZapDialog = false
             },
