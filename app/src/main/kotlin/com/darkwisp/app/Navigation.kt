@@ -1110,6 +1110,7 @@ fun WispNavHost(
                     event = listing,
                     userPubkey = feedViewModel.getUserPubkey(),
                     onBack = { navController.popBackStack() },
+                    onOpenProfile = { pubkey -> navController.navigate("profile/$pubkey") },
                     onEdit = { navController.navigate("marketplace/edit?eventId=${android.net.Uri.encode(listing.id)}") },
                     onContactSeller = { message ->
                         val listingAddress = Nip19.naddrEncode(
@@ -1177,6 +1178,7 @@ fun WispNavHost(
                     event = event!!,
                     userPubkey = feedViewModel.getUserPubkey(),
                     onBack = { navController.popBackStack() },
+                    onOpenProfile = { pubkey -> navController.navigate("profile/$pubkey") },
                     onEdit = { navController.navigate("marketplace/edit?eventId=${android.net.Uri.encode(event!!.id)}") },
                     onContactSeller = { message ->
                         val listingAddress = Nip19.naddrEncode(
