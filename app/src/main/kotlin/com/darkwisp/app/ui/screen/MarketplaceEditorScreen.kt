@@ -1,6 +1,7 @@
 package com.darkwisp.app.ui.screen
 
 import android.content.Context
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -396,6 +397,14 @@ fun MarketplaceEditorScreen(
                                 )
                                 publishMarketplaceEvent(relayPool, event, context)
                                 eventRepository.addEvent(event)
+                                Toast.makeText(
+                                    context,
+                                    context.getString(
+                                        if (isEditing) R.string.marketplace_update_confirmed
+                                        else R.string.marketplace_publish_confirmed
+                                    ),
+                                    Toast.LENGTH_LONG
+                                ).show()
                                 onPublished(event)
                             } catch (e: Exception) {
                                 error = context.getString(R.string.marketplace_publish_failed, e.message ?: "")
