@@ -666,7 +666,6 @@ fun UserProfileScreen(
                     onMuteUser = onBlockUser,
                     onUnmuteUser = onUnblockUser,
                     paymentTargets = paymentTargets,
-                    onPaymentTargetClick = { paymentTargetSheetTarget = it }
                     onPaymentTargetClick = { paymentTargetSheetTarget = it },
                     onOpenStorefront = onOpenStorefront
                 )

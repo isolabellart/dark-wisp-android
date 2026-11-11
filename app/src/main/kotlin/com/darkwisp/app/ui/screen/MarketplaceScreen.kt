@@ -353,29 +353,6 @@ fun MarketplaceDetailScreen(
         eventRepository.getProfileData(event.pubkey)
     }
     LaunchedEffect(event.pubkey) { eventRepository.requestProfileIfMissing(event.pubkey) }
-    LaunchedEffect(event.id, commentAddress) {
-        val subId = "marketplace-comments-${event.id.take(12)}"
-        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
-            relayPool.relayEvents.filter { it.subscriptionId == subId }.collect { frame ->
-                val comment = frame.event
-                if (Nip22.referencesAddressableRoot(comment, commentAddress) &&
-                    eventRepository.isEventVisibleToUser(comment) && comments.none { it.id == comment.id }) {
-                    comments.add(comment)
-                    comments.sortBy { it.created_at }
-                    eventRepository.addEvent(comment)
-                    eventRepository.requestProfileIfMissing(comment.pubkey)
-                }
-            }
-        }
-        relayPool.sendToReadRelays(ClientMessage.req(
-            subId, Filter(kinds = listOf(Nip22.KIND_COMMENT), bigATags = listOf(commentAddress), limit = 100)
-        ))
-        try { awaitCancellation() } finally {
-            collector.cancel()
-            relayPool.closeOnAllRelays(subId)
-        }
-    }
-
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val detailScope = rememberCoroutineScope()
     val title = Nip99.title(event)
@@ -407,6 +384,29 @@ fun MarketplaceDetailScreen(
         )
     }
 
+    LaunchedEffect(event.id, commentAddress) {
+        val subId = "marketplace-comments-${event.id.take(12)}"
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            relayPool.relayEvents.filter { it.subscriptionId == subId }.collect { frame ->
+                val comment = frame.event
+                if (Nip22.referencesAddressableRoot(comment, commentAddress) &&
+                    eventRepository.isEventVisibleToUser(comment) && comments.none { it.id == comment.id }) {
+                    comments.add(comment)
+                    comments.sortBy { it.created_at }
+                    eventRepository.addEvent(comment)
+                    eventRepository.requestProfileIfMissing(comment.pubkey)
+                }
+            }
+        }
+        relayPool.sendToReadRelays(ClientMessage.req(
+            subId, Filter(kinds = listOf(Nip22.KIND_COMMENT), bigATags = listOf(commentAddress), limit = 100)
+        ))
+        try { awaitCancellation() } finally {
+            collector.cancel()
+            relayPool.closeOnAllRelays(subId)
+        }
+    }
+
     LaunchedEffect(event.id, suggestedMessage) {
         if (message.isBlank()) message = suggestedMessage
     }
@@ -415,24 +415,6 @@ fun MarketplaceDetailScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.marketplace_listing_details)) },
-    if (showZapDialog) {
-        ZapDialog(
-            isWalletConnected = isWalletConnected,
-            onDismiss = { showZapDialog = false },
-            onZap = { amount, zapMessage, anonymous, private ->
-                onZap(amount, zapMessage, anonymous, private)
-                showZapDialog = false
-            },
-            onGoToWallet = onGoToWallet,
-            zapPrefsRepo = zapPrefsRepo,
-            canPrivateZap = false,
-            recipientPubkey = event.pubkey,
-            profileLookup = profileLookup,
-            recipientHasLud16 = recipientHasLud16,
-            fetchPaymentTargets = fetchPaymentTargets
-        )
-    }
-
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
@@ -592,6 +574,24 @@ fun MarketplaceDetailScreen(
             }
         }
     }
+    if (showZapDialog) {
+        ZapDialog(
+            isWalletConnected = isWalletConnected,
+            onDismiss = { showZapDialog = false },
+            onZap = { amount, zapMessage, anonymous, private ->
+                onZap(amount, zapMessage, anonymous, private)
+                showZapDialog = false
+            },
+            onGoToWallet = onGoToWallet,
+            zapPrefsRepo = zapPrefsRepo,
+            canPrivateZap = false,
+            recipientPubkey = event.pubkey,
+            profileLookup = profileLookup,
+            recipientHasLud16 = recipientHasLud16,
+            fetchPaymentTargets = fetchPaymentTargets
+        )
+    }
+
 }
 
 

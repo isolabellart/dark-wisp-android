@@ -1110,7 +1110,7 @@ fun WispNavHost(
                     event = listing,
                     userPubkey = feedViewModel.getUserPubkey(),
                     onBack = { navController.popBackStack() },
-                    onEdit = { navController.navigate("marketplace/edit?eventId=${android.net.Uri.encode(eventId)}") },
+                    onEdit = { navController.navigate("marketplace/edit?eventId=${android.net.Uri.encode(listing.id)}") },
                     onContactSeller = { message ->
                         val listingAddress = Nip19.naddrEncode(
                             dTag = Nip99.dTag(listing),
@@ -1119,10 +1119,8 @@ fun WispNavHost(
                         )
                         val messageWithReference = message.trim() + "\n\nnostr:" + listingAddress
                         val encodedMessage = android.net.Uri.encode(messageWithReference)
-                        navController.navigate("dm/${listing.pubkey}?prefill=$encodedMessage&strictDm=true")
+                        navController.navigate("dm/${listing.pubkey}?prefill=${encodedMessage}&strictDm=true")
                     },
-                    eventRepository = feedViewModel.eventRepo
-                )
                     eventRepository = feedViewModel.eventRepo,
                     relayPool = feedViewModel.relayPool,
                     signer = activeSigner,
@@ -1188,10 +1186,8 @@ fun WispNavHost(
                         )
                         val messageWithReference = message.trim() + "\n\nnostr:" + listingAddress
                         val encodedMessage = android.net.Uri.encode(messageWithReference)
-                        navController.navigate("dm/${event!!.pubkey}?prefill=$encodedMessage&strictDm=true")
+                        navController.navigate("dm/${event!!.pubkey}?prefill=${encodedMessage}&strictDm=true")
                     },
-                    eventRepository = feedViewModel.eventRepo
-                )
                     eventRepository = feedViewModel.eventRepo,
                     relayPool = feedViewModel.relayPool,
                     signer = activeSigner,
