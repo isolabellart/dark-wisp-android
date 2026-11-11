@@ -1126,7 +1126,7 @@ fun WispNavHost(
                     signer = activeSigner,
                     onReact = { feedViewModel.sendReaction(listing) },
                     onZap = { amount, msg, anonymous, isPrivate ->
-                        feedViewModel.sendZap(listing, amount, msg, anonymous, private, eventATag = Nip99.addressTag(listing))
+                        feedViewModel.sendZap(listing, amount, msg, anonymous, isPrivate, eventATag = Nip99.addressTag(listing))
                     },
                     isWalletConnected = feedViewModel.activeWalletProvider.hasConnection(),
                     zapPrefsRepo = feedViewModel.zapPrefs,
@@ -1193,7 +1193,7 @@ fun WispNavHost(
                     signer = activeSigner,
                     onReact = { feedViewModel.sendReaction(event!!) },
                     onZap = { amount, msg, anonymous, isPrivate ->
-                        feedViewModel.sendZap(event!!, amount, msg, anonymous, private, eventATag = Nip99.addressTag(event!!))
+                        feedViewModel.sendZap(event!!, amount, msg, anonymous, isPrivate, eventATag = Nip99.addressTag(event!!))
                     },
                     isWalletConnected = feedViewModel.activeWalletProvider.hasConnection(),
                     zapPrefsRepo = feedViewModel.zapPrefs,
