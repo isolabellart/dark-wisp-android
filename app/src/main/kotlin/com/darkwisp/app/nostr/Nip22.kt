@@ -17,6 +17,10 @@ object Nip22 {
 
     fun addressableRootTag(root: NostrEvent): String = Nip99.addressTag(root)
 
+    /** Uppercase NIP-22 A scope, used to open comments on addressable roots. */
+    fun getAddressableRootTag(event: NostrEvent): String? =
+        event.tags.firstOrNull { it.size >= 2 && it[0] == "A" }?.get(1)
+
     /** NIP-22 root scope (A/K/P) and direct parent (a/k/p) for a listing comment. */
     fun buildAddressableRootCommentTags(root: NostrEvent): List<List<String>> {
         val address = addressableRootTag(root)
