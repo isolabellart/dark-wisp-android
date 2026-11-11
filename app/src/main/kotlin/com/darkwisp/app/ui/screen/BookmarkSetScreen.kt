@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.darkwisp.app.nostr.BookmarkSet
+import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.repo.EventRepository
 import com.darkwisp.app.repo.TranslationRepository
@@ -50,17 +52,49 @@ fun BookmarkSetScreen(
     onRemoveFromSet: ((String) -> Unit)? = null,
     onToggleFollow: (String) -> Unit = {},
     onBlockUser: (String) -> Unit = {},
-    translationRepo: TranslationRepository? = null
+    translationRepo: TranslationRepository? = null,
+    onMarketplaceListingClick: ((NostrEvent) -> Unit)? = null
 ) {
     val profileVersion by eventRepo.profileVersion.collectAsState()
     val reactionVersion by eventRepo.reactionVersion.collectAsState()
     val eventCacheVersion by eventRepo.eventCacheVersion.collectAsState()
     val translationVersion by translationRepo?.version?.collectAsState() ?: remember { mutableStateOf(0) }
 
-    val events = remember(bookmarkSet?.eventIds, profileVersion, eventCacheVersion) {
-        bookmarkSet?.eventIds?.mapNotNull { id -> eventRepo.getEvent(id) }
-            ?.sortedByDescending { it.created_at }
-            ?: emptyList()
+    val bookmarkCoordinates = bookmarkSet?.coordinates.orEmpty()
+
+    LaunchedEffect(bookmarkCoordinates) {
+        bookmarkCoordinates.forEach { coordinate ->
+            val parts = coordinate.split(":", limit = 3)
+            if (parts.size == 3) {
+                val kind = parts[0].toIntOrNull() ?: return@forEach
+                eventRepo.requestAddressableEvent(kind, parts[1], parts[2])
+            }
+        }
+    }
+
+    val events = remember(bookmarkSet?.eventIds, bookmarkCoordinates, profileVersion, eventCacheVersion) {
+        val resolved = linkedMapOf<String, NostrEvent>()
+        bookmarkSet?.eventIds?.forEach { id ->
+            val event = eventRepo.getEvent(id) ?: return@forEach
+            val key = if (event.kind == Nip99.KIND_LISTING) {
+                "a:" + Nip99.addressTag(event)
+            } else {
+                "e:" + event.id
+            }
+            resolved[key] = event
+        }
+        bookmarkCoordinates.forEach { coordinate ->
+            val parts = coordinate.split(":", limit = 3)
+            if (parts.size == 3) {
+                val kind = parts[0].toIntOrNull()
+                if (kind != null) {
+                    eventRepo.findAddressableEvent(kind, parts[1], parts[2])?.let { event ->
+                        resolved["a:" + coordinate] = event
+                    }
+                }
+            }
+        }
+        resolved.values.sortedByDescending { it.created_at }
     }
 
     var menuExpanded by remember { mutableStateOf(false) }
@@ -114,8 +148,8 @@ fun BookmarkSetScreen(
             ) {
                 Text(
                     if (bookmarkSet == null) "List not found"
-                    else if (bookmarkSet.eventIds.isEmpty()) "No notes in this list"
-                    else "Notes not loaded yet",
+                    else if (bookmarkSet.eventIds.isEmpty() && bookmarkSet.coordinates.isEmpty()) "No items in this list"
+                    else "Items not loaded yet",
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -132,24 +166,32 @@ fun BookmarkSetScreen(
                     val translationState = remember(translationVersion, event.id) {
                         translationRepo?.getState(event.id) ?: com.darkwisp.app.repo.TranslationState()
                     }
-                    PostCard(
-                        event = event,
-                        profile = profile,
-                        onReply = { onReply(event) },
-                        onProfileClick = { onProfileClick(event.pubkey) },
-                        onNavigateToProfile = onProfileClick,
-                        onNoteClick = { onNoteClick(event) },
-                        onQuotedNoteClick = onQuotedNoteClick,
-                        onReact = { emoji -> onReact(event, emoji) },
-                        userReactionEmojis = userEmojis,
-                        likeCount = likeCount,
-                        eventRepo = eventRepo,
-                        onFollowAuthor = { onToggleFollow(event.pubkey) },
-                        onBlockAuthor = { onBlockUser(event.pubkey) },
-                        isOwnEvent = event.pubkey == userPubkey,
-                        translationState = translationState,
-                        onTranslate = { translationRepo?.translate(event.id, event.content) }
-                    )
+                    if (event.kind == Nip99.KIND_LISTING) {
+                        MarketplaceListingCard(
+                            event = event,
+                            eventRepository = eventRepo,
+                            onClick = { onMarketplaceListingClick?.invoke(event) ?: onNoteClick(event) }
+                        )
+                    } else {
+                        PostCard(
+                            event = event,
+                            profile = profile,
+                            onReply = { onReply(event) },
+                            onProfileClick = { onProfileClick(event.pubkey) },
+                            onNavigateToProfile = onProfileClick,
+                            onNoteClick = { onNoteClick(event) },
+                            onQuotedNoteClick = onQuotedNoteClick,
+                            onReact = { emoji -> onReact(event, emoji) },
+                            userReactionEmojis = userEmojis,
+                            likeCount = likeCount,
+                            eventRepo = eventRepo,
+                            onFollowAuthor = { onToggleFollow(event.pubkey) },
+                            onBlockAuthor = { onBlockUser(event.pubkey) },
+                            isOwnEvent = event.pubkey == userPubkey,
+                            translationState = translationState,
+                            onTranslate = { translationRepo?.translate(event.id, event.content) }
+                        )
+                    }
                 }
             }
         }
