@@ -1061,5 +1061,14 @@
     <string name="marketplace_comment_empty">Be the first to leave a comment.</string>
     <string name="marketplace_comment_count">Comments (%1$d)</string>
     <string name="marketplace_react_count">React · %1$d</string>
-    <string name="marketplace_zap_count">Zap · %1$d sats</string>
+    <string name="marketplace_zap_count">⚡ %1$d sats</string>
+    <string name="marketplace_add_listing">Add a listing</string>
+    <string name="marketplace_like">Like listing</string>
+    <string name="marketplace_unlike">Remove like</string>
+    <string name="marketplace_bookmark">Save to public watchlist</string>
+    <string name="marketplace_unbookmark">Remove from public watchlist</string>
+    <string name="marketplace_watchlist_public_notice">This bookmark is public: the seller can see your profile.</string>
+    <string name="marketplace_watchlist_load_failed">Could not load your public watchlist. Check your relay connection and reopen this listing.</string>
+    <string name="marketplace_watchlist_update_failed">Could not update the public watchlist.</string>
+    <string name="marketplace_interested_buyers">Interested buyers (%1$d)</string>
 </resources>
