@@ -1082,6 +1082,22 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
             .toList()
     }
 
+    /**
+     * Returns recent events for an author from both the live cache and ObjectBox.
+     * The persistent slice lets profile screens render previously-seen history offline.
+     */
+    fun getCachedEventsByAuthorAndKinds(pubkey: String, kinds: Set<Int>, limit: Int = 200): List<NostrEvent> {
+        if (pubkey.isBlank() || kinds.isEmpty() || limit <= 0) return emptyList()
+        val inMemory = eventCache.values.asSequence()
+            .filter { it.pubkey == pubkey && it.kind in kinds }
+            .toList()
+        val persisted = eventPersistence?.getEventsByAuthorAndKinds(pubkey, kinds, limit).orEmpty()
+        return (inMemory + persisted)
+            .distinctBy { it.id }
+            .sortedByDescending { it.created_at }
+            .take(limit)
+    }
+
     fun getLatestEventTimestamp(pubkey: String, kind: Int): Long? {
         return eventCache.values
             .asSequence()

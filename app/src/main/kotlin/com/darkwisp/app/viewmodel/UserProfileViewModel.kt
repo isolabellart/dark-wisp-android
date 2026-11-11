@@ -30,11 +30,17 @@ import com.darkwisp.app.repo.PaymentTargetRepository
 import com.darkwisp.app.repo.RelayHintStore
 import com.darkwisp.app.repo.RelayListRepository
 import com.darkwisp.app.relay.SubscriptionManager
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -165,6 +171,7 @@ class UserProfileViewModel(app: Application) : AndroidViewModel(app) {
 
     companion object {
         private val SUB_IDS = setOf("userprofile", "userposts", "usergallery", "userfollows", "userrelays", "userpins", "usergroups", "userpaytargets", "followprofiles")
+        private val PROFILE_CACHE_KINDS = setOf(1, 6, 20, 21, 22, 1068, 6969, Nip22.KIND_COMMENT, 30023)
     }
 
     fun loadProfile(
@@ -198,6 +205,8 @@ class UserProfileViewModel(app: Application) : AndroidViewModel(app) {
         latestProfileTimestamp = 0
         latestFollowListTimestamp = 0
         latestRelayListTimestamp = 0
+        _rootNotes.value = emptyList()
+        _replies.value = emptyList()
         _notesSortMode.value = ProfileSortMode.RECENCY
         _repliesSortMode.value = ProfileSortMode.RECENCY
         _sortedNotes.value = emptyList()
@@ -214,6 +223,19 @@ class UserProfileViewModel(app: Application) : AndroidViewModel(app) {
         _paymentTargets.value = paymentTargetRepo?.getTargets(pubkey) ?: emptyList()
         _relayHints.value = relayHintStore?.getHints(pubkey) ?: emptySet()
         _isFollowing.value = contactRepo.isFollowing(pubkey)
+        // Paint the profile from local history immediately; relay responses will merge into it.
+        viewModelScope.launch(Dispatchers.IO) {
+            val cachedEvents = eventRepo.getCachedEventsByAuthorAndKinds(
+                pubkey = pubkey,
+                kinds = PROFILE_CACHE_KINDS,
+                limit = 200
+            )
+            withContext(Dispatchers.Main.immediate) {
+                if (targetPubkey == pubkey && cachedEvents.isNotEmpty()) {
+                    seedProfileFromCache(cachedEvents, eventRepo)
+                }
+            }
+        }
         extendedNetworkRepoRef = extendedNetworkRepo
         _followedBy.value = extendedNetworkRepo?.getFollowedBy(pubkey)?.toList() ?: emptyList()
         Log.d("UserProfileVM", "loadProfile: followedBy=${_followedBy.value.size} for $pubkey, discoveryState=${extendedNetworkRepo?.discoveryState?.value}")
@@ -601,6 +623,101 @@ class UserProfileViewModel(app: Application) : AndroidViewModel(app) {
         relayPoolRef?.let { closeAllSubs(it) }
     }
 
+    /**
+     * Merge locally persisted profile events into the visible timeline before the relay fetch completes.
+     * EventRepository applies the same mute/deletion/trust visibility rules used by other auxiliary views.
+     */
+    private fun seedProfileFromCache(events: List<NostrEvent>, eventRepo: EventRepository) {
+        val roots = _rootNotes.value.toMutableList()
+        val replies = _replies.value.toMutableList()
+        val gallery = _galleryPosts.value.toMutableList()
+
+        for (event in events.sortedBy { it.created_at }) {
+            if (event.pubkey != targetPubkey || !eventRepo.isEventVisibleToUser(event)) continue
+            eventRepo.cacheEvent(event)
+            when (event.kind) {
+                1, Nip22.KIND_COMMENT -> {
+                    if (Nip10.getReplyTarget(event) == null) {
+                        if (event.created_at < oldestNoteTimestamp) oldestNoteTimestamp = event.created_at
+                        if (roots.none { it.id == event.id }) roots.add(event)
+                    } else {
+                        if (event.created_at < oldestReplyTimestamp) oldestReplyTimestamp = event.created_at
+                        if (replies.none { it.id == event.id }) replies.add(event)
+                    }
+                }
+                30023, 1068, 6969 -> {
+                    if (event.created_at < oldestNoteTimestamp) oldestNoteTimestamp = event.created_at
+                    if (roots.none { it.id == event.id }) roots.add(event)
+                }
+                20, 21, 22 -> {
+                    if (event.created_at < oldestNoteTimestamp) oldestNoteTimestamp = event.created_at
+                    if (gallery.none { it.id == event.id }) gallery.add(event)
+                    if (roots.none { it.id == event.id }) roots.add(event)
+                }
+                6 -> {
+                    if (event.id in _deletedRepostEventIds || event.content.isBlank()) continue
+                    if (event.created_at < oldestNoteTimestamp) oldestNoteTimestamp = event.created_at
+                    try {
+                        val inner = NostrEvent.fromJson(event.content)
+                        if (!eventRepo.isEventVisibleToUser(inner)) continue
+                        eventRepo.cacheEvent(inner)
+                        _repostEventTargets[event.id] = inner.id
+                        _repostEventIdsByTarget.getOrPut(inner.id) { mutableSetOf() }.add(event.id)
+                        val times = _repostEventTimes.getOrPut(inner.id) { mutableMapOf() }
+                        times[event.id] = event.created_at
+                        _repostAuthors[inner.id] = event.pubkey
+                        _repostSortTime[inner.id] = times.values.maxOrNull() ?: event.created_at
+                        roots.removeAll { it.id == inner.id }
+                        roots.add(inner)
+                    } catch (_: Exception) {
+                        // Ignore malformed cached repost wrappers; the relay fetch can still supply valid content.
+                    }
+                }
+            }
+        }
+
+        _rootNotes.value = roots.distinctBy { it.id }
+            .sortedByDescending { _repostSortTime[it.id] ?: it.created_at }
+        _replies.value = replies.distinctBy { it.id }.sortedByDescending { it.created_at }
+        _galleryPosts.value = gallery.distinctBy { it.id }.sortedByDescending { it.created_at }
+    }
+
+    /**
+     * Start the EOSE collector before sending a pagination REQ, so a fast relay cannot
+     * finish before the waiter is listening. Wait for a useful quorum, not the first relay.
+     */
+    private fun startProfileEoseWait(pool: RelayPool, subId: String) = viewModelScope.async(start = CoroutineStart.UNDISPATCHED) {
+        val connected = pool.connectedCount.value
+        val expected = if (connected <= 1) 1 else
+            maxOf(2, (connected * 0.25).toInt()).coerceAtMost(6).coerceAtMost(connected)
+        val timeoutMs = 12_000L
+        val manager = subManagerRef
+        if (manager != null) {
+            manager.awaitEoseCount(subId, expected, timeoutMs = timeoutMs)
+        } else {
+            var received = 0
+            withTimeoutOrNull(timeoutMs) {
+                pool.eoseSignals.filter { it == subId }.take(expected).collect { received++ }
+            }
+            received
+        }
+    }
+
+    /** Send one pagination query to the author write relays plus distinct scored fallback relays. */
+    private fun sendProfilePaginationQuery(pool: RelayPool, subId: String, filter: Filter) {
+        val message = ClientMessage.req(subId, filter)
+        val targeted = linkedSetOf<String>()
+        val router = outboxRouterRef
+        if (router != null) {
+            targeted.addAll(router.subscribeToUserWriteRelays(subId, targetPubkey, filter))
+        } else {
+            pool.sendToAll(message)
+            targeted.addAll(pool.getRelayUrls())
+        }
+        for (url in topRelayUrls.distinct()) {
+            if (url !in targeted && pool.sendToRelayOrEphemeral(url, message)) targeted.add(url)
+        }
+    }
     fun loadMoreNotes() {
         if (isLoadingMoreNotes) return
         isLoadingMoreNotes = true
@@ -608,21 +725,12 @@ class UserProfileViewModel(app: Application) : AndroidViewModel(app) {
 
         val pool = relayPoolRef ?: run { isLoadingMoreNotes = false; return }
         val filter = Filter(kinds = listOf(1, Nip22.KIND_COMMENT, 5, 6, 1068, 6969, 30023, 20, 21, 22), authors = listOf(targetPubkey), until = oldestNoteTimestamp - 1, limit = 50)
-
-        val router = outboxRouterRef
-        if (router != null) {
-            router.subscribeToUserWriteRelays("userposts-more", targetPubkey, filter)
-        } else {
-            pool.sendToAll(ClientMessage.req("userposts-more", filter))
-        }
-        for (url in topRelayUrls) {
-            pool.sendToRelayOrEphemeral(url, ClientMessage.req("userposts-more", filter))
-        }
+        val eoseWaiter = startProfileEoseWait(pool, "userposts-more")
+        sendProfilePaginationQuery(pool, "userposts-more", filter)
 
         viewModelScope.launch {
-            withTimeoutOrNull(10_000) {
-                pool.eoseSignals.first { it == "userposts-more" }
-            }
+            val receivedEose = eoseWaiter.await()
+            Log.d("UserProfileVM", "loadMoreNotes: received $receivedEose EOSE signals")
             pool.closeOnAllRelays("userposts-more")
             isLoadingMoreNotes = false
         }
@@ -635,21 +743,12 @@ class UserProfileViewModel(app: Application) : AndroidViewModel(app) {
 
         val pool = relayPoolRef ?: run { isLoadingMoreReplies = false; return }
         val filter = Filter(kinds = listOf(1, Nip22.KIND_COMMENT), authors = listOf(targetPubkey), until = oldestReplyTimestamp - 1, limit = 50)
-
-        val router = outboxRouterRef
-        if (router != null) {
-            router.subscribeToUserWriteRelays("userreplies-more", targetPubkey, filter)
-        } else {
-            pool.sendToAll(ClientMessage.req("userreplies-more", filter))
-        }
-        for (url in topRelayUrls) {
-            pool.sendToRelayOrEphemeral(url, ClientMessage.req("userreplies-more", filter))
-        }
+        val eoseWaiter = startProfileEoseWait(pool, "userreplies-more")
+        sendProfilePaginationQuery(pool, "userreplies-more", filter)
 
         viewModelScope.launch {
-            withTimeoutOrNull(10_000) {
-                pool.eoseSignals.first { it == "userreplies-more" }
-            }
+            val receivedEose = eoseWaiter.await()
+            Log.d("UserProfileVM", "loadMoreReplies: received $receivedEose EOSE signals")
             pool.closeOnAllRelays("userreplies-more")
             isLoadingMoreReplies = false
         }

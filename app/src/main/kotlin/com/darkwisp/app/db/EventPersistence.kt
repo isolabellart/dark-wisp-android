@@ -151,6 +151,27 @@ class EventPersistence(
         }
     }
 
+    /**
+     * Read a bounded history slice for one author across several event kinds.
+     * Used to paint profile timelines from local storage before relay responses arrive.
+     */
+    fun getEventsByAuthorAndKinds(pubkey: String, kinds: Set<Int>, limit: Int = 200): List<NostrEvent> {
+        if (pubkey.isBlank() || kinds.isEmpty() || limit <= 0) return emptyList()
+        return try {
+            val entities = box.query(
+                EventEntity_.pubkey.equal(pubkey)
+                    .and(EventEntity_.kind.oneOf(kinds.toIntArray()))
+            )
+                .order(EventEntity_.createdAt, io.objectbox.query.QueryBuilder.DESCENDING)
+                .build()
+                .use { it.find(0, limit.toLong()) }
+            entities.mapNotNull { it.toNostrEvent() }
+        } catch (e: Exception) {
+            Log.w("EventPersistence", "getEventsByAuthorAndKinds failed: ${e.message}")
+            emptyList()
+        }
+    }
+
     /** Query recent notification-relevant events (kinds 1, 6, 7, 1111, 9735) for seeding NotificationRepository. */
     fun getRecentNotificationEvents(limit: Int = 500): List<NostrEvent> {
         return try {
