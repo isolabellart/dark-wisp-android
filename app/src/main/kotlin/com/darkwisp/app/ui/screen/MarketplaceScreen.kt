@@ -449,8 +449,6 @@ fun MarketplaceDetailScreen(
         }
     }
 
-    }
-
     LaunchedEffect(event.id, listingAddress, userPubkey) {
         val targets = (relayPool.getRelayUrls() + RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ).distinct()
         val subscriptions = mutableListOf<String>()
