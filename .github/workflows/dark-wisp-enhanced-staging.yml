@@ -14,10 +14,11 @@ on:
       - "gradle.properties"
       - "gradlew"
       - "gradlew.bat"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 concurrency:
-  group: dark-wisp-enhanced-staging
+  group: dark-wisp-enhanced-staging-${{ github.sha }}
   cancel-in-progress: true
 
 permissions:
