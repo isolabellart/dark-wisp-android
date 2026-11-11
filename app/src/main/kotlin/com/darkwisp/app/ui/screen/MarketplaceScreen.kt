@@ -416,6 +416,7 @@ fun MarketplaceDetailScreen(
             .keys.sorted()
     }
     val suggestedMessage = stringResource(R.string.marketplace_message_intro, title)
+    val watchlistTitle = stringResource(R.string.marketplace_watchlist_title)
     val context = LocalContext.current
     val listingNaddr = remember(event.pubkey, event.id) {
         Nip19.naddrEncode(
@@ -710,12 +711,16 @@ fun MarketplaceDetailScreen(
                                                 eventIds = currentSet?.eventIds ?: emptySet(),
                                                 coordinates = coordinates,
                                                 hashtags = currentSet?.hashtags ?: emptySet(),
-                                                title = currentSet?.name ?: "Marketplace Watchlist"
+                                                title = currentSet?.name ?: watchlistTitle
                                             )
                                             val updatedEvent = activeSigner.signEvent(
                                                 kind = Nip51.KIND_BOOKMARK_SET,
                                                 content = "",
-                                                tags = tags
+                                                tags = tags,
+                                                createdAt = maxOf(
+                                                    System.currentTimeMillis() / 1000,
+                                                    (watchlistEvent?.created_at ?: 0L) + 1L
+                                                )
                                             )
                                             relayPool.sendToWriteRelays(ClientMessage.event(updatedEvent))
                                             eventRepository.addEvent(updatedEvent)
