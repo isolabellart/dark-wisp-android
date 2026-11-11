@@ -277,7 +277,7 @@ fun MarketplaceScreen(
 }
 
 @Composable
-private fun MarketplaceListingCard(event: NostrEvent, eventRepository: EventRepository, onClick: () -> Unit) {
+internal fun MarketplaceListingCard(event: NostrEvent, eventRepository: EventRepository, onClick: () -> Unit) {
     val image = Nip99.images(event).firstOrNull()
     val sold = Nip99.isSold(event)
     val profileVersion by eventRepository.profileVersionFor(event.pubkey).collectAsState(initial = 0)
@@ -364,7 +364,8 @@ fun MarketplaceDetailScreen(
     recipientHasLud16: Boolean,
     profileLookup: (String) -> com.darkwisp.app.nostr.ProfileData?,
     fetchPaymentTargets: (suspend (String) -> List<com.darkwisp.app.nostr.NipA3.PaymentTarget>)?,
-    onOpenProfile: (String) -> Unit = {}
+    onOpenProfile: (String) -> Unit = {},
+    onBookmarkSetChanged: (NostrEvent) -> Unit = {}
 ) {
     val profileVersion by eventRepository.profileVersionFor(event.pubkey).collectAsState(initial = 0)
     val sellerProfile = remember(eventRepository, event.pubkey, profileVersion) {
@@ -697,12 +698,23 @@ fun MarketplaceDetailScreen(
                                         try {
                                             val currentSet = watchlistEvent?.let { Nip51.parseBookmarkSet(it) }
                                             val coordinates = currentSet?.coordinates?.toMutableSet() ?: mutableSetOf()
-                                            if (listingAddress in coordinates) coordinates.remove(listingAddress)
-                                            else coordinates.add(listingAddress)
+                                            val eventIds = currentSet?.eventIds?.toMutableSet() ?: mutableSetOf()
+                                            if (listingAddress in coordinates) {
+                                                coordinates.remove(listingAddress)
+                                                eventIds.remove(event.id)
+                                                eventIds.removeAll { savedId ->
+                                                    eventRepository.getEvent(savedId)?.let { saved ->
+                                                        saved.kind == Nip99.KIND_LISTING && Nip99.addressTag(saved) == listingAddress
+                                                    } == true
+                                                }
+                                            } else {
+                                                coordinates.add(listingAddress)
+                                                eventIds.add(event.id)
+                                            }
 
                                             val tags = Nip51.buildBookmarkSetTags(
                                                 dTag = MARKETPLACE_WATCHLIST_DTAG,
-                                                eventIds = currentSet?.eventIds ?: emptySet(),
+                                                eventIds = eventIds,
                                                 coordinates = coordinates,
                                                 hashtags = currentSet?.hashtags ?: emptySet(),
                                                 title = currentSet?.name ?: "Marketplace Watchlist"
@@ -714,6 +726,7 @@ fun MarketplaceDetailScreen(
                                             )
                                             relayPool.sendToWriteRelays(ClientMessage.event(updatedEvent))
                                             eventRepository.addEvent(updatedEvent)
+                                            onBookmarkSetChanged(updatedEvent)
                                             watchlistEvent = updatedEvent
                                             isBookmarked = listingAddress in coordinates
 
