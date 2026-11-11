@@ -1067,7 +1067,7 @@
     <string name="marketplace_unlike">Remove like</string>
     <string name="marketplace_bookmark">Save to public watchlist</string>
     <string name="marketplace_unbookmark">Remove from public watchlist</string>
-    <string name="marketplace_watchlist_public_notice">This bookmark is public: the seller can see your profile.</string>
+    <string name="marketplace_watchlist_public_notice">This is public on Nostr: anyone can see that your profile saved this listing.</string>
     <string name="marketplace_watchlist_load_failed">Could not load your public watchlist. Check your relay connection and reopen this listing.</string>
     <string name="marketplace_watchlist_update_failed">Could not update the public watchlist.</string>
     <string name="marketplace_interested_buyers">Interested buyers (%1$d)</string>
