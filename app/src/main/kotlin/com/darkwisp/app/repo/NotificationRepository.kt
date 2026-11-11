@@ -348,7 +348,7 @@ class NotificationRepository(
             val previousCoordinates = previous?.optJSONArray("coordinates")?.let { array ->
                 buildSet {
                     for (index in 0 until array.length()) {
-                        array.optString(index).takeIf { it.isNotBlank() }?.let(::add)
+                        array.optString(index).takeIf { it.isNotBlank() }?.let { add(it) }
                     }
                 }
             }.orEmpty()
