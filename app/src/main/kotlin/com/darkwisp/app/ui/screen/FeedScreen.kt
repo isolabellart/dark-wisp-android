@@ -311,8 +311,12 @@ fun FeedScreen(
         marketplaceWatchlist?.eventIds.orEmpty()
     }
     val watchlistCacheVersion by viewModel.eventRepo.eventCacheVersion.collectAsState()
-    val marketplaceWatchlistPriceChanges by marketplaceWatchlistPriceTracker
-        ?.priceChanges?.collectAsState() ?: remember { mutableStateOf(emptyMap()) }
+    val emptyWatchlistPriceChanges = remember {
+        mutableStateOf<Map<String, com.darkwisp.app.repo.MarketplaceWatchlistPriceTracker.PriceChange>>(emptyMap())
+    }
+    val marketplaceWatchlistPriceChanges by (
+        marketplaceWatchlistPriceTracker?.priceChanges?.collectAsState() ?: emptyWatchlistPriceChanges
+    )
     LaunchedEffect(watchlistCoordinates) {
         watchlistCoordinates.forEach { address ->
             val parts = address.split(":", limit = 3)
