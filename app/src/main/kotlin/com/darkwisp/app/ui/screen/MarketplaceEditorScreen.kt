@@ -76,38 +76,6 @@ import java.util.UUID
 
 private val MARKETPLACE_CURRENCY_CODES = MarketplaceCurrencies.ALL
 
-private suspend fun publishMarketplaceEvent(
-    relayPool: RelayPool,
-    event: NostrEvent,
-    context: Context
-) {
-    val message = ClientMessage.event(event)
-    relayPool.ensureWriteRelaysConnected(timeoutMs = 8_000)
-    relayPool.ensureMarketplaceWriteRelaysConnected(
-        MarketplaceRelays.WRITE,
-        timeoutMs = 8_000
-    )
-    var outcome = relayPool.publishWithConfirmation(event.id) {
-        relayPool.sendToWriteRelays(message) +
-            relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
-    }
-    if (outcome.sentCount == 0 || !outcome.confirmed) {
-        relayPool.cycleWriteRelays(timeoutMs = 8_000)
-        relayPool.ensureMarketplaceWriteRelaysConnected(
-            MarketplaceRelays.WRITE,
-            timeoutMs = 8_000,
-            forceReconnect = true
-        )
-        outcome = relayPool.publishWithConfirmation(event.id) {
-            relayPool.sendToWriteRelays(message) +
-                relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
-        }
-    }
-    if (outcome.sentCount == 0 || !outcome.confirmed) {
-        throw IllegalStateException(context.getString(R.string.marketplace_publish_unconfirmed))
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketplaceEditorScreen(
