@@ -287,6 +287,7 @@ class NotificationsViewModel(app: Application) : AndroidViewModel(app) {
         NotificationType.MENTION, NotificationType.QUOTE -> NotificationFilter.MENTIONS
         NotificationType.VOTE -> NotificationFilter.VOTES
         NotificationType.DM -> NotificationFilter.DMS
+        NotificationType.MARKETPLACE_BOOKMARK -> null
     }
 
     private fun isItemEnabled(item: FlatNotificationItem, enabled: Set<NotificationFilter>, chatEnabled: Boolean): Boolean {
