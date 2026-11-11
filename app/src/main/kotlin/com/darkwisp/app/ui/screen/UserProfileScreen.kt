@@ -1408,7 +1408,6 @@ private fun ProfileHeader(
             }
         }
 
-        profile?.nip05?.let { nip05 ->
         if (onOpenStorefront != null) {
             Spacer(Modifier.height(8.dp))
             OutlinedButton(onClick = onOpenStorefront) {
