@@ -91,6 +91,7 @@ import androidx.compose.ui.res.stringResource
 import coil3.compose.AsyncImage
 import com.darkwisp.app.nostr.FlatNotificationItem
 import com.darkwisp.app.nostr.Nip10
+import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.Nip30
 import com.darkwisp.app.nostr.Nip69
 import com.darkwisp.app.nostr.Nip88
@@ -1131,15 +1132,52 @@ private fun CompactNotificationPreview(
     }.takeIf { it.isNotBlank() } ?: return
 
     val quotedVersion by repo.quotedEventVersion.collectAsState()
-    val event = remember(eventId, quotedVersion) { repo.getEvent(eventId) }
+    val eventCacheVersion by repo.eventCacheVersion.collectAsState()
+    val addressParts = remember(eventId) { eventId.split(":", limit = 3) }
+    val isListingCoordinate = addressParts.size == 3 &&
+        addressParts[0] == Nip99.KIND_LISTING.toString()
+    val event = remember(eventId, quotedVersion, eventCacheVersion) {
+        if (isListingCoordinate) {
+            repo.findAddressableEvent(Nip99.KIND_LISTING, addressParts[1], addressParts[2])
+        } else {
+            repo.getEvent(eventId)
+        }
+    }
 
     LaunchedEffect(repo, eventId) {
-        if (repo.getEvent(eventId) == null) {
+        if (isListingCoordinate) {
+            repo.requestAddressableEvent(Nip99.KIND_LISTING, addressParts[1], addressParts[2])
+        } else if (repo.getEvent(eventId) == null) {
             repo.requestQuotedEvent(eventId)
         }
     }
 
-    CompactPreviewText(event?.content)
+    if (event?.kind == Nip99.KIND_LISTING) {
+        val imageUrl = Nip99.images(event).firstOrNull()
+        val title = Nip99.title(event).ifBlank { event.content }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (!imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = title,
+                    modifier = Modifier.size(52.dp)
+                )
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    } else {
+        CompactPreviewText(event?.content)
+    }
 }
 
 @Composable
@@ -2206,6 +2244,14 @@ private fun NotificationTypeIcon(item: FlatNotificationItem, showSats: Boolean =
         }
         NotificationType.DM_ZAP -> {} // handled by early-return above
         NotificationType.PROFILE_ZAP -> {} // handled by early-return above
+        NotificationType.MARKETPLACE_BOOKMARK -> {
+            Icon(
+                Icons.Outlined.FavoriteBorder,
+                contentDescription = "Saved to Marketplace watchlist",
+                modifier = Modifier.size(iconSize),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
 
@@ -2221,6 +2267,7 @@ private fun actionText(item: FlatNotificationItem): String = when (item.type) {
     NotificationType.DM_REACTION -> "reacted to your message"
     NotificationType.DM_ZAP -> "zapped your message"
     NotificationType.PROFILE_ZAP -> "zapped your profile"
+    NotificationType.MARKETPLACE_BOOKMARK -> "saved your listing"
 }
 
 // ── Daily Summary Bar ──────────────────────────────────────────────────
