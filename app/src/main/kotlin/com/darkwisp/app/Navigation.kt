@@ -1503,7 +1503,6 @@ fun WispNavHost(
                     val encodedRelay = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(relayUrl.toByteArray())
                     navController.navigate("group_room/$encodedRelay/${android.net.Uri.encode(groupId)}")
                 },
-                onLiveStreamClick = { hostPubkey, dTag, relayHint ->
                 onOpenStorefront = { navController.navigate("marketplace/seller/$pubkey") },
                 onLiveStreamClick = { hostPubkey, dTag, relayHint ->
                     val route = buildString {
