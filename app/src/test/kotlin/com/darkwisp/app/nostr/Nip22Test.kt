@@ -120,6 +120,17 @@ class Nip22Test {
     }
 
     @Test
+    fun filterSerializesLowercaseAForAddressableListingComments() {
+        val address = "30402:$rootAuthor:vintage-chair"
+        val json = Filter(
+            kinds = listOf(Nip22.KIND_COMMENT),
+            aTags = listOf(address)
+        ).toJsonObject().toString()
+        assertTrue(json.contains("\"#a\""))
+        assertTrue(json.contains(address))
+    }
+
+    @Test
     fun kind1WithoutETagHasNoRootScope() {
         val note = event(
             kind = 1,
