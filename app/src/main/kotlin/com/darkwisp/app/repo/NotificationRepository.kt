@@ -327,7 +327,8 @@ class NotificationRepository(
      */
     fun processMarketplaceWatchlistSnapshot(
         watchlistEvent: NostrEvent,
-        myPubkey: String
+        myPubkey: String,
+        notifyOnFirstObservation: Boolean = false
     ) {
         if (watchlistEvent.pubkey == myPubkey) return
         if (muteRepo?.isBlocked(watchlistEvent.pubkey) == true) return
@@ -351,7 +352,11 @@ class NotificationRepository(
                     }
                 }
             }.orEmpty()
-            val newlyAdded = if (previous == null) emptySet() else parsed.coordinates - previousCoordinates
+            val newlyAdded = if (previous == null) {
+                if (notifyOnFirstObservation) parsed.coordinates else emptySet()
+            } else {
+                parsed.coordinates - previousCoordinates
+            }
             val snapshot = JSONObject()
                 .put("createdAt", watchlistEvent.created_at)
                 .put("coordinates", JSONArray(parsed.coordinates.sorted()))
