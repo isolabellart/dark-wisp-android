@@ -1047,4 +1047,19 @@
     <string name="marketplace_sats_loading">Getting current BTC exchange rate…</string>
     <string name="marketplace_sats_estimate">≈ %1$s sats via Lightning at the current reference rate; seller confirms final amount</string>
     <string name="marketplace_sats_unavailable">Lightning estimate unavailable. The final amount depends on the seller\'s invoice.</string>
+
+    <string name="marketplace_search_hint">Search products, makers, and ideas</string>
+    <string name="marketplace_categories">Explore categories</string>
+    <string name="marketplace_no_results">No listings match your search.</string>
+    <string name="marketplace_storefront">Storefront</string>
+    <string name="marketplace_storefront_title">%1$s’ storefront</string>
+    <string name="marketplace_contact_expand">Expand or collapse contact options</string>
+    <string name="marketplace_feedback_title">Community feedback</string>
+    <string name="marketplace_comment_hint">Write a comment about this listing…</string>
+    <string name="marketplace_comment_send">Post comment</string>
+    <string name="marketplace_comment_signin">Sign in to comment</string>
+    <string name="marketplace_comment_empty">Be the first to leave a comment.</string>
+    <string name="marketplace_comment_count">Comments (%1$d)</string>
+    <string name="marketplace_react_count">React · %1$d</string>
+    <string name="marketplace_zap_count">Zap · %1$d sats</string>
 </resources>

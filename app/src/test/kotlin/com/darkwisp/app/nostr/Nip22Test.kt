@@ -87,6 +87,39 @@ class Nip22Test {
     }
 
     @Test
+    fun addressableRootCommentsUseNip22Coordinates() {
+        val root = NostrEvent(
+            id = "listing-event-id",
+            pubkey = rootAuthor,
+            created_at = 1789745380L,
+            kind = Nip99.KIND_LISTING,
+            tags = listOf(listOf("d", "vintage-chair")),
+            content = "A chair",
+            sig = "test-sig"
+        )
+        val address = "30402:$rootAuthor:vintage-chair"
+        val tags = Nip22.buildAddressableRootCommentTags(root)
+        assertTrue(tags.contains(listOf("A", address)))
+        assertTrue(tags.contains(listOf("K", "30402")))
+        assertTrue(tags.contains(listOf("P", rootAuthor)))
+        assertTrue(tags.contains(listOf("a", address)))
+        assertTrue(tags.contains(listOf("k", "30402")))
+        assertTrue(tags.contains(listOf("p", rootAuthor)))
+        assertTrue(Nip22.referencesAddressableRoot(event(Nip22.KIND_COMMENT, tags), address))
+    }
+
+    @Test
+    fun filterSerializesUppercaseAForAddressableComments() {
+        val address = "30402:$rootAuthor:vintage-chair"
+        val json = Filter(
+            kinds = listOf(Nip22.KIND_COMMENT),
+            bigATags = listOf(address)
+        ).toJsonObject().toString()
+        assertTrue(json.contains("\"#A\""))
+        assertTrue(json.contains(address))
+    }
+
+    @Test
     fun kind1WithoutETagHasNoRootScope() {
         val note = event(
             kind = 1,

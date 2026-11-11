@@ -5,6 +5,7 @@ on:
     branches:
       - "release/dark-wisp-enhanced"
       - "feature/weak-network-resilience"
+      - "feature/marketplace-1.0.7"
     paths:
       - "app/**"
       - "gradle/**"
@@ -103,8 +104,8 @@ jobs:
           echo "Package: $PACKAGE_ID"
           echo "Version: $VERSION_NAME ($VERSION_CODE)"
           [[ "$PACKAGE_ID" == "com.isolabellart.darkwispenhanced.staging" ]]
-          [[ "$VERSION_NAME" == "1.0.6" ]]
-          [[ "$VERSION_CODE" == "7" ]]
+          [[ "$VERSION_NAME" == "1.0.7" ]]
+          [[ "$VERSION_CODE" == "8" ]]
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
@@ -125,7 +126,7 @@ jobs:
       - name: Upload signed staging APK
         uses: actions/upload-artifact@v4
         with:
-          name: dark-wisp-enhanced-staging-1.0.6
+          name: dark-wisp-enhanced-staging-1.0.7
           path: app/build/outputs/apk/staging/app-staging.apk
           if-no-files-found: error
           retention-days: 90

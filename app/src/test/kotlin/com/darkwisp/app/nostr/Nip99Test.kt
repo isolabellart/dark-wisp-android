@@ -73,6 +73,18 @@ class Nip99Test {
     }
 
     @Test
+    fun `listing address tag uses the NIP-33 coordinate`() {
+        val listing = event(listOf(listOf("d", "painting-01")))
+        assertEquals("${Nip99.KIND_LISTING}:${listing.pubkey}:painting-01", Nip99.addressTag(listing))
+    }
+
+    @Test
+    fun `listing reactions include its address coordinate`() {
+        val listing = event(listOf(listOf("d", "painting-01")))
+        assertTrue(Nip25.buildReactionTags(listing).contains(listOf("a", Nip99.addressTag(listing))))
+    }
+
+    @Test
     fun `naddr round trips listing coordinate`() {
         val author = "ab".repeat(32)
         val encoded = Nip19.naddrEncode(

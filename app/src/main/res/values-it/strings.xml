@@ -808,4 +808,19 @@
     <string name="marketplace_sats_estimate">≈ %1$s sats via Lightning al cambio indicativo attuale; il venditore conferma l’importo finale</string>
     <string name="marketplace_sats_unavailable">Stima Lightning non disponibile. L’importo finale dipende dalla fattura del venditore.</string>
     <string name="drawer_set_up_wallet">Configura il portafoglio</string>
+
+    <string name="marketplace_search_hint">Cerca prodotti, autori e idee</string>
+    <string name="marketplace_categories">Esplora le categorie</string>
+    <string name="marketplace_no_results">Nessun annuncio corrisponde alla ricerca.</string>
+    <string name="marketplace_storefront">Vetrina</string>
+    <string name="marketplace_storefront_title">Vetrina di %1$s</string>
+    <string name="marketplace_contact_expand">Apri o chiudi le opzioni di contatto</string>
+    <string name="marketplace_feedback_title">Pareri della community</string>
+    <string name="marketplace_comment_hint">Scrivi un commento su questo annuncio…</string>
+    <string name="marketplace_comment_send">Pubblica commento</string>
+    <string name="marketplace_comment_signin">Accedi per commentare</string>
+    <string name="marketplace_comment_empty">Lascia il primo commento.</string>
+    <string name="marketplace_comment_count">Commenti (%1$d)</string>
+    <string name="marketplace_react_count">Reagisci · %1$d</string>
+    <string name="marketplace_zap_count">Zap · %1$d sats</string>
 </resources>
