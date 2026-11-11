@@ -122,6 +122,10 @@ fun WispDrawerContent(
     onSearch: () -> Unit,
     onMessages: () -> Unit,
     onMarketplace: () -> Unit = {},
+    onMarketplaceWatchlist: () -> Unit = {},
+    marketplaceWatchlistExists: Boolean = false,
+    marketplaceWatchlistCount: Int = 0,
+    marketplaceWatchlistAlertCount: Int = 0,
     onWallet: () -> Unit,
     onLists: () -> Unit = {},
     onDrafts: () -> Unit = {},
@@ -556,6 +560,38 @@ fun WispDrawerContent(
         )
         // Wallet lives in the mini-wallet widget near the top of the
         // drawer now.
+        if (marketplaceWatchlistExists) {
+            NavigationDrawerItem(
+                icon = { Icon(Icons.Outlined.FavoriteBorder, contentDescription = null) },
+                label = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(R.string.marketplace_watchlist_title),
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            marketplaceWatchlistCount.toString(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (marketplaceWatchlistAlertCount > 0) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                marketplaceWatchlistAlertCount.toString(),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                },
+                selected = false,
+                onClick = onMarketplaceWatchlist,
+                modifier = Modifier.height(48.dp).padding(horizontal = 12.dp)
+            )
+        }
         NavigationDrawerItem(
             icon = { Icon(Icons.Outlined.FormatListBulleted, contentDescription = null) },
             label = { Text(stringResource(R.string.drawer_lists)) },
