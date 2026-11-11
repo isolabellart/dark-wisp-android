@@ -1029,6 +1029,8 @@
     <string name="marketplace_login_required">Sign in with a writable Nostr account to publish a listing.</string>
     <string name="marketplace_required_fields">Enter a title and description before publishing.</string>
     <string name="marketplace_publish_unconfirmed">No relay confirmed the listing.</string>
+    <string name="marketplace_publish_confirmed">Listing published and confirmed by a relay.</string>
+    <string name="marketplace_update_confirmed">Listing update confirmed by a relay.</string>
     <string name="marketplace_publish_failed">Could not publish listing: %1$s</string>
     <string name="marketplace_publish">Publish listing</string>
     <string name="marketplace_update">Update listing</string>
