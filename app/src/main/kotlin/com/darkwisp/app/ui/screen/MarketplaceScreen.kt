@@ -114,6 +114,11 @@ import com.darkwisp.app.viewmodel.MarketplaceViewModel
 
 private const val MARKETPLACE_WATCHLIST_DTAG = "dark-wisp-marketplace-watchlist"
 
+private data class MarketplaceWatchlistSnapshot(
+    val createdAt: Long,
+    val isInterested: Boolean
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketplaceScreen(
@@ -400,10 +405,15 @@ fun MarketplaceDetailScreen(
     var isBookmarked by remember(userPubkey, event.id) { mutableStateOf(false) }
     var bookmarkBusy by remember(userPubkey, event.id) { mutableStateOf(false) }
     var bookmarkError by remember(userPubkey, event.id) { mutableStateOf<String?>(null) }
-    var publicInterestByPubkey by remember(event.id) { mutableStateOf<Map<String, Long>>(emptyMap()) }
-    val publicInterestCount = publicInterestByPubkey.keys.count { it != event.pubkey }
+    var publicInterestByPubkey by remember(event.id) {
+        mutableStateOf<Map<String, MarketplaceWatchlistSnapshot>>(emptyMap())
+    }
+    val publicInterestCount = publicInterestByPubkey.count { (pubkey, entry) ->
+        pubkey != event.pubkey && entry.isInterested
+    }
     val interestedAuthors = remember(publicInterestByPubkey, event.pubkey) {
-        publicInterestByPubkey.keys.filter { it != event.pubkey }.sorted()
+        publicInterestByPubkey.filter { (pubkey, entry) -> pubkey != event.pubkey && entry.isInterested }
+            .keys.sorted()
     }
     val suggestedMessage = stringResource(R.string.marketplace_message_intro, title)
     val context = LocalContext.current
@@ -512,15 +522,12 @@ fun MarketplaceDetailScreen(
                         }
 
                         val set = Nip51.parseBookmarkSet(candidate) ?: return@collect
-                        val previous = publicInterestByPubkey[candidate.pubkey] ?: 0L
+                        val previous = publicInterestByPubkey[candidate.pubkey]?.createdAt ?: 0L
                         if (candidate.created_at >= previous) {
+                            val interested = candidate.pubkey != event.pubkey && listingAddress in set.coordinates
                             val updated = publicInterestByPubkey.toMutableMap()
-                            if (candidate.pubkey != event.pubkey && listingAddress in set.coordinates) {
-                                updated[candidate.pubkey] = candidate.created_at
-                                eventRepository.requestProfileIfMissing(candidate.pubkey)
-                            } else {
-                                updated.remove(candidate.pubkey)
-                            }
+                            updated[candidate.pubkey] = MarketplaceWatchlistSnapshot(candidate.created_at, interested)
+                            if (interested) eventRepository.requestProfileIfMissing(candidate.pubkey)
                             publicInterestByPubkey = updated
                             if (candidate.pubkey == userPubkey && !isOwnListing) {
                                 watchlistEvent = candidate
@@ -535,9 +542,8 @@ fun MarketplaceDetailScreen(
                 interestSubId,
                 Filter(
                     kinds = listOf(Nip51.KIND_BOOKMARK_SET),
-                    aTags = listOf(listingAddress),
                     dTags = listOf(MARKETPLACE_WATCHLIST_DTAG),
-                    limit = 500
+                    limit = 1000
                 )
             )
             targets.forEach { relay ->
@@ -732,10 +738,11 @@ fun MarketplaceDetailScreen(
 
                                             val updatedInterests = publicInterestByPubkey.toMutableMap()
                                             val activePubkey = userPubkey
-                                            if (isBookmarked && activePubkey != null && activePubkey != event.pubkey) {
-                                                updatedInterests[activePubkey] = updatedEvent.created_at
-                                            } else if (activePubkey != null) {
-                                                updatedInterests.remove(activePubkey)
+                                            if (activePubkey != null && activePubkey != event.pubkey) {
+                                                updatedInterests[activePubkey] = MarketplaceWatchlistSnapshot(
+                                                    updatedEvent.created_at,
+                                                    isBookmarked
+                                                )
                                             }
                                             publicInterestByPubkey = updatedInterests
                                         } catch (error: Exception) {
