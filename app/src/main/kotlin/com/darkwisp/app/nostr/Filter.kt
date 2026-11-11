@@ -22,12 +22,12 @@ data class Filter(
      *  matches the immediate parent, so nested comment replies (e=parent,
      *  E=root) are invisible to #e queries. */
     val bigETags: List<String>? = null,
-    /** Uppercase A tags — NIP-22 addressable-root comments (#A). */
-    val bigATags: List<String>? = null,
     val since: Long? = null,
     val until: Long? = null,
     val limit: Int? = null,
-    val search: String? = null
+    val search: String? = null,
+    /** Uppercase A tags — NIP-22 addressable-root comments (#A). */
+    val bigATags: List<String>? = null
 ) {
     fun toJsonObject(): JsonObject = buildJsonObject {
         kinds?.let { put("kinds", buildJsonArray { it.forEach { k -> add(JsonPrimitive(k)) } }) }
