@@ -442,8 +442,35 @@ fun MarketplaceDetailScreen(
             }
         }
         relayPool.sendToReadRelays(ClientMessage.req(
-            subId, Filter(kinds = listOf(Nip22.KIND_COMMENT), aTags = listOf(commentAddress), limit = 100)
+            subId, Filter(kinds = listOf(Nip22.KIND_COMMENT), bigATags = listOf(commentAddress), limit = 100)
         ))
+        try { awaitCancellation() } finally {
+            collector.cancel()
+            relayPool.closeOnAllRelays(subId)
+        }
+    }
+
+    LaunchedEffect(event.id) {
+        val subId = "marketplace-reactions-${event.id.take(12)}"
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            relayPool.relayEvents
+                .filter { it.subscriptionId == subId }
+                .collect { frame ->
+                    val reaction = frame.event
+                    if (reaction.kind == 7 &&
+                        reaction.tags.any { it.size >= 2 && it[0] == "e" && it[1] == event.id }) {
+                        eventRepository.addEvent(reaction)
+                        eventRepository.requestProfileIfMissing(reaction.pubkey)
+                    }
+                }
+        }
+        val request = ClientMessage.req(
+            subId,
+            Filter(kinds = listOf(7), eTags = listOf(event.id), limit = 500)
+        )
+        (relayPool.getReadRelayUrls() + MarketplaceRelays.READ).distinct().forEach { relay ->
+            relayPool.sendToRelayOrEphemeral(relay, request, skipBadCheck = true)
+        }
         try { awaitCancellation() } finally {
             collector.cancel()
             relayPool.closeOnAllRelays(subId)
@@ -722,7 +749,7 @@ fun MarketplaceDetailScreen(
                                                     (watchlistEvent?.created_at ?: 0L) + 1L
                                                 )
                                             )
-                                            relayPool.sendToWriteRelays(ClientMessage.event(updatedEvent))
+                                            publishMarketplaceEvent(relayPool, updatedEvent, context)
                                             eventRepository.addEvent(updatedEvent)
                                             onBookmarkSetChanged(updatedEvent)
                                             watchlistEvent = updatedEvent
@@ -808,7 +835,7 @@ fun MarketplaceDetailScreen(
                             commentError = null
                             try {
                                 val comment = activeSigner.signEvent(Nip22.KIND_COMMENT, body, Nip22.buildAddressableRootCommentTags(event))
-                                relayPool.sendToWriteRelays(ClientMessage.event(comment))
+                                publishMarketplaceEvent(relayPool, comment, context)
                                 eventRepository.addEvent(comment)
                                 if (comments.none { it.id == comment.id }) { comments.add(comment); comments.sortBy { it.created_at } }
                                 commentText = ""
