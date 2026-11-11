@@ -1207,10 +1207,13 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
 
     fun findAddressableEvent(kind: Int, author: String, dTag: String): NostrEvent? {
         if (muteRepo?.isBlocked(author) == true) return null
-        return eventCache.values.firstOrNull { event ->
-            event.kind == kind && event.pubkey == author &&
-                event.tags.any { it.size >= 2 && it[0] == "d" && it[1] == dTag }
-        }
+        return eventCache.values
+            .asSequence()
+            .filter { event ->
+                event.kind == kind && event.pubkey == author &&
+                    event.tags.any { it.size >= 2 && it[0] == "d" && it[1] == dTag }
+            }
+            .maxByOrNull { it.created_at }
     }
 
     fun getEvent(id: String): NostrEvent? {
