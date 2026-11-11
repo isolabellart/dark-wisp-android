@@ -79,7 +79,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
         val snapshot = synchronized(cacheLock) { cachedByAddress.values.toList() }
         val scoped = snapshot.filter { matchesScope(it, selectedScope, authors, userPubkey, sellerPubkey) }
         _availableCategories.value = scoped.flatMap { Nip99.categories(it) }.map { it.trim().lowercase() }
-            .filter { it.isNotBlank() }.distinct().sorted().take(24)
+            .filter { it.isNotBlank() }.distinct().sorted()
         val query = _searchQuery.value.trim().lowercase()
         val category = _selectedCategory.value?.lowercase()
         _listings.value = scoped.asSequence()
