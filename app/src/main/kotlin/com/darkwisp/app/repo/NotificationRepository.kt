@@ -7,6 +7,7 @@ import com.darkwisp.app.nostr.Nip10
 import com.darkwisp.app.nostr.Nip22
 import com.darkwisp.app.nostr.Nip30
 import com.darkwisp.app.nostr.Nip57
+import com.darkwisp.app.nostr.Nip51
 import com.darkwisp.app.nostr.Nip69
 import com.darkwisp.app.nostr.Nip88
 import com.darkwisp.app.nostr.NostrEvent
@@ -316,9 +317,56 @@ class NotificationRepository(
         }
     }
 
+    /**
+     * Add a notification when someone adds one of the current user's NIP-99
+     * listings to their public Marketplace watchlist (NIP-51 kind 30003).
+     * referencedEventId contains the stable 30402:author:d-tag coordinate,
+     * not a revision-specific event ID.
+     */
+    fun addMarketplaceBookmark(
+        watchlistEvent: NostrEvent,
+        myPubkey: String,
+        listingCoordinate: String
+    ) {
+        if (watchlistEvent.pubkey == myPubkey) return
+        if (muteRepo?.isBlocked(watchlistEvent.pubkey) == true) return
+        synchronized(lock) {
+            val notificationId = "marketplace-bookmark:${watchlistEvent.id}:$listingCoordinate"
+            if (!flatItemIds.add(notificationId)) return
+            flatItems.add(
+                FlatNotificationItem(
+                    id = notificationId,
+                    type = NotificationType.MARKETPLACE_BOOKMARK,
+                    actorPubkey = watchlistEvent.pubkey,
+                    referencedEventId = listingCoordinate,
+                    timestamp = watchlistEvent.created_at
+                )
+            )
+            if (watchlistEvent.created_at > latestNotifTs) {
+                latestNotifTs = watchlistEvent.created_at
+                prefs.edit().putLong(KEY_LATEST_NOTIF_TS, watchlistEvent.created_at).apply()
+            }
+            if (watchlistEvent.created_at > lastReadTimestamp) {
+                if (isViewing) {
+                    lastReadTimestamp = watchlistEvent.created_at
+                    prefs.edit().putLong(KEY_LAST_READ, watchlistEvent.created_at).apply()
+                } else {
+                    _hasUnread.value = true
+                }
+                if (watchlistEvent.created_at >= soundEligibleAfter && appIsActive) {
+                    _notifReceived.tryEmit(Nip51.KIND_BOOKMARK_SET)
+                }
+            }
+            scheduleRebuildSortedList()
+        }
+    }
+
     fun markRead() {
         _hasUnread.value = false
-        val latestTimestamp = _notifications.value.firstOrNull()?.latestTimestamp ?: return
+        val latestGroupTimestamp = _notifications.value.firstOrNull()?.latestTimestamp ?: 0L
+        val latestFlatTimestamp = synchronized(lock) { flatItems.maxOfOrNull { it.timestamp } ?: 0L }
+        val latestTimestamp = maxOf(latestGroupTimestamp, latestFlatTimestamp)
+        if (latestTimestamp <= 0L) return
         if (latestTimestamp > lastReadTimestamp) {
             lastReadTimestamp = latestTimestamp
             prefs.edit().putLong(KEY_LAST_READ, latestTimestamp).apply()
