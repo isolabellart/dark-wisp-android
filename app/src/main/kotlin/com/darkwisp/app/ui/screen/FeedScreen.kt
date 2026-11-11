@@ -176,6 +176,8 @@ fun FeedScreen(
     onProfileEdit: () -> Unit = {},
     onProfileClick: (String) -> Unit = {},
     onMarketplace: () -> Unit = {},
+    onMarketplaceWatchlist: () -> Unit = {},
+    marketplaceWatchlistPriceTracker: com.darkwisp.app.repo.MarketplaceWatchlistPriceTracker? = null,
     onListingClick: (NostrEvent) -> Unit = {},
     onDms: () -> Unit = {},
     onReact: (NostrEvent, String) -> Unit = { _, _ -> },
@@ -298,6 +300,44 @@ fun FeedScreen(
         }
     }
     val ownLists by viewModel.listRepo.ownLists.collectAsState()
+    val ownBookmarkSets by viewModel.bookmarkSetRepo.ownSets.collectAsState()
+    val marketplaceWatchlist = remember(ownBookmarkSets) {
+        ownBookmarkSets.firstOrNull { it.dTag == "dark-wisp-marketplace-watchlist" }
+    }
+    val watchlistCoordinates = remember(marketplaceWatchlist) {
+        marketplaceWatchlist?.coordinates.orEmpty().filter { it.startsWith("30402:") }.toSet()
+    }
+    val watchlistEventIds = remember(marketplaceWatchlist) {
+        marketplaceWatchlist?.eventIds.orEmpty()
+    }
+    val watchlistCacheVersion by viewModel.eventRepo.eventCacheVersion.collectAsState()
+    val marketplaceWatchlistPriceChanges by marketplaceWatchlistPriceTracker
+        ?.priceChanges?.collectAsState() ?: remember { mutableStateOf(emptyMap()) }
+    LaunchedEffect(watchlistCoordinates) {
+        watchlistCoordinates.forEach { address ->
+            val parts = address.split(":", limit = 3)
+            if (parts.size == 3) {
+                parts[0].toIntOrNull()?.let { kind ->
+                    viewModel.eventRepo.requestAddressableEvent(kind, parts[1], parts[2])
+                }
+            }
+        }
+    }
+    LaunchedEffect(watchlistCoordinates, watchlistEventIds, watchlistCacheVersion) {
+        watchlistCoordinates.forEach { address ->
+            val parts = address.split(":", limit = 3)
+            if (parts.size == 3) {
+                val kind = parts[0].toIntOrNull() ?: return@forEach
+                viewModel.eventRepo.findAddressableEvent(kind, parts[1], parts[2])?.let {
+                    marketplaceWatchlistPriceTracker?.inspect(it)
+                }
+            }
+        }
+        watchlistEventIds.forEach { id ->
+            viewModel.eventRepo.getEvent(id)?.let { marketplaceWatchlistPriceTracker?.inspect(it) }
+        }
+    }
+    val marketplaceWatchlistCount = watchlistCoordinates.size + watchlistEventIds.size
     var showRelayPicker by remember { mutableStateOf(false) }
     var showListPicker by remember { mutableStateOf(false) }
     val interestSets by viewModel.interestRepo.sets.collectAsState()
@@ -816,6 +856,13 @@ fun FeedScreen(
                     scope.launch { drawerState.close() }
                     onMarketplace()
                 },
+                onMarketplaceWatchlist = {
+                    scope.launch { drawerState.close() }
+                    onMarketplaceWatchlist()
+                },
+                marketplaceWatchlistExists = marketplaceWatchlist != null,
+                marketplaceWatchlistCount = marketplaceWatchlistCount,
+                marketplaceWatchlistAlertCount = marketplaceWatchlistPriceChanges.size,
                 onSearch = {
                     scope.launch { drawerState.close() }
                     onSearch()
