@@ -8,6 +8,7 @@ import com.darkwisp.app.nostr.Nip22
 import com.darkwisp.app.nostr.Nip30
 import com.darkwisp.app.nostr.Nip57
 import com.darkwisp.app.nostr.Nip51
+import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.Nip69
 import com.darkwisp.app.nostr.Nip88
 import com.darkwisp.app.nostr.NostrEvent
@@ -27,6 +28,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import org.json.JSONArray
+import org.json.JSONObject
 
 class NotificationRepository(
     private val context: Context,
@@ -315,6 +318,51 @@ class NotificationRepository(
             }
             scheduleRebuildSortedList()
         }
+    }
+
+    /**
+     * Persist the latest public Marketplace watchlist snapshot per author.
+     * On the first observation we establish a quiet baseline; on later starts
+     * or live updates we notify only newly added listings belonging to this seller.
+     */
+    fun processMarketplaceWatchlistSnapshot(
+        watchlistEvent: NostrEvent,
+        myPubkey: String
+    ) {
+        if (watchlistEvent.pubkey == myPubkey) return
+        if (muteRepo?.isBlocked(watchlistEvent.pubkey) == true) return
+        val parsed = Nip51.parseBookmarkSet(watchlistEvent) ?: return
+        val preferenceKey = "marketplace_watchlist_seen_${watchlistEvent.pubkey}"
+        val addedCoordinates = synchronized(lock) {
+            val previousJson = prefs.getString(preferenceKey, null)
+            val previous = try {
+                previousJson?.let(::JSONObject)
+            } catch (_: Exception) {
+                null
+            }
+            val previousTimestamp = previous?.optLong("createdAt", 0L) ?: 0L
+            if (watchlistEvent.created_at <= previousTimestamp) {
+                return@synchronized emptySet()
+            }
+            val previousCoordinates = previous?.optJSONArray("coordinates")?.let { array ->
+                buildSet {
+                    for (index in 0 until array.length()) {
+                        array.optString(index).takeIf { it.isNotBlank() }?.let(::add)
+                    }
+                }
+            }.orEmpty()
+            val newlyAdded = if (previous == null) emptySet() else parsed.coordinates - previousCoordinates
+            val snapshot = JSONObject()
+                .put("createdAt", watchlistEvent.created_at)
+                .put("coordinates", JSONArray(parsed.coordinates.sorted()))
+            prefs.edit().putString(preferenceKey, snapshot.toString()).apply()
+            newlyAdded
+        }
+        addedCoordinates
+            .filter { it.startsWith("${Nip99.KIND_LISTING}:$myPubkey:") }
+            .forEach { coordinate ->
+                addMarketplaceBookmark(watchlistEvent, myPubkey, coordinate)
+            }
     }
 
     /**
