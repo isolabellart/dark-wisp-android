@@ -22,6 +22,8 @@ data class Filter(
      *  matches the immediate parent, so nested comment replies (e=parent,
      *  E=root) are invisible to #e queries. */
     val bigETags: List<String>? = null,
+    /** Uppercase A tags — NIP-22 addressable-root comments (#A). */
+    val bigATags: List<String>? = null,
     val since: Long? = null,
     val until: Long? = null,
     val limit: Int? = null,
@@ -40,6 +42,7 @@ data class Filter(
         aTags?.let { put("#a", buildJsonArray { it.forEach { a -> add(JsonPrimitive(a)) } }) }
         bigPTags?.let { put("#P", buildJsonArray { it.forEach { p -> add(JsonPrimitive(p)) } }) }
         bigETags?.let { put("#E", buildJsonArray { it.forEach { e -> add(JsonPrimitive(e)) } }) }
+        bigATags?.let { put("#A", buildJsonArray { it.forEach { a -> add(JsonPrimitive(a)) } }) }
         since?.let { put("since", JsonPrimitive(it)) }
         until?.let { put("until", JsonPrimitive(it)) }
         limit?.let { put("limit", JsonPrimitive(it)) }

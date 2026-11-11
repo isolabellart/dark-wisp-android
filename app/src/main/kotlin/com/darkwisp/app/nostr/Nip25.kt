@@ -6,6 +6,7 @@ object Nip25 {
         tags.add(listOf("e", targetEvent.id))
         tags.add(listOf("p", targetEvent.pubkey))
         tags.add(listOf("k", targetEvent.kind.toString()))
+        if (targetEvent.kind == Nip99.KIND_LISTING) tags.add(listOf("a", Nip99.addressTag(targetEvent)))
         return tags
     }
 

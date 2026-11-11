@@ -15,6 +15,20 @@ object Nip22 {
 
     fun isComment(event: NostrEvent): Boolean = event.kind == KIND_COMMENT
 
+    fun addressableRootTag(root: NostrEvent): String = Nip99.addressTag(root)
+
+    /** NIP-22 root scope (A/K/P) and direct parent (a/k/p) for a listing comment. */
+    fun buildAddressableRootCommentTags(root: NostrEvent): List<List<String>> {
+        val address = addressableRootTag(root)
+        val kind = root.kind.toString()
+        return listOf(listOf("A", address), listOf("K", kind), listOf("P", root.pubkey),
+            listOf("a", address), listOf("k", kind), listOf("p", root.pubkey))
+    }
+
+    fun referencesAddressableRoot(event: NostrEvent, addressTag: String): Boolean =
+        event.kind == KIND_COMMENT && event.tags.any { it.size >= 2 && it[0] == "A" && it[1] == addressTag }
+
+
     /**
      * Root scope of a comment: the uppercase `E` tag per NIP-22. Lowercase `e`
      * names only the immediate parent, so for a reply-to-a-comment this is the

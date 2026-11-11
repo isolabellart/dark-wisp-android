@@ -39,6 +39,13 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
+    private val _selectedCategory = MutableStateFlow<String?>(null)
+    val selectedCategory: StateFlow<String?> = _selectedCategory
+    private val _availableCategories = MutableStateFlow<List<String>>(emptyList())
+    val availableCategories: StateFlow<List<String>> = _availableCategories
+
     private val subscriptionSequence = AtomicLong()
     private val cachedByAddress = linkedMapOf<String, NostrEvent>()
     private val cacheLock = Any()
@@ -46,6 +53,8 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
     private var activeSubscriptionId: String? = null
     private var currentAuthors: Set<String> = emptySet()
     private var currentUserPubkey: String? = null
+    private var currentSellerPubkey: String? = null
+    private var currentEventRepository: EventRepository? = null
 
     companion object {
         private const val LOAD_TIMEOUT_MS = 10_000L
@@ -57,21 +66,43 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
         _scope.value = scope
     }
 
-    private fun matchesScope(event: NostrEvent, selectedScope: MarketplaceScope, authors: Set<String>, userPubkey: String?): Boolean =
-        when (selectedScope) {
+    private fun matchesScope(event: NostrEvent, selectedScope: MarketplaceScope, authors: Set<String>, userPubkey: String?, sellerPubkey: String?): Boolean {
+        if (sellerPubkey != null) return event.pubkey == sellerPubkey
+        return when (selectedScope) {
             MarketplaceScope.ALL -> true
             MarketplaceScope.FOLLOWING -> event.pubkey in authors
             MarketplaceScope.MINE -> event.pubkey == userPubkey
         }
+    }
 
-    private fun publishVisibleCache(selectedScope: MarketplaceScope, authors: Set<String>, userPubkey: String?) {
+    private fun publishVisibleCache(selectedScope: MarketplaceScope, authors: Set<String>, userPubkey: String?, sellerPubkey: String? = currentSellerPubkey) {
         val snapshot = synchronized(cacheLock) { cachedByAddress.values.toList() }
-        _listings.value = snapshot
-            .asSequence()
-            .filter { matchesScope(it, selectedScope, authors, userPubkey) }
-            .sortedByDescending { it.created_at }
-            .take(MAX_CACHED_LISTINGS)
-            .toList()
+        val scoped = snapshot.filter { matchesScope(it, selectedScope, authors, userPubkey, sellerPubkey) }
+        _availableCategories.value = scoped.flatMap { Nip99.categories(it) }.map { it.trim().lowercase() }
+            .filter { it.isNotBlank() }.distinct().sorted().take(24)
+        val query = _searchQuery.value.trim().lowercase()
+        val category = _selectedCategory.value?.lowercase()
+        _listings.value = scoped.asSequence()
+            .filter { event -> category == null || Nip99.categories(event).any { it.trim().equals(category, ignoreCase = true) } }
+            .filter { event ->
+                if (query.isBlank()) true else {
+                    val maker = currentEventRepository?.getProfileData(event.pubkey)?.displayString.orEmpty()
+                    listOf(Nip99.title(event), Nip99.summary(event), event.content, Nip99.location(event),
+                        event.pubkey, maker, Nip99.categories(event).joinToString(" "))
+                        .any { it.contains(query, ignoreCase = true) }
+                }
+            }
+            .sortedByDescending { it.created_at }.take(MAX_CACHED_LISTINGS).toList()
+    }
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+        publishVisibleCache(_scope.value, currentAuthors, currentUserPubkey, currentSellerPubkey)
+    }
+
+    fun setSelectedCategory(category: String?) {
+        _selectedCategory.value = category
+        publishVisibleCache(_scope.value, currentAuthors, currentUserPubkey, currentSellerPubkey)
     }
 
     fun load(
@@ -79,15 +110,18 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
         relayPool: RelayPool,
         eventRepository: EventRepository,
         followedPubkeys: List<String>,
-        userPubkey: String?
+        userPubkey: String?,
+        sellerPubkey: String? = null
     ) {
         _scope.value = selectedScope
         currentUserPubkey = userPubkey
-
-        val authors = when (selectedScope) {
-            MarketplaceScope.ALL -> emptySet()
-            MarketplaceScope.FOLLOWING -> followedPubkeys.toSet()
-            MarketplaceScope.MINE -> setOfNotNull(userPubkey)
+        currentSellerPubkey = sellerPubkey
+        currentEventRepository = eventRepository
+        val authors = when {
+            sellerPubkey != null -> setOf(sellerPubkey)
+            selectedScope == MarketplaceScope.ALL -> emptySet()
+            selectedScope == MarketplaceScope.FOLLOWING -> followedPubkeys.toSet()
+            else -> setOfNotNull(userPubkey)
         }
         currentAuthors = authors
 
@@ -106,7 +140,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
         }
 
         // Keep known listings visible immediately while the relay query refreshes.
-        publishVisibleCache(selectedScope, authors, userPubkey)
+        publishVisibleCache(selectedScope, authors, userPubkey, sellerPubkey)
         _loading.value = true
         _error.value = null
 
@@ -133,8 +167,9 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                         .collect { relayEvent ->
                             val event = relayEvent.event
                             if (event.kind != Nip99.KIND_LISTING) return@collect
-                            if (selectedScope == MarketplaceScope.FOLLOWING && event.pubkey !in authors) return@collect
-                            if (selectedScope == MarketplaceScope.MINE && event.pubkey != userPubkey) return@collect
+                            if (sellerPubkey != null && event.pubkey != sellerPubkey) return@collect
+                            if (sellerPubkey == null && selectedScope == MarketplaceScope.FOLLOWING && event.pubkey !in authors) return@collect
+                            if (sellerPubkey == null && selectedScope == MarketplaceScope.MINE && event.pubkey != userPubkey) return@collect
                             if (!eventRepository.isEventVisibleToUser(event)) return@collect
 
                             val dTag = Nip99.dTag(event)
@@ -211,7 +246,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                 cachedByAddress[key] = event
             }
         }
-        publishVisibleCache(_scope.value, currentAuthors, currentUserPubkey)
+        publishVisibleCache(_scope.value, currentAuthors, currentUserPubkey, currentSellerPubkey)
     }
 
     fun removeByAddress(pubkey: String, dTag: String) {

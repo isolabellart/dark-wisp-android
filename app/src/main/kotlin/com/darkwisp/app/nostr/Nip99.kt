@@ -20,6 +20,9 @@ object Nip99 {
         event.tags.filter { it.size >= 2 && it[0] == name }
 
     fun dTag(event: NostrEvent): String = tag(event, "d")?.getOrNull(1).orEmpty()
+
+    fun addressTag(event: NostrEvent): String = "${event.kind}:${event.pubkey}:${dTag(event)}"
+
     fun title(event: NostrEvent): String = tag(event, "title")?.getOrNull(1).orEmpty()
     fun summary(event: NostrEvent): String = tag(event, "summary")?.getOrNull(1).orEmpty()
     fun location(event: NostrEvent): String = tag(event, "location")?.getOrNull(1).orEmpty()
