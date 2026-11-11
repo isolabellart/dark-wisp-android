@@ -744,6 +744,11 @@ class NotificationRepository(
         val quotedId = event.tags.firstOrNull { it.size >= 2 && it[0] == "q" }?.get(1)
         if (quotedId != null) return mergeQuote(event, quotedId)
 
+        if (event.kind == Nip22.KIND_COMMENT) {
+            val addressableRoot = Nip22.getAddressableRootTag(event)
+            if (addressableRoot != null) return mergeReply(event, addressableRoot, null)
+        }
+
         val replyResult = Nip10.getReplyTargetWithHint(event)
         if (replyResult != null) return mergeReply(event, replyResult.first, replyResult.second)
 
@@ -985,7 +990,8 @@ class NotificationRepository(
             1 -> Nip10.getRootId(event) ?: Nip10.getReplyTarget(event)
             // NIP-22 replies-to-comments reference the thread root only via
             // uppercase E scope (lowercase e names the parent comment).
-            Nip22.KIND_COMMENT -> Nip22.getRootScopeId(event)
+            Nip22.KIND_COMMENT -> Nip22.getAddressableRootTag(event)
+                ?: Nip22.getRootScopeId(event)
                 ?: Nip10.getRootId(event) ?: Nip10.getReplyTarget(event)
             7 -> {
                 val refId = event.tags.lastOrNull { it.size >= 2 && it[0] == "e" }?.get(1)
