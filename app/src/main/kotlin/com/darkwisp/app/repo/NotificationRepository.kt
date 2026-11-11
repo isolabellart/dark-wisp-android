@@ -594,7 +594,12 @@ class NotificationRepository(
     private fun mergeReaction(event: NostrEvent): Boolean {
         val emoji = event.content.ifBlank { "❤️" }
         val eTag = event.tags.lastOrNull { it.size >= 2 && it[0] == "e" } ?: return false
-        val referencedId = eTag[1]
+        val addressTag = event.tags.lastOrNull { it.size >= 2 && it[0] == "a" }
+            ?.get(1)
+            ?.takeIf { it.startsWith("30402:") }
+        // NIP-99 listings are addressable: use the stable coordinate in the
+        // notification so previews and taps can resolve the newest revision.
+        val referencedId = addressTag ?: eTag[1]
         val eTagHint = eTag.getOrNull(2)?.takeIf { it.startsWith("wss://") || it.startsWith("ws://") }
         val key = "reactions:$referencedId"
         val existing = groupMap[key] as? NotificationGroup.ReactionGroup
