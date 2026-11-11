@@ -1098,7 +1098,12 @@ class StartupCoordinator(
                     RelayConfig.DEFAULT_INDEXER_RELAYS
                 ).distinct()
             targets.forEach { url ->
-                relayPool.sendToRelayOrEphemeral(url, request, skipBadCheck = true)
+                relayPool.sendToRelayOrEphemeral(
+                    url,
+                    request,
+                    skipBadCheck = true,
+                    autoReconnect = url in MarketplaceRelays.READ
+                )
             }
 
             var eoseCount = 0
