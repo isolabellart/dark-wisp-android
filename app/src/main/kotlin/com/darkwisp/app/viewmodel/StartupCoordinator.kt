@@ -7,6 +7,9 @@ import com.darkwisp.app.nostr.Filter
 import com.darkwisp.app.nostr.Nip22
 import com.darkwisp.app.nostr.Nip30
 import com.darkwisp.app.nostr.Nip51
+import com.darkwisp.app.nostr.Nip99
+import com.darkwisp.app.nostr.MarketplaceRelays
+import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.db.EventPersistence
 import com.darkwisp.app.relay.HttpClientFactory
 import com.darkwisp.app.relay.OutboxRouter
@@ -54,6 +57,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -61,6 +66,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import kotlin.coroutines.CoroutineContext
+
+private const val MARKETPLACE_WATCHLIST_DTAG = "dark-wisp-marketplace-watchlist"
+private const val MARKETPLACE_WATCHLIST_NOTIF_SUB_ID = "marketplace-watchlist-notifications"
 
 /**
  * Orchestrates startup sequencing (cold/warm paths), self-data fetching,
@@ -121,6 +129,7 @@ class StartupCoordinator(
     private var startupJob: Job? = null
     private var healthSnapshotJob: Job? = null
     private var notifSeedJob: Job? = null
+    private var marketplaceWatchlistNotificationsJob: Job? = null
 
     var relaysInitialized = false
         private set
@@ -137,6 +146,8 @@ class StartupCoordinator(
         startupJob?.cancel()
         healthSnapshotJob?.cancel()
         notifSeedJob?.cancel()
+        marketplaceWatchlistNotificationsJob?.cancel()
+        relayPool.closeOnAllRelays(MARKETPLACE_WATCHLIST_NOTIF_SUB_ID)
         feedSub.reset()
 
         // Stop lifecycle manager and disconnect relays
@@ -183,6 +194,8 @@ class StartupCoordinator(
         startupJob?.cancel()
         healthSnapshotJob?.cancel()
         notifSeedJob?.cancel()
+        marketplaceWatchlistNotificationsJob?.cancel()
+        relayPool.closeOnAllRelays(MARKETPLACE_WATCHLIST_NOTIF_SUB_ID)
         feedSub.reset()
 
         lifecycleManager.stop()
@@ -1012,7 +1025,113 @@ class StartupCoordinator(
             feedSub.subscribeNotifEngagement()
         }
 
+        subscribeMarketplaceWatchlistNotifications(myPubkey)
         subscribeLiveStreams(myPubkey)
+    }
+
+    /**
+     * Watch the public NIP-51 Marketplace watchlist set and notify the listing
+     * owner when a different profile adds one of their NIP-99 listings.
+     * Old snapshots establish a baseline; only newly published set revisions
+     * can generate notifications, so opening the app does not replay history.
+     */
+    private fun subscribeMarketplaceWatchlistNotifications(myPubkey: String) {
+        marketplaceWatchlistNotificationsJob?.cancel()
+        relayPool.closeOnAllRelays(MARKETPLACE_WATCHLIST_NOTIF_SUB_ID)
+        val subscriptionStartedAt = System.currentTimeMillis() / 1000
+
+        marketplaceWatchlistNotificationsJob = scope.launch {
+            val baselineByAuthor = mutableMapOf<String, NostrEvent>()
+            val pendingNewByAuthor = mutableMapOf<String, NostrEvent>()
+            val latestByAuthor = mutableMapOf<String, NostrEvent>()
+            var baselineReady = false
+
+            val collector = launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+                relayPool.relayEvents
+                    .filter { it.subscriptionId == MARKETPLACE_WATCHLIST_NOTIF_SUB_ID }
+                    .collect { frame ->
+                        val candidate = frame.event
+                        val dTag = candidate.tags.firstOrNull { it.size >= 2 && it[0] == "d" }?.get(1)
+                        if (candidate.kind != Nip51.KIND_BOOKMARK_SET || dTag != MARKETPLACE_WATCHLIST_DTAG) {
+                            return@collect
+                        }
+                        val parsed = Nip51.parseBookmarkSet(candidate) ?: return@collect
+                        val author = candidate.pubkey
+                        if (!baselineReady) {
+                            val currentPending = pendingNewByAuthor[author]
+                            if (candidate.created_at > subscriptionStartedAt) {
+                                if (currentPending == null || candidate.created_at > currentPending.created_at) {
+                                    pendingNewByAuthor[author] = candidate
+                                }
+                            } else {
+                                val currentBaseline = baselineByAuthor[author]
+                                if (currentBaseline == null || candidate.created_at > currentBaseline.created_at) {
+                                    baselineByAuthor[author] = candidate
+                                }
+                            }
+                            return@collect
+                        }
+
+                        val previous = latestByAuthor[author]
+                        if (previous != null && candidate.created_at <= previous.created_at) return@collect
+                        val oldCoordinates = previous?.let { Nip51.parseBookmarkSet(it)?.coordinates }.orEmpty()
+                        val added = if (previous == null) {
+                            if (candidate.created_at > subscriptionStartedAt) parsed.coordinates else emptySet()
+                        } else {
+                            parsed.coordinates - oldCoordinates
+                        }
+                        added.filter { it.startsWith("${Nip99.KIND_LISTING}:$myPubkey:") }
+                            .forEach { coordinate ->
+                                notifRepo.addMarketplaceBookmark(candidate, myPubkey, coordinate)
+                            }
+                        latestByAuthor[author] = candidate
+                    }
+            }
+
+            val request = ClientMessage.req(
+                MARKETPLACE_WATCHLIST_NOTIF_SUB_ID,
+                Filter(
+                    kinds = listOf(Nip51.KIND_BOOKMARK_SET),
+                    dTags = listOf(MARKETPLACE_WATCHLIST_DTAG),
+                    limit = 1000
+                )
+            )
+            val targets = (
+                relayPool.getReadRelayUrls() +
+                    MarketplaceRelays.READ +
+                    RelayConfig.DEFAULT_INDEXER_RELAYS
+                ).distinct()
+            targets.forEach { url ->
+                relayPool.sendToRelayOrEphemeral(url, request, skipBadCheck = true)
+            }
+
+            var eoseCount = 0
+            withTimeoutOrNull(8_000L) {
+                relayPool.eoseSignals
+                    .filter { it == MARKETPLACE_WATCHLIST_NOTIF_SUB_ID }
+                    .take(2)
+                    .collect { eoseCount++ }
+            }
+
+            baselineByAuthor.forEach { (author, event) -> latestByAuthor[author] = event }
+            baselineReady = true
+            pendingNewByAuthor.forEach { (author, event) ->
+                val previous = latestByAuthor[author]
+                val oldCoordinates = previous?.let { Nip51.parseBookmarkSet(it)?.coordinates }.orEmpty()
+                val newCoordinates = Nip51.parseBookmarkSet(event)?.coordinates.orEmpty()
+                val added = if (previous == null) newCoordinates else newCoordinates - oldCoordinates
+                added.filter { it.startsWith("${Nip99.KIND_LISTING}:$myPubkey:") }
+                    .forEach { coordinate ->
+                        notifRepo.addMarketplaceBookmark(event, myPubkey, coordinate)
+                    }
+                if (previous == null || event.created_at > previous.created_at) latestByAuthor[author] = event
+            }
+            Log.d(
+                "StartupCoord",
+                "Marketplace watchlist notification subscription ready: EOSE=$eoseCount, authors=${latestByAuthor.size}"
+            )
+            collector.join()
+        }
     }
 
     private fun subscribeLiveStreams(myPubkey: String) {
