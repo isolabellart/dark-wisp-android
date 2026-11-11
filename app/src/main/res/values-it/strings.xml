@@ -828,7 +828,7 @@
     <string name="marketplace_unlike">Rimuovi il mi piace</string>
     <string name="marketplace_bookmark">Salva nella lista pubblica da tenere d’occhio</string>
     <string name="marketplace_unbookmark">Rimuovi dalla lista pubblica</string>
-    <string name="marketplace_watchlist_public_notice">Questo preferito è pubblico: il venditore può vedere il tuo profilo.</string>
+    <string name="marketplace_watchlist_public_notice">Questo segnalibro è pubblico su Nostr: chiunque può vedere che il tuo profilo ha salvato l’annuncio.</string>
     <string name="marketplace_watchlist_load_failed">Impossibile caricare la tua lista pubblica. Controlla la connessione ai relay e riapri l’annuncio.</string>
     <string name="marketplace_watchlist_update_failed">Impossibile aggiornare la lista pubblica.</string>
     <string name="marketplace_interested_buyers">Possibili acquirenti interessati (%1$d)</string>
