@@ -783,7 +783,7 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
         // Local signer mode
         val keypair = keyRepo.getKeypair()
         if (keypair == null) {
-            _sendError.value = "No active Nostr signer is available. Reconnect your account and try again."
+            _sendError.value = getApplication<Application>().getString(R.string.dm_signer_unavailable)
             return
         }
 
