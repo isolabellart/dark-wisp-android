@@ -7,6 +7,7 @@ import com.darkwisp.app.nostr.Nip51
 import com.darkwisp.app.nostr.NostrEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -15,6 +16,7 @@ class BookmarkSetRepository(private val context: Context, pubkeyHex: String? = n
     private var prefs: SharedPreferences =
         context.getSharedPreferences(prefsName(pubkeyHex), Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
+    private val updateMutex = Mutex()
 
     private val bookmarkSets = mutableMapOf<String, BookmarkSet>()
 
@@ -28,6 +30,20 @@ class BookmarkSetRepository(private val context: Context, pubkeyHex: String? = n
 
     init {
         loadFromPrefs()
+    }
+
+    /**
+     * Serializes read-modify-sign-write operations on a user's bookmark set.
+     * Marketplace detail routes share this repository, so separate screens cannot
+     * sign competing snapshots of the same older revision.
+     */
+    suspend fun <T> withUpdateLock(action: suspend () -> T): T {
+        updateMutex.lock()
+        return try {
+            action()
+        } finally {
+            updateMutex.unlock()
+        }
     }
 
     fun setOwner(pubkey: String) {
