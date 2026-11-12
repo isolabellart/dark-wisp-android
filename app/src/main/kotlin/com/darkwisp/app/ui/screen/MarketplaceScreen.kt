@@ -785,7 +785,8 @@ fun MarketplaceDetailScreen(
                         OutlinedButton(onClick = { showZapDialog = true }, enabled = !sold) {
                             Text(stringResource(R.string.marketplace_zap_count, zapSats))
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (!isOwnListing) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(
                                 onClick = {
                                     val activeSigner = signer ?: return@IconButton
@@ -858,6 +859,7 @@ fun MarketplaceDetailScreen(
                                 )
                             }
                             Text(publicInterestCount.toString(), style = MaterialTheme.typography.labelLarge)
+                            }
                         }
                     }
                     if (!isOwnListing && userPubkey != null) {
