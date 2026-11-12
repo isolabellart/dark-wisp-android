@@ -324,6 +324,8 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     private val countedMarketplaceReactionEmoji = LruCache<String, String>(30000)
     // Keep every reaction event ID per target/author/emoji so Undo can delete duplicates too.
     private val userReactionEventIds = LruCache<String, MutableSet<String>>(30000)
+    private data class ReactionRecord(val targetKey: String, val authorPubkey: String, val emoji: String)
+    private val reactionRecordsById = LruCache<String, ReactionRecord>(30000)
     private val countedZapIds = LruCache<String, MutableSet<String>>(15000)
     // Reply dedup: parentEventId -> set of counted reply event IDs (LRU so it evicts with replyCounts)
     private val countedReplyIds = LruCache<String, MutableSet<String>>(15000)
@@ -742,6 +744,21 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
             5 -> {
                 val deletedIds = Nip09.getDeletedEventIds(event)
                 for (id in deletedIds) {
+                    val reactionRecord = reactionRecordsById.get(id)
+                    if (reactionRecord != null && reactionRecord.authorPubkey == event.pubkey) {
+                        // Kind-7 reactions are indexed for counts rather than cached as
+                        // ordinary events. Resolve their target from this local author
+                        // index so remote NIP-09 unlikes update Marketplace counts too.
+                        reactionRecordsById.remove(id)
+                        deletedEventsRepo?.markDeleted(id)
+                        removeReaction(
+                            reactionRecord.targetKey,
+                            event.pubkey,
+                            reactionRecord.emoji,
+                            setOf(id)
+                        )
+                    }
+
                     val target = eventCache[id]
                     val repostTarget = repostTargetsByEventId.get(id)
                     val repostRecord = repostTarget?.let { repostEvents.get(it)?.get(id) }
@@ -826,6 +843,12 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         val targetKeys = listOfNotNull(eventTargetId, addressTarget).distinct()
         val emoji = if (event.content.isBlank() || event.content == "+") "❤️" else event.content
         val emojiTags = Nip30.parseEmojiTags(event)
+        // Prefer the stable coordinate for NIP-99 reactions so NIP-09 deletions
+        // can reconcile counts even when the listing has since been revised.
+        reactionRecordsById.put(
+            event.id,
+            ReactionRecord(addressTarget ?: eventTargetId, event.pubkey, emoji)
+        )
 
         for (targetKey in targetKeys) {
             // Event-ID dedup still prevents relays from replaying the same event twice.
@@ -1513,6 +1536,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
             val idsKey = "${targetKey}:${userPubkey}:${emoji}"
             val knownIds = userReactionEventIds.get(idsKey)
             val idsToRemove = (eventIdsToRemove + listOfNotNull(latestId)).toSet()
+            idsToRemove.forEach { reactionRecordsById.remove(it) }
             var removedCount = 0
             if (knownIds != null) {
                 synchronized(knownIds) {
@@ -2258,6 +2282,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         countedMarketplaceReactionAuthors.evictAll()
         countedMarketplaceReactionEmoji.evictAll()
         userReactionEventIds.evictAll()
+        reactionRecordsById.evictAll()
         countedZapIds.evictAll()
         countedReplyIds.evictAll()
         rootReplyIds.clear()
