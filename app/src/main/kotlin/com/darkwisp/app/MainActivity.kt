@@ -16,7 +16,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
 import com.darkwisp.app.repo.InterfacePreferences
 import com.darkwisp.app.repo.LocaleRepository
 import com.darkwisp.app.ui.component.LocalMediaSettings
@@ -44,7 +43,6 @@ class MainActivity : FragmentActivity() {
             val prefs = remember { getSharedPreferences("wisp_settings", Context.MODE_PRIVATE) }
             val interfacePrefs = remember { InterfacePreferences(this@MainActivity) }
             var isDarkTheme by rememberSaveable { mutableStateOf(prefs.getBoolean("dark_theme", true)) }
-            var accentColor by remember { mutableStateOf(Color(interfacePrefs.getAccentColor())) }
             var isLargeText by remember { mutableStateOf(interfacePrefs.isLargeText()) }
             var mediaSettings by remember {
                 mutableStateOf(MediaSettings(
@@ -86,10 +84,8 @@ class MainActivity : FragmentActivity() {
                             isDarkTheme = !isDarkTheme
                             prefs.edit().putBoolean("dark_theme", isDarkTheme).apply()
                         },
-                        accentColor = accentColor,
                         isLargeText = isLargeText,
                         onInterfaceChanged = {
-                            accentColor = Color(interfacePrefs.getAccentColor())
                             isLargeText = interfacePrefs.isLargeText()
                             mediaSettings = MediaSettings(
                                 autoLoadMedia = interfacePrefs.isAutoLoadMedia(),

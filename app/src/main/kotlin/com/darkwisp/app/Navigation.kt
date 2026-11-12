@@ -225,7 +225,6 @@ fun WispNavHost(
     onDeepLinkConsumed: () -> Unit = {},
     isDarkTheme: Boolean = true,
     onToggleTheme: () -> Unit = {},
-    accentColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color(0xFFFF9800),
     isLargeText: Boolean = false,
     onInterfaceChanged: () -> Unit = {}
 ) {
