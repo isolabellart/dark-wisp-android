@@ -43,8 +43,8 @@ fun PostillaWordmark(fontSize: TextUnit = 22.sp, modifier: Modifier = Modifier) 
         fontFamily = FontFamily.SansSerif,
         fontSize = fontSize,
         lineHeight = fontSize * 1.2f,
-        fontWeight = FontWeight.SemiBold,
-        letterSpacing = (-0.5).sp
+        fontWeight = FontWeight.Bold,
+        letterSpacing = (-0.75).sp
     )
     val ink = MaterialTheme.colorScheme.onBackground
 
@@ -55,7 +55,7 @@ fun PostillaWordmark(fontSize: TextUnit = 22.sp, modifier: Modifier = Modifier) 
         Text("Post", style = textStyle, color = ink)
         Box(
             modifier = Modifier
-                .width(fontSizeDp * 0.32f)
+                .width(fontSizeDp * 0.29f)
                 .height(lineHeightDp)
         ) {
             Text(
@@ -68,7 +68,7 @@ fun PostillaWordmark(fontSize: TextUnit = 22.sp, modifier: Modifier = Modifier) 
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .offset(y = fontSizeDp * 0.13f)
-                    .size(fontSizeDp * 0.18f)
+                    .size(fontSizeDp * 0.19f)
                     .clip(CircleShape)
                     .background(PostillaPalette.Orange)
             )

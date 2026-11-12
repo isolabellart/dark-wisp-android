@@ -11,7 +11,6 @@ import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.CurrencyBitcoin
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.Icon
 import androidx.compose.ui.res.painterResource
@@ -39,11 +38,13 @@ import com.darkwisp.app.Routes
 enum class BottomTab(
     val route: String,
     val labelResId: Int,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
+    val selectedIcon: ImageVector?,
+    val unselectedIcon: ImageVector?,
+    val selectedIconRes: Int? = null,
+    val unselectedIconRes: Int? = null
 ) {
     HOME(Routes.FEED, R.string.nav_home, Icons.Outlined.Home, Icons.Outlined.Home),
-    SEARCH(Routes.SEARCH, R.string.nav_search, Icons.Outlined.Search, Icons.Outlined.Search),
+    WALLET(Routes.WALLET, R.string.nav_wallet, null, null, R.drawable.ic_wallet, R.drawable.ic_wallet_outlined),
     MARKETPLACE(Routes.MARKETPLACE, R.string.marketplace_title, Icons.Outlined.Storefront, Icons.Outlined.Storefront),
     MESSAGES(Routes.DM_LIST, R.string.nav_messages, Icons.Outlined.Forum, Icons.Outlined.Forum),
     NOTIFICATIONS(Routes.NOTIFICATIONS, R.string.nav_notifications, Icons.Outlined.Notifications, Icons.Outlined.Notifications)
@@ -88,7 +89,7 @@ fun WispBottomBar(
             val selected = currentRoute == tab.route
             val hasUnread = when (tab) {
                 BottomTab.HOME -> hasUnreadHome
-                BottomTab.SEARCH -> false
+                BottomTab.WALLET -> false
                 BottomTab.MARKETPLACE -> false
                 BottomTab.MESSAGES -> hasUnreadMessages
                 BottomTab.NOTIFICATIONS -> hasUnreadNotifications
@@ -120,16 +121,29 @@ fun WispBottomBar(
                                 tint = zapTint
                             )
                         } else {
-                            val icon = if (tab == BottomTab.NOTIFICATIONS && isZapAnimating)
-                                Icons.Outlined.CurrencyBitcoin
-                            else if (selected) tab.selectedIcon
-                            else tab.unselectedIcon
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = stringResource(tab.labelResId),
-                                modifier = Modifier.size(26.dp),
-                                tint = zapTint
-                            )
+                            val iconResource = if (selected) tab.selectedIconRes else tab.unselectedIconRes
+                            if (iconResource != null) {
+                                Icon(
+                                    painter = painterResource(iconResource),
+                                    contentDescription = stringResource(tab.labelResId),
+                                    modifier = Modifier.size(26.dp),
+                                    tint = zapTint
+                                )
+                            } else {
+                                val icon = if (tab == BottomTab.NOTIFICATIONS && isZapAnimating) {
+                                    Icons.Outlined.CurrencyBitcoin
+                                } else if (selected) {
+                                    tab.selectedIcon
+                                } else {
+                                    tab.unselectedIcon
+                                }
+                                Icon(
+                                    imageVector = icon!!,
+                                    contentDescription = stringResource(tab.labelResId),
+                                    modifier = Modifier.size(26.dp),
+                                    tint = zapTint
+                                )
+                            }
                         }
                         if (hasUnread) {
                             // Unread state is a small orange punctuation mark in Postilla.

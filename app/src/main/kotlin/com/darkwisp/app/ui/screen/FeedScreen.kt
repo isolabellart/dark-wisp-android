@@ -9,6 +9,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import coil3.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -133,6 +134,13 @@ import com.darkwisp.app.viewmodel.buildTrendingRelayUrl
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -150,6 +158,7 @@ import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.Search
 import com.darkwisp.app.ui.component.PostillaBrandMark
 import com.darkwisp.app.ui.component.PostillaWordmark
 import androidx.compose.material.icons.outlined.Repeat
@@ -1050,6 +1059,18 @@ fun FeedScreen(
                             PostillaWordmark(fontSize = 23.sp)
                         }
 
+                        IconButton(
+                            onClick = onSearch,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Search,
+                                contentDescription = stringResource(R.string.nav_search),
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
                         Box {
                             IconButton(
                                 onClick = { showContentFilterDropdown = true },
@@ -1130,42 +1151,41 @@ fun FeedScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .height(76.dp)
                             .padding(horizontal = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(0.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        FeedModeTab(
+                        PostillaFeedModeTab(
                             label = stringResource(R.string.tab_for_you),
+                            glyph = PostillaFeedGlyph.PERSON,
                             selected = feedType == FeedType.FOR_YOU,
                             onClick = { viewModel.setFeedType(FeedType.FOR_YOU) },
-                            modifier = Modifier.weight(1f),
-                            equalWidth = true
+                            modifier = Modifier.weight(1f)
                         )
-                        FeedModeTab(
+                        PostillaFeedModeTab(
                             label = stringResource(R.string.tab_following),
+                            glyph = PostillaFeedGlyph.FOLLOWING,
                             selected = feedType == FeedType.FOLLOWS,
                             onClick = { viewModel.setFeedType(FeedType.FOLLOWS) },
-                            modifier = Modifier.weight(1f),
-                            equalWidth = true
+                            modifier = Modifier.weight(1f)
                         )
-                        FeedModeTab(
+                        PostillaFeedModeTab(
                             label = stringResource(R.string.tab_conversations),
+                            glyph = PostillaFeedGlyph.CONVERSATIONS,
                             selected = feedType == FeedType.WITH_REPLIES,
                             onClick = { viewModel.setFeedType(FeedType.WITH_REPLIES) },
-                            modifier = Modifier.weight(1f),
-                            equalWidth = true
+                            modifier = Modifier.weight(1f)
                         )
                         Box(modifier = Modifier.weight(1f)) {
-                            FeedModeTab(
+                            PostillaFeedModeTab(
                                 label = stringResource(R.string.tab_more),
+                                glyph = PostillaFeedGlyph.GRID,
                                 selected = feedType == FeedType.RELAY ||
                                     feedType == FeedType.LIST || feedType == FeedType.TRENDING ||
                                     feedType == FeedType.EXTENDED_FOLLOWS,
                                 onClick = { showFeedTypeDropdown = true },
-                                showChevron = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                equalWidth = true
+                                modifier = Modifier.fillMaxWidth()
                             )
                             DropdownMenu(
                                 expanded = showFeedTypeDropdown,
@@ -3680,83 +3700,172 @@ fun BroadcastStatusBar(
     }
 }
 
+private enum class PostillaFeedGlyph {
+    PERSON,
+    FOLLOWING,
+    CONVERSATIONS,
+    GRID
+}
+
 @Composable
-private fun FeedModeTab(
+private fun PostillaFeedModeTab(
     label: String,
+    glyph: PostillaFeedGlyph,
     selected: Boolean,
     onClick: () -> Unit,
-    showChevron: Boolean = false,
-    modifier: Modifier = Modifier,
-    equalWidth: Boolean = false
+    modifier: Modifier = Modifier
 ) {
-    val density = LocalDensity.current
-    val textMeasurer = rememberTextMeasurer()
-    val fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
-    val baseTextStyle = MaterialTheme.typography.labelLarge.copy(
-        fontSize = 15.sp,
-        fontWeight = fontWeight
-    )
-    val measuredTextWidth = remember(label, baseTextStyle) {
-        textMeasurer.measure(
-            text = label,
-            style = baseTextStyle,
-            softWrap = false,
-            maxLines = 1
-        ).size.width
+    val tint = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    BoxWithConstraints(
+    Column(
         modifier = modifier
-            .height(48.dp)
+            .height(72.dp)
             .clickable(onClick = onClick)
-            .padding(horizontal = if (equalWidth) 2.dp else 7.dp)
+            .padding(horizontal = 2.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        val availableTextWidthPx = with(density) {
-            (maxWidth - if (showChevron) 18.dp else 0.dp).roundToPx()
-        }.coerceAtLeast(1)
-        val fitScale = (availableTextWidthPx.toFloat() / measuredTextWidth.coerceAtLeast(1))
-            .coerceAtMost(1f)
-        val fittedFontSize = (15f * fitScale).coerceAtLeast(10f).sp
+        Canvas(Modifier.size(28.dp)) {
+            val u = size.minDimension / 28f
+            val stroke = Stroke(
+                width = 1.9f * u,
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
 
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = label,
-                    modifier = Modifier.weight(1f),
-                    style = baseTextStyle.copy(fontSize = fittedFontSize),
-                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Clip
-                )
-                if (showChevron) {
-                    Icon(
-                        Icons.Filled.ArrowDropDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            when (glyph) {
+                PostillaFeedGlyph.PERSON -> {
+                    drawCircle(
+                        color = tint,
+                        radius = 3.4f * u,
+                        center = Offset(9f * u, 8f * u),
+                        style = stroke
                     )
+                    val shoulders = Path().apply {
+                        moveTo(2.5f * u, 23f * u)
+                        cubicTo(2.5f * u, 17.6f * u, 5.4f * u, 15f * u, 9f * u, 15f * u)
+                        cubicTo(12.8f * u, 15f * u, 15.8f * u, 17.7f * u, 15.8f * u, 23f * u)
+                    }
+                    drawPath(shoulders, tint, style = stroke)
+
+                    val sparkle = Path().apply {
+                        moveTo(22f * u, 1.5f * u)
+                        lineTo(23.5f * u, 5f * u)
+                        lineTo(27f * u, 6.5f * u)
+                        lineTo(23.5f * u, 8f * u)
+                        lineTo(22f * u, 11.5f * u)
+                        lineTo(20.5f * u, 8f * u)
+                        lineTo(17f * u, 6.5f * u)
+                        lineTo(20.5f * u, 5f * u)
+                        close()
+                    }
+                    drawPath(sparkle, tint)
+                }
+
+                PostillaFeedGlyph.FOLLOWING -> {
+                    drawCircle(tint, 3f * u, Offset(7.2f * u, 6.7f * u), style = stroke)
+                    drawCircle(tint, 3f * u, Offset(20.2f * u, 6.7f * u), style = stroke)
+
+                    val leftPerson = Path().apply {
+                        moveTo(1.2f * u, 22f * u)
+                        cubicTo(1.2f * u, 17.1f * u, 3.8f * u, 14.7f * u, 7.2f * u, 14.7f * u)
+                        cubicTo(10.6f * u, 14.7f * u, 12.4f * u, 17f * u, 12.4f * u, 21.4f * u)
+                    }
+                    val rightPerson = Path().apply {
+                        moveTo(15.2f * u, 21.4f * u)
+                        cubicTo(15.2f * u, 17f * u, 17f * u, 14.7f * u, 20.2f * u, 14.7f * u)
+                        cubicTo(23.5f * u, 14.7f * u, 26f * u, 17.2f * u, 26f * u, 22f * u)
+                    }
+                    drawPath(leftPerson, tint, style = stroke)
+                    drawPath(rightPerson, tint, style = stroke)
+
+                    val connection = Path().apply {
+                        moveTo(9.2f * u, 18f * u)
+                        cubicTo(11.4f * u, 21f * u, 15f * u, 21f * u, 17.7f * u, 18f * u)
+                    }
+                    drawPath(connection, tint, style = stroke)
+                }
+
+                PostillaFeedGlyph.CONVERSATIONS -> {
+                    drawRoundRect(
+                        color = tint.copy(alpha = 0.8f),
+                        topLeft = Offset(1.8f * u, 2f * u),
+                        size = Size(16f * u, 11.5f * u),
+                        cornerRadius = CornerRadius(4f * u),
+                        style = stroke
+                    )
+                    val rearTail = Path().apply {
+                        moveTo(5f * u, 13.4f * u)
+                        lineTo(3.2f * u, 17f * u)
+                        lineTo(9f * u, 13.4f * u)
+                    }
+                    drawPath(rearTail, tint.copy(alpha = 0.8f), style = stroke)
+
+                    drawRoundRect(
+                        color = tint,
+                        topLeft = Offset(9.5f * u, 10f * u),
+                        size = Size(16.5f * u, 12.5f * u),
+                        cornerRadius = CornerRadius(4.5f * u),
+                        style = stroke
+                    )
+                    val frontTail = Path().apply {
+                        moveTo(20f * u, 22.1f * u)
+                        lineTo(22.6f * u, 26f * u)
+                        lineTo(22.2f * u, 22f * u)
+                    }
+                    drawPath(frontTail, tint, style = stroke)
+
+                    listOf(5.4f, 9.6f, 13.8f).forEach { x ->
+                        drawCircle(tint, 0.9f * u, Offset(x * u, 7.8f * u))
+                    }
+                    listOf(14f, 18f, 22f).forEach { x ->
+                        drawCircle(tint, 0.95f * u, Offset(x * u, 16.1f * u))
+                    }
+                }
+
+                PostillaFeedGlyph.GRID -> {
+                    val positions = listOf(
+                        Offset(2.1f * u, 2.1f * u),
+                        Offset(14.4f * u, 2.1f * u),
+                        Offset(2.1f * u, 14.4f * u),
+                        Offset(14.4f * u, 14.4f * u)
+                    )
+                    positions.forEach { topLeft ->
+                        drawRoundRect(
+                            color = tint,
+                            topLeft = topLeft,
+                            size = Size(9.4f * u, 9.4f * u),
+                            cornerRadius = CornerRadius(2.4f * u),
+                            style = stroke
+                        )
+                    }
                 }
             }
-            if (selected) {
-                Spacer(Modifier.height(3.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-            }
+        }
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontSize = 13.sp,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+            ),
+            color = tint,
+            maxLines = 1,
+            softWrap = false
+        )
+        if (selected) {
+            Spacer(Modifier.height(2.dp))
+            Box(
+                modifier = Modifier
+                    .width(28.dp)
+                    .height(2.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
         }
     }
 }

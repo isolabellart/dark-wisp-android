@@ -723,11 +723,12 @@ fun WispNavHost(
                         isZapAnimating = isZapAnimating,
                         isReplyAnimating = isReplyAnimating,
                         notifSoundEnabled = notifSoundEnabled,
-                        hiddenTabs = emptySet(),
+                        hiddenTabs = if (anonMode != null) setOf(BottomTab.WALLET) else emptySet(),
                         onTabSelected = { tab ->
                             if (currentRoute == tab.route) {
                                 scrollToTopTrigger++
                             } else {
+                                if (tab == BottomTab.WALLET) walletViewModel.navigateHome()
                                 navController.navigate(tab.route) {
                                     popUpTo(Routes.FEED) { inclusive = false }
                                     launchSingleTop = true
