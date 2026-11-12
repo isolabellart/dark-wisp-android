@@ -64,7 +64,7 @@ private fun postillaTypography(isLargeText: Boolean): Typography {
         bodyLarge = style(bodySize, FontWeight.Normal, bodyLine),
         bodyMedium = style(if (isLargeText) 16.sp else 14.sp, FontWeight.Normal, 21.sp),
         bodySmall = style(smallSize, FontWeight.Normal, 18.sp),
-        labelLarge = style(14.sp, FontWeight.Medium, 20.sp),
+        labelLarge = style(15.sp, FontWeight.SemiBold, 21.sp),
         labelMedium = style(12.sp, FontWeight.Medium, 16.sp),
         labelSmall = style(if (isLargeText) 12.sp else 11.sp, FontWeight.Medium, 16.sp)
     )

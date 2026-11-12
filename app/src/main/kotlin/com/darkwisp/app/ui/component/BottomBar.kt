@@ -7,11 +7,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Notifications
@@ -30,7 +25,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,11 +42,11 @@ enum class BottomTab(
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
 ) {
-    HOME(Routes.FEED, R.string.nav_home, Icons.Filled.Home, Icons.Outlined.Home),
-    SEARCH(Routes.SEARCH, R.string.nav_search, Icons.Filled.Search, Icons.Outlined.Search),
-    MARKETPLACE(Routes.MARKETPLACE, R.string.marketplace_title, Icons.Filled.Storefront, Icons.Outlined.Storefront),
-    MESSAGES(Routes.DM_LIST, R.string.nav_messages, Icons.Filled.Forum, Icons.Outlined.Forum),
-    NOTIFICATIONS(Routes.NOTIFICATIONS, R.string.nav_notifications, Icons.Filled.Notifications, Icons.Outlined.Notifications)
+    HOME(Routes.FEED, R.string.nav_home, Icons.Outlined.Home, Icons.Outlined.Home),
+    SEARCH(Routes.SEARCH, R.string.nav_search, Icons.Outlined.Search, Icons.Outlined.Search),
+    MARKETPLACE(Routes.MARKETPLACE, R.string.marketplace_title, Icons.Outlined.Storefront, Icons.Outlined.Storefront),
+    MESSAGES(Routes.DM_LIST, R.string.nav_messages, Icons.Outlined.Forum, Icons.Outlined.Forum),
+    NOTIFICATIONS(Routes.NOTIFICATIONS, R.string.nav_notifications, Icons.Outlined.Notifications, Icons.Outlined.Notifications)
 }
 
 @Composable
@@ -113,7 +107,7 @@ fun WispBottomBar(
                 icon = {
                     val useBolt = com.darkwisp.app.ui.util.useBoltIcon()
                     Box(
-                        modifier = Modifier.requiredSize(24.dp),
+                        modifier = Modifier.requiredSize(26.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         val zapTint = if (selected) MaterialTheme.colorScheme.primary
@@ -122,6 +116,7 @@ fun WispBottomBar(
                             Icon(
                                 painter = painterResource(R.drawable.ic_bolt),
                                 contentDescription = stringResource(tab.labelResId),
+                                modifier = Modifier.size(26.dp),
                                 tint = zapTint
                             )
                         } else {
@@ -132,6 +127,7 @@ fun WispBottomBar(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = stringResource(tab.labelResId),
+                                modifier = Modifier.size(26.dp),
                                 tint = zapTint
                             )
                         }
@@ -178,12 +174,7 @@ fun WispBottomBar(
                         }
                     }
                 },
-                label = {
-                    Text(
-                        text = stringResource(tab.labelResId),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                },
+                label = null,
                 alwaysShowLabel = false
             )
         }

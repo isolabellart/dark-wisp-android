@@ -26,6 +26,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Router
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.EmojiEmotions
@@ -46,9 +50,7 @@ import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Key
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Hub
-import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Visibility
@@ -89,6 +91,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.darkwisp.app.nostr.ProfileData
 import com.darkwisp.app.nostr.toNpub
 import com.darkwisp.app.relay.TorManager
@@ -102,6 +105,16 @@ private val TorPurple = Color(0xFFF08A32)
 private val TorAmber = Color(0xFFF08A32)
 private val TorGreen = Color(0xFFB8AEA1)
 private val AnonGreen = Color(0xFFF08A32)
+
+/** Shared optical size for Postilla's restrained outline navigation icons. */
+@Composable
+private fun PostillaDrawerIcon(imageVector: ImageVector) {
+    Icon(
+        imageVector = imageVector,
+        contentDescription = null,
+        modifier = Modifier.size(22.dp)
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -557,14 +570,14 @@ fun WispDrawerContent(
         }
 
         NavigationDrawerItem(
-            icon = { Icon(Icons.Outlined.Person, contentDescription = null) },
+            icon = { PostillaDrawerIcon(Icons.Outlined.Person) },
             label = { Text(stringResource(R.string.drawer_my_profile)) },
             selected = false,
             onClick = onProfile,
             modifier = Modifier.height(48.dp).padding(horizontal = 12.dp)
         )
         NavigationDrawerItem(
-            icon = { Icon(Icons.Outlined.Storefront, contentDescription = null) },
+            icon = { PostillaDrawerIcon(Icons.Outlined.Storefront) },
             label = { Text(stringResource(R.string.marketplace_title)) },
             selected = false,
             onClick = onMarketplace,
@@ -574,7 +587,7 @@ fun WispDrawerContent(
         // drawer now.
         if (marketplaceWatchlistExists) {
             NavigationDrawerItem(
-                icon = { Icon(Icons.Outlined.FavoriteBorder, contentDescription = null) },
+                icon = { PostillaDrawerIcon(Icons.Outlined.BookmarkBorder) },
                 label = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -605,14 +618,14 @@ fun WispDrawerContent(
             )
         }
         NavigationDrawerItem(
-            icon = { Icon(Icons.Outlined.FormatListBulleted, contentDescription = null) },
+            icon = { PostillaDrawerIcon(Icons.Outlined.FormatListBulleted) },
             label = { Text(stringResource(R.string.drawer_lists)) },
             selected = false,
             onClick = onLists,
             modifier = Modifier.height(48.dp).padding(horizontal = 12.dp)
         )
         NavigationDrawerItem(
-            icon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+            icon = { PostillaDrawerIcon(Icons.Outlined.Edit) },
             label = { Text(stringResource(R.string.drawer_drafts)) },
             selected = false,
             onClick = onDrafts,
@@ -623,7 +636,7 @@ fun WispDrawerContent(
                 Icon(
                     painter = painterResource(R.drawable.ic_onion),
                     contentDescription = stringResource(R.string.cd_tor_toggle),
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(22.dp),
                     tint = when (torState) {
                         is TorManager.State.On -> TorPurple
                         is TorManager.State.Starting, TorManager.State.Stopping -> TorAmber
@@ -664,7 +677,7 @@ fun WispDrawerContent(
             }
         }
         NavigationDrawerItem(
-            icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+            icon = { PostillaDrawerIcon(Icons.Outlined.Settings) },
             label = { Text(stringResource(R.string.drawer_settings)) },
             badge = {
                 Icon(
@@ -680,77 +693,77 @@ fun WispDrawerContent(
         AnimatedVisibility(visible = settingsExpanded) {
             Column {
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Outlined.Palette, contentDescription = null) },
+                    icon = { PostillaDrawerIcon(Icons.Outlined.Tune) },
                     label = { Text(stringResource(R.string.drawer_interface)) },
                     selected = false,
                     onClick = onInterfaceSettings,
                     modifier = Modifier.height(48.dp).padding(start = 36.dp, end = 12.dp)
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+                    icon = { PostillaDrawerIcon(Icons.Outlined.WifiTethering) },
                     label = { Text(stringResource(R.string.drawer_relays)) },
                     selected = false,
                     onClick = onRelaySettings,
                     modifier = Modifier.height(48.dp).padding(start = 36.dp, end = 12.dp)
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Outlined.Cloud, contentDescription = null) },
+                    icon = { PostillaDrawerIcon(Icons.Outlined.Cloud) },
                     label = { Text(stringResource(R.string.drawer_media_servers)) },
                     selected = false,
                     onClick = onMediaServers,
                     modifier = Modifier.height(48.dp).padding(start = 36.dp, end = 12.dp)
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Outlined.Key, contentDescription = null) },
+                    icon = { PostillaDrawerIcon(Icons.Outlined.Key) },
                     label = { Text(stringResource(R.string.drawer_keys)) },
                     selected = false,
                     onClick = onKeys,
                     modifier = Modifier.height(48.dp).padding(start = 36.dp, end = 12.dp)
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Outlined.Block, contentDescription = null) },
+                    icon = { PostillaDrawerIcon(Icons.Outlined.Block) },
                     label = { Text(stringResource(R.string.drawer_safety)) },
                     selected = false,
                     onClick = onSafety,
                     modifier = Modifier.height(48.dp).padding(start = 36.dp, end = 12.dp)
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Outlined.Shield, contentDescription = null) },
+                    icon = { PostillaDrawerIcon(Icons.Outlined.Shield) },
                     label = { Text(stringResource(R.string.drawer_proof_of_work)) },
                     selected = false,
                     onClick = onPowSettings,
                     modifier = Modifier.height(48.dp).padding(start = 36.dp, end = 12.dp)
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Outlined.Hub, contentDescription = null) },
+                    icon = { PostillaDrawerIcon(Icons.Outlined.Hub) },
                     label = { Text(stringResource(R.string.drawer_social_graph)) },
                     selected = false,
                     onClick = onSocialGraph,
                     modifier = Modifier.height(48.dp).padding(start = 36.dp, end = 12.dp)
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Outlined.EmojiEmotions, contentDescription = null) },
+                    icon = { PostillaDrawerIcon(Icons.Outlined.EmojiEmotions) },
                     label = { Text(stringResource(R.string.drawer_custom_emojis)) },
                     selected = false,
                     onClick = onCustomEmojis,
                     modifier = Modifier.height(48.dp).padding(start = 36.dp, end = 12.dp)
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Outlined.TrackChanges, contentDescription = null) },
+                    icon = { PostillaDrawerIcon(Icons.Outlined.TrackChanges) },
                     label = { Text(stringResource(R.string.drawer_payment_targets)) },
                     selected = false,
                     onClick = onPaymentTargets,
                     modifier = Modifier.height(48.dp).padding(start = 36.dp, end = 12.dp)
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Outlined.FavoriteBorder, contentDescription = null) },
+                    icon = { PostillaDrawerIcon(Icons.Outlined.Router) },
                     label = { Text(stringResource(R.string.drawer_relay_health)) },
                     selected = false,
                     onClick = onRelayHealth,
                     modifier = Modifier.height(48.dp).padding(start = 36.dp, end = 12.dp)
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Outlined.BugReport, contentDescription = null) },
+                    icon = { PostillaDrawerIcon(Icons.Outlined.BugReport) },
                     label = { Text(stringResource(R.string.drawer_console)) },
                     selected = false,
                     onClick = onConsole,
