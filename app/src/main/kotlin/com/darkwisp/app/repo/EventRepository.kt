@@ -1318,7 +1318,12 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     }
 
     fun getEvent(id: String): NostrEvent? {
-        val event = eventCache[id] ?: eventPersistence?.getEvent(id)?.also { eventCache[id] = it }
+        val event = eventCache[id] ?: eventPersistence?.getEvent(id)?.also {
+            eventCache[id] = it
+            // A disk-hydrated addressable event must also participate in latest-revision
+            // resolution; otherwise an older in-memory address index can mask it.
+            trackIncoming(it)
+        }
         if (event != null && muteRepo?.isBlocked(event.pubkey) == true) return null
         return event
     }
