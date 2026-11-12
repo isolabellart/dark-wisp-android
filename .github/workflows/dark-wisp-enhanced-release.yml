@@ -102,9 +102,9 @@ jobs:
       # Compile the staging test variant and release variant in separate Gradle
       # invocations. Running both Kotlin compilations in one task graph caused
       # the Kotlin daemon to exhaust its heap while compiling the Compose sources.
-      # The matching signed staging build 1.0.5 (Build #16) already passed
-      # these tests on the exact application source. Re-run them on manual
-      # dispatches; a release push proceeds straight to the release build.
+      # The signed staging build #119 (run 43222425438) passed on the exact
+      # application source and was manually validated on device. Manual
+      # dispatches still re-run unit tests before compiling the production APK.
       - name: Run staging unit tests
         if: steps.signing.outputs.ready == 'true' && github.event_name == 'workflow_dispatch'
         shell: bash
@@ -136,8 +136,8 @@ jobs:
           echo "Package: $PACKAGE_ID"
           echo "Version: $VERSION_NAME ($VERSION_CODE)"
           [[ "$PACKAGE_ID" == "com.isolabellart.darkwispenhanced" ]]
-          [[ "$VERSION_NAME" == "1.0.5" ]]
-          [[ "$VERSION_CODE" == "6" ]]
+          [[ "$VERSION_NAME" == "1.0.10" ]]
+          [[ "$VERSION_CODE" == "11" ]]
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
@@ -202,52 +202,55 @@ jobs:
           APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
           NOTES="$RUNNER_TEMP/release-notes.md"
           cat > "$NOTES" <<'EOF'
-          # Dark Wisp Enhanced 1.0.5
-
-          **An independent Enhanced build of Dark Wisp for Android.**
-
-          Dark Wisp Enhanced keeps the solid foundations of Dark Wisp and adds optional interface and workflow improvements. It is a separate project line: not an official upstream release, not a replacement for the original app, and not a promise of a bug-free nightly. Some ideas may be proposed to the upstream project in the future.
-
+          # Dark Wisp Enhanced 1.0.10
+          
+          **A more complete, reliable and responsive independent build of Dark Wisp for Android.**
+          
+          Version 1.0.10 brings the NIP-99 Marketplace closer to a real social marketplace, while continuing to refine messaging, translation and overall responsiveness.
+          
           ## Highlights
-          - Drawer placement can be chosen on the left or right, with online-user and connected-relay indicators.
-          - DeepL translation integrated into the app.
-          - Improved Conversations feed and event handling, including NIP-22 and NIP-09 safeguards.
-          - Enhanced NIP-99 Marketplace experience, with seller profile/avatar, listing detail recovery and copyable naddr.
-          - The mini-wallet entry, including **Set up wallet**, is available in the drawer.
-
-          ## Separate installation and wallet safety
-          Dark Wisp Enhanced uses its own Android application ID: \`com.isolabellart.darkwispenhanced\`. Installing it does not overwrite the original Dark Wisp app or erase its local data. The two apps keep separate local app data; accounts and wallet access in Enhanced should be imported or restored using the normal secure recovery process. Keep your recovery phrase/private-key backup offline and never share it.
-
-          Future Enhanced updates use the same permanent APK signing certificate:
-          \`86868a3659729a6531f3e8a31d5dcfe04405e2a86866f3e0eb0abb6965cdb841\`.
-
+          - **A personal storefront for every profile:** discover the listings published by each seller from their own profile.
+          - **Social Marketplace interactions:** Like/Unlike, Zaps and bookmarks on listings, with author-based reaction counts and synchronized buyer interest.
+          - **More dependable listing lifecycle:** stable listing identity across revisions, recovery of sold or withdrawn listings, and access from storefronts, bookmarks and conversations.
+          - **Marketplace conversations:** direct and group DM previews can open the referenced listing; message delivery checks the recipient's NIP-17 relay preferences and requires relay confirmation.
+          - **DeepL translation in conversations:** translate incoming and outgoing text on demand, switch back to the original, and keep the original Nostr message unchanged.
+          - **Performance and reliability refinements:** more consistent relay/event handling, fewer redundant updates, and clearer confirmation of published actions.
+          
+          ## Installation and wallet safety
+          Dark Wisp Enhanced is a separate Android application with package ID `com.isolabellart.darkwispenhanced`. It can be installed alongside the original Dark Wisp; the two apps keep separate local application data. Import or restore accounts and wallet access through the app's normal secure recovery flow. Keep recovery phrases and private-key backups offline and never share them.
+          
+          Future Enhanced updates retain the same permanent APK signing certificate:
+          `86868a3659729a6531f3e8a31d5dcfe04405e2a86866f3e0eb0abb6965cdb841`.
+          
           Package: com.isolabellart.darkwispenhanced
-          Version: 1.0.5 (6)
+          Version: 1.0.10 (11)
           Signed APK: Dark-Wisp-Enhanced-@@RELEASE_TAG@@.apk
           SHA-256: @@APK_SHA256@@
-
+          
           ---
-
-          # Dark Wisp Enhanced 1.0.5 (Italiano)
-
-          **Una versione Enhanced indipendente di Dark Wisp per Android.**
-
-          Conserva le basi solide di Dark Wisp e aggiunge miglioramenti facoltativi all'interfaccia e al modo di usarla. È una linea di sviluppo separata: non è una release ufficiale upstream, non sostituisce Dark Wisp originale e non promette una nightly priva di bug. Alcune idee potranno essere proposte al progetto originale in futuro.
-
+          
+          # Dark Wisp Enhanced 1.0.10 (Italiano)
+          
+          **Una versione indipendente di Dark Wisp per Android, più completa, affidabile e reattiva.**
+          
+          La versione 1.0.10 porta il Marketplace NIP-99 verso un'esperienza social più completa e continua a migliorare messaggistica, traduzione e fluidità generale.
+          
           ## Novità principali
-          - Drawer spostabile a sinistra o a destra, con indicatori di utenti online e relay connessi.
-          - Traduzione DeepL integrata.
-          - Feed Conversations e gestione degli eventi migliorati, con protezioni NIP-22 e NIP-09.
-          - Marketplace NIP-99 arricchito: profilo e avatar del venditore, recupero del dettaglio e copia di naddr.
-          - Mini-wallet nel drawer, compresa la voce **Set up wallet**.
-
-          ## Installazione separata e sicurezza del wallet
-          Dark Wisp Enhanced usa un proprio identificativo Android: \`com.isolabellart.darkwispenhanced\`. L'installazione non sovrascrive Dark Wisp originale e non cancella i suoi dati locali. Le due app mantengono dati locali separati; per usare account e wallet in Enhanced occorre importarli o ripristinarli con la normale procedura sicura. Conserva offline il backup della frase di recupero/chiave privata e non condividerlo mai.
-
-          Le future versioni Enhanced manterranno lo stesso certificato di firma permanente.
-
+          - **Una vetrina per ogni profilo:** le opere e gli annunci pubblicati da ciascun venditore sono consultabili dalla sua pagina personale.
+          - **Interazioni social nel Marketplace:** Like/Unlike, Zap e bookmark sugli annunci, conteggi basati sugli autori e interesse degli acquirenti sincronizzato.
+          - **Gestione degli annunci più affidabile:** identità stabile tra le revisioni, recupero degli annunci venduti o ritirati e apertura corretta da vetrine, bookmark e conversazioni.
+          - **Conversazioni Marketplace:** le anteprime degli annunci nei DM diretti e di gruppo aprono la scheda corretta; l'invio verifica i relay NIP-17 indicati dal destinatario e richiede una conferma effettiva del relay.
+          - **Traduzione DeepL nelle conversazioni:** traduzione su richiesta dei messaggi in entrata e in uscita, possibilità di tornare all'originale e messaggio Nostr originale sempre intatto.
+          - **Migliorie di prestazioni e affidabilità:** gestione più coerente di eventi e relay, meno aggiornamenti ridondanti e conferme più chiare delle operazioni pubblicate.
+          
+          ## Installazione e sicurezza del wallet
+          Dark Wisp Enhanced è un'applicazione Android indipendente con package ID `com.isolabellart.darkwispenhanced`. Può essere installata insieme a Dark Wisp originale; le due app mantengono dati locali separati. Importa o ripristina account e wallet attraverso le normali procedure sicure dell'app. Conserva offline le frasi di recupero e le copie delle chiavi private e non condividerle mai.
+          
+          Le future versioni Enhanced manterranno lo stesso certificato di firma permanente:
+          `86868a3659729a6531f3e8a31d5dcfe04405e2a86866f3e0eb0abb6965cdb841`.
+          
           Package: com.isolabellart.darkwispenhanced
-          Versione: 1.0.5 (6)
+          Versione: 1.0.10 (11)
           APK firmato: Dark-Wisp-Enhanced-@@RELEASE_TAG@@.apk
           SHA-256: @@APK_SHA256@@
           EOF
