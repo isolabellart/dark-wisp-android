@@ -1076,4 +1076,6 @@
     <string name="marketplace_watchlist_title">Marketplace Watchlist</string>
     <string name="marketplace_watchlist_price_changed">Price changed</string>
     <string name="marketplace_watchlist_open_listing">Open listing</string>
+    <string name="dm_delivery_unconfirmed">No recipient DM relay confirmed delivery. Check the recipient's NIP-17 relay list and your connection, then retry.</string>
+    <string name="dm_signer_unavailable">No active Nostr signer is available. Reconnect your account and try again.</string>
 </resources>
