@@ -12,6 +12,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import com.darkwisp.app.ui.component.ProfilePicture
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.filter
@@ -608,8 +609,48 @@ fun MarketplaceDetailScreen(
         }
     }
 
-    LaunchedEffect(event.id) {
+    LaunchedEffect(event.id, listingAddress) {
         val subId = "marketplace-reactions-${event.id.take(12)}"
+        val subscriptions = mutableListOf(subId)
+        val pendingDeletionIds = Channel<String>(Channel.UNLIMITED)
+        val knownReactionIds = mutableSetOf<String>()
+        val marketplaceReadRelays = (MarketplaceRelays.READ + MarketplaceRelays.WRITE).distinct()
+        val targets = (
+            relayPool.getReadRelayUrls() +
+                marketplaceReadRelays +
+                RelayConfig.DEFAULT_INDEXER_RELAYS
+            ).distinct()
+
+        // Relay history and live reactions are fetched first. Each newly discovered
+        // kind-7 ID is then used to query its NIP-09 deletion on the same relay set.
+        // Batch IDs to keep the number of temporary subscriptions bounded.
+        val deletionFetchJob = launch {
+            var batchIndex = 0
+            for (firstId in pendingDeletionIds) {
+                val batch = linkedSetOf(firstId)
+                delay(150)
+                while (batch.size < 50) {
+                    val nextId = pendingDeletionIds.tryReceive().getOrNull() ?: break
+                    batch.add(nextId)
+                }
+
+                val deletionSubId = "marketplace-reactions-deletions-${event.id.take(8)}-${++batchIndex}"
+                subscriptions.add(deletionSubId)
+                val deletionRequest = ClientMessage.req(
+                    deletionSubId,
+                    Filter(kinds = listOf(5), eTags = batch.toList(), limit = 500)
+                )
+                targets.forEach { relay ->
+                    relayPool.sendToRelayOrEphemeral(
+                        relay,
+                        deletionRequest,
+                        skipBadCheck = true,
+                        autoReconnect = relay in marketplaceReadRelays
+                    )
+                }
+            }
+        }
+
         val collector = launch(start = CoroutineStart.UNDISPATCHED) {
             relayPool.relayEvents
                 .filter { it.subscriptionId == subId }
@@ -624,9 +665,13 @@ fun MarketplaceDetailScreen(
                     if (reaction.kind == 7 && (targetsRevision || targetsListing)) {
                         eventRepository.addEvent(reaction)
                         eventRepository.requestProfileIfMissing(reaction.pubkey)
+                        if (knownReactionIds.add(reaction.id)) {
+                            pendingDeletionIds.trySend(reaction.id)
+                        }
                     }
                 }
         }
+
         val request = ClientMessage.req(
             subId,
             listOf(
@@ -634,19 +679,21 @@ fun MarketplaceDetailScreen(
                 Filter(kinds = listOf(7), aTags = listOf(listingAddress), limit = 1000)
             )
         )
-        val marketplaceReadRelays = (MarketplaceRelays.READ + MarketplaceRelays.WRITE).distinct()
-        (relayPool.getReadRelayUrls() + marketplaceReadRelays + RelayConfig.DEFAULT_INDEXER_RELAYS)
-            .distinct().forEach { relay ->
-                relayPool.sendToRelayOrEphemeral(
-                    relay,
-                    request,
-                    skipBadCheck = true,
-                    autoReconnect = relay in marketplaceReadRelays
-                )
-            }
-        try { awaitCancellation() } finally {
+        targets.forEach { relay ->
+            relayPool.sendToRelayOrEphemeral(
+                relay,
+                request,
+                skipBadCheck = true,
+                autoReconnect = relay in marketplaceReadRelays
+            )
+        }
+        try {
+            awaitCancellation()
+        } finally {
+            pendingDeletionIds.close()
             collector.cancel()
-            relayPool.closeOnAllRelays(subId)
+            deletionFetchJob.cancel()
+            subscriptions.forEach { relayPool.closeOnAllRelays(it) }
         }
     }
 
