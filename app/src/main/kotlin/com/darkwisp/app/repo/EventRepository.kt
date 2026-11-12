@@ -431,14 +431,17 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
 
     /** Newest visible event for [key], from the capped index or still in [eventCache]. */
     private fun addressSnapshot(key: String): NostrEvent? {
-        addressIndex[key]?.takeIf(::isVisible)?.let { return it }
         val parts = key.split(":", limit = 3)
         if (parts.size < 3) return null
         val kind = parts[0].toIntOrNull() ?: return null
         val author = parts[1]
         if (muteRepo?.isBlocked(author) == true) return null
         val dTag = parts[2]
-        var best: NostrEvent? = null
+
+        // The capped address index is a fast candidate, not the source of truth:
+        // an event can be hydrated into eventCache through getEvent() without having
+        // passed through the normal relay-ingest path that updates this index.
+        var best = addressIndex[key]?.takeIf(::isVisible)
         for (event in eventCache.values) {
             if (event.kind != kind || event.pubkey != author || !isVisible(event)) continue
             val eventDTag = event.tags.firstOrNull { it.size >= 2 && it[0] == "d" }?.get(1) ?: ""
