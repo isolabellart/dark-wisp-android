@@ -60,7 +60,7 @@
     <string name="auth_login_with_signer">サイナーでログイン</string>
     <string name="auth_or_log_in_with_key">または鍵でログイン</string>
     <string name="auth_nsec_or_npub">nsecまたはnpub…</string>
-    <string name="auth_wisp">dark wisp</string>
+    <string name="auth_wisp">Postilla</string>
     <string name="auth_tagline">投稿をスクロールするための小さなインターフェース</string>
     <string name="auth_hide_key">鍵を隠す</string>
     <string name="auth_show_key">鍵を表示</string>
@@ -396,11 +396,11 @@
     <string name="onboarding_welcome_back">おかえりなさい</string>
     <string name="onboarding_lets_get_set_up">アカウントを設定しましょう</string>
     <string name="onboarding_your_network_relays">あなたのネットワーク、あなたのリレー</string>
-    <string name="onboarding_network_description">Dark Wispは友達が実際に使っているリレーを発見し、直接それに接続します。これにより、より 빠른配信と投稿の見逃しが少なくなります— центрарサーバー的必要がありません。</string>
+    <string name="onboarding_network_description">Postillaは友達が実際に使っているリレーを発見し、直接それに接続します。これにより、より 빠른配信と投稿の見逃しが少なくなります— центрарサーバー的必要がありません。</string>
     <string name="onboarding_quick_follow">クイックフォロー</string>
     <string name="onboarding_long_press_hint">プロフィール写真をロングプレスするとフォロー/フォロー解除できます</string>
     <string name="onboarding_try_it">試してみよう— 上記の画像をロングプレス</string>
-    <string name="onboarding_lightning_wallet_info">Dark Wispは組み込みLightningウォレットまたはNostr Wallet Connectでサップをサポートします。ウォレット画面からいつでも設定できます。</string>
+    <string name="onboarding_lightning_wallet_info">Postillaは組み込みLightningウォレットまたはNostr Wallet Connectでサップをサポートします。ウォレット画面からいつでも設定できます。</string>
     <string name="onboarding_setting_things_up">設定中</string>
     <string name="onboarding_youre_all_set">準備完了！</string>
     <string name="onboarding_mapping_graph">ソーシャルグラフをマッピング中…</string>
@@ -413,7 +413,7 @@
     <string name="onboarding_almost_there">もう少しで完了…</string>
     <string name="onboarding_please_wait">お待ちください…</string>
     <string name="onboarding_publishing">公開中…</string>
-    <string name="onboarding_wisp_logo">Dark Wispロゴ</string>
+    <string name="onboarding_wisp_logo">Postillaロゴ</string>
     <string name="onboarding_follow_all_x">全員をフォロー（%d）</string>
 
     <!-- Zap / Wallet -->
@@ -467,8 +467,8 @@
     <string name="settings_hide_live_streams">ライブ配信を非表示</string>
     <string name="settings_hide_live_streams_description">フィード上部のライブ配信の行を非表示にする</string>
     <string name="settings_client_tag">クライアントタグ</string>
-    <string name="settings_tag_notes">ノートにDark Wispをタグ付け</string>
-    <string name="settings_tag_notes_description">Dark Wispをクライアントとして識別するタグを含める。これは他の人に表示されます。</string>
+    <string name="settings_tag_notes">ノートにPostillaをタグ付け</string>
+    <string name="settings_tag_notes_description">Postillaをクライアントとして識別するタグを含める。これは他の人に表示されます。</string>
     <string name="settings_public_key">公開鍵</string>
     <string name="settings_private_key">秘密鍵</string>
     <string name="settings_public_key_copied">公開鍵をコピーしました</string>
@@ -589,7 +589,7 @@
     <string name="wallet_connect_wallet">ウォレットを接続</string>
     <string name="wallet_choose_how">サットを送受信するためのLightningウォレットの接続方法を選択してください。</string>
     <string name="wallet_create_new">新規ウォレットを作成</string>
-    <string name="wallet_create_description">Dark Wispで直接新しいウォレットを作成、資金はSparkプロバイダーが保護</string>
+    <string name="wallet_create_description">Postillaで直接新しいウォレットを作成、資金はSparkプロバイダーが保護</string>
     <string name="wallet_nwc_description">NWC接続文字列を使用して外部Lightningウォレットを接続。</string>
     <string name="wallet_nwc_connection_string">NWC接続文字列</string>
     <string name="wallet_connect">接続</string>
@@ -638,7 +638,7 @@
     <string name="online_in_network">ネットワーク内で%d人がオンライン</string>
     <string name="online_all_nostr">Nostr全体で%d人がオンライン</string>
     <string name="splash_people_online">%d人がオンライン</string>
-    <string name="cd_wisp_logo">Dark Wispロゴ</string>
+    <string name="cd_wisp_logo">Postillaロゴ</string>
 
     <!-- NIP-29 Chat Rooms -->
     <string name="tab_direct_messages">ダイレクトメッセージ</string>
@@ -780,7 +780,7 @@
     <string name="marketplace_message_intro">こんにちは。「%1$s」に興味があります。まだ購入できますか？</string>
     <string name="marketplace_contact_button">非公開チャットを開く</string>
     <string name="marketplace_dm_privacy">NIP-17の非公開チャットが開きます。メッセージを確認してから送信できます。</string>
-    <string name="marketplace_dm_relay_required">この出品者はNIP-17 DMリレー一覧（kind 10050）を公開していません。プライバシー保護のため、Dark Wispは代替リレーへ送信しません。</string>
+    <string name="marketplace_dm_relay_required">この出品者はNIP-17 DMリレー一覧（kind 10050）を公開していません。プライバシー保護のため、Postillaは代替リレーへ送信しません。</string>
     <string name="marketplace_seller_label">出品者</string>
     <string name="drawer_set_up_wallet">ウォレットを設定</string>
 </resources>

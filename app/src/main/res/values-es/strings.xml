@@ -60,7 +60,7 @@
     <string name="auth_login_with_signer">Iniciar sesión con Firmador</string>
     <string name="auth_or_log_in_with_key">O inicia sesión con tu clave</string>
     <string name="auth_nsec_or_npub">nsec o npub…</string>
-    <string name="auth_wisp">dark wisp</string>
+    <string name="auth_wisp">Postilla</string>
     <string name="auth_tagline">una pequeña interfaz para desplazarte por publicaciones</string>
     <string name="auth_hide_key">Ocultar clave</string>
     <string name="auth_show_key">Mostrar clave</string>
@@ -396,11 +396,11 @@
     <string name="onboarding_welcome_back">Bienvenido de nuevo</string>
     <string name="onboarding_lets_get_set_up">Configuremos tu cuenta</string>
     <string name="onboarding_your_network_relays">Tu red, tus relays</string>
-    <string name="onboarding_network_description">Dark Wisp descubre qué relays usan realmente tus amigos, y luego se conecta directamente a esos relays. Esto significa entregas más rápidas y menos publicaciones perdidas — sin servidor central.</string>
+    <string name="onboarding_network_description">Postilla descubre qué relays usan realmente tus amigos, y luego se conecta directamente a esos relays. Esto significa entregas más rápidas y menos publicaciones perdidas — sin servidor central.</string>
     <string name="onboarding_quick_follow">Seguir rápido</string>
     <string name="onboarding_long_press_hint">Mantén presionada cualquier foto de perfil para seguir o dejar de seguir</string>
     <string name="onboarding_try_it">Pruébalo — mantén presionada la imagen de arriba</string>
-    <string name="onboarding_lightning_wallet_info">Dark Wisp soporta zaps con una billetera Lightning integrada o Nostr Wallet Connect. Puedes configurarlo en cualquier momento desde la pantalla de Billetera.</string>
+    <string name="onboarding_lightning_wallet_info">Postilla soporta zaps con una billetera Lightning integrada o Nostr Wallet Connect. Puedes configurarlo en cualquier momento desde la pantalla de Billetera.</string>
     <string name="onboarding_setting_things_up">Configurando</string>
     <string name="onboarding_youre_all_set">¡Todo listo!</string>
     <string name="onboarding_mapping_graph">Mapeando tu grafo social…</string>
@@ -413,7 +413,7 @@
     <string name="onboarding_almost_there">Ya casi…</string>
     <string name="onboarding_please_wait">Por favor espera…</string>
     <string name="onboarding_publishing">Publicando…</string>
-    <string name="onboarding_wisp_logo">Logo de Dark Wisp</string>
+    <string name="onboarding_wisp_logo">Logo de Postilla</string>
     <string name="onboarding_follow_all_x">Seguir a Todos (%d)</string>
 
     <!-- Zap / Wallet -->
@@ -467,8 +467,8 @@
     <string name="settings_hide_live_streams">Ocultar transmisiones en vivo</string>
     <string name="settings_hide_live_streams_description">Ocultar la fila de transmisiones en vivo en la parte superior del feed</string>
     <string name="settings_client_tag">Etiqueta de Cliente</string>
-    <string name="settings_tag_notes">Etiquetar notas con Dark Wisp</string>
-    <string name="settings_tag_notes_description">Incluir una etiqueta identificando Dark Wisp como el cliente. Esto es visible para otros.</string>
+    <string name="settings_tag_notes">Etiquetar notas con Postilla</string>
+    <string name="settings_tag_notes_description">Incluir una etiqueta identificando Postilla como el cliente. Esto es visible para otros.</string>
     <string name="settings_public_key">Clave Pública</string>
     <string name="settings_private_key">Clave Privada</string>
     <string name="settings_public_key_copied">Clave pública copiada</string>
@@ -589,7 +589,7 @@
     <string name="wallet_connect_wallet">Conectar Billetera</string>
     <string name="wallet_choose_how">Elige cómo conectar una billetera Lightning para enviar y recibir sats.</string>
     <string name="wallet_create_new">Crear Nueva Billetera</string>
-    <string name="wallet_create_description">Crea una nueva billetera directamente en Dark Wisp, fondos asegurados por proveedores Spark</string>
+    <string name="wallet_create_description">Crea una nueva billetera directamente en Postilla, fondos asegurados por proveedores Spark</string>
     <string name="wallet_nwc_description">Conecta una billetera Lightning externa usando una cadena de conexión NWC.</string>
     <string name="wallet_nwc_connection_string">Cadena de Conexión NWC</string>
     <string name="wallet_connect">Conectar</string>
@@ -638,7 +638,7 @@
     <string name="online_in_network">%d en línea en tu red</string>
     <string name="online_all_nostr">%d en línea en todo Nostr</string>
     <string name="splash_people_online">%d personas en línea</string>
-    <string name="cd_wisp_logo">Logo de Dark Wisp</string>
+    <string name="cd_wisp_logo">Logo de Postilla</string>
 
     <!-- NIP-29 Chat Rooms -->
     <string name="tab_direct_messages">Mensajes directos</string>
@@ -780,7 +780,7 @@
     <string name="marketplace_message_intro">¡Hola! Me interesa “%1$s”. ¿Sigue disponible?</string>
     <string name="marketplace_contact_button">Continuar en el chat privado</string>
     <string name="marketplace_dm_privacy">Se abrirá un chat privado NIP-17. Podrás revisar el mensaje y enviarlo desde allí.</string>
-    <string name="marketplace_dm_relay_required">Este vendedor no ha publicado una lista de relays DM NIP-17 (kind 10050). Para proteger tu privacidad, Dark Wisp no usará relays alternativos.</string>
+    <string name="marketplace_dm_relay_required">Este vendedor no ha publicado una lista de relays DM NIP-17 (kind 10050). Para proteger tu privacidad, Postilla no usará relays alternativos.</string>
     <string name="marketplace_seller_label">Vendedor</string>
     <string name="drawer_set_up_wallet">Configurar monedero</string>
 </resources>

@@ -60,7 +60,7 @@
     <string name="auth_login_with_signer">Connexion avec Signer</string>
     <string name="auth_or_log_in_with_key">Ou connectez-vous avec votre clé</string>
     <string name="auth_nsec_or_npub">nsec ou npub…</string>
-    <string name="auth_wisp">dark wisp</string>
+    <string name="auth_wisp">Postilla</string>
     <string name="auth_tagline">une petite interface pour faire défiler les posts</string>
     <string name="auth_hide_key">Masquer la clé</string>
     <string name="auth_show_key">Afficher la clé</string>
@@ -396,11 +396,11 @@
     <string name="onboarding_welcome_back">Bon retour</string>
     <string name="onboarding_lets_get_set_up">Paramons votre compte</string>
     <string name="onboarding_your_network_relays">Votre réseau, vos relais</string>
-    <string name="onboarding_network_description">Dark Wisp découvre quels relais vos amis utilisent réellement, puis se connecte directement à ces relais. Cela signifie une livraison plus rapide et moins de posts manqués — aucun serveur central nécessaire.</string>
+    <string name="onboarding_network_description">Postilla découvre quels relais vos amis utilisent réellement, puis se connecte directement à ces relais. Cela signifie une livraison plus rapide et moins de posts manqués — aucun serveur central nécessaire.</string>
     <string name="onboarding_quick_follow">Suivi rapide</string>
     <string name="onboarding_long_press_hint">Appuyez longuement sur n\'importe quelle photo de profil pour suivre ou ne plus suivre</string>
     <string name="onboarding_try_it">Essayez — appuyez longuement sur l\'image ci-dessus</string>
-    <string name="onboarding_lightning_wallet_info">Dark Wisp prend en charge les zaps avec un portefeuille Lightning intégré ou Nostr Wallet Connect. Vous pouvez le configurer à tout moment depuis l\'écran Portefeuille.</string>
+    <string name="onboarding_lightning_wallet_info">Postilla prend en charge les zaps avec un portefeuille Lightning intégré ou Nostr Wallet Connect. Vous pouvez le configurer à tout moment depuis l\'écran Portefeuille.</string>
     <string name="onboarding_setting_things_up">Configuration en cours</string>
     <string name="onboarding_youre_all_set">Vous êtes prêt !</string>
     <string name="onboarding_mapping_graph">Cartographie de votre graphe social…</string>
@@ -413,7 +413,7 @@
     <string name="onboarding_almost_there">Presque là…</string>
     <string name="onboarding_please_wait">Veuillez patienter…</string>
     <string name="onboarding_publishing">Publication…</string>
-    <string name="onboarding_wisp_logo">Logo Dark Wisp</string>
+    <string name="onboarding_wisp_logo">Logo Postilla</string>
     <string name="onboarding_follow_all_x">Suivre Tout (%d)</string>
 
     <!-- Zap / Wallet -->
@@ -467,8 +467,8 @@
     <string name="settings_hide_live_streams">Masquer les lives</string>
     <string name="settings_hide_live_streams_description">Masquer la barre de lives en haut de votre fil</string>
     <string name="settings_client_tag">Tag Client</string>
-    <string name="settings_tag_notes">Taguer les notes avec Dark Wisp</string>
-    <string name="settings_tag_notes_description">Inclure un tag identifiant Dark Wisp comme le client. Ceci est visible par les autres.</string>
+    <string name="settings_tag_notes">Taguer les notes avec Postilla</string>
+    <string name="settings_tag_notes_description">Inclure un tag identifiant Postilla comme le client. Ceci est visible par les autres.</string>
     <string name="settings_public_key">Clé Publique</string>
     <string name="settings_private_key">Clé Privée</string>
     <string name="settings_public_key_copied">Clé publique copiée</string>
@@ -589,7 +589,7 @@
     <string name="wallet_connect_wallet">Connecter un Portefeuille</string>
     <string name="wallet_choose_how">Choisissez comment connecter un portefeuille Lightning pour envoyer et recevoir des sats.</string>
     <string name="wallet_create_new">Créer un Nouveau Portefeuille</string>
-    <string name="wallet_create_description">Créez un nouveau portefeuille directement dans Dark Wisp, les fonds sont sécurisés par les fournisseurs Spark</string>
+    <string name="wallet_create_description">Créez un nouveau portefeuille directement dans Postilla, les fonds sont sécurisés par les fournisseurs Spark</string>
     <string name="wallet_nwc_description">Connectez un portefeuille Lightning externe utilisant une chaîne de connexion NWC.</string>
     <string name="wallet_nwc_connection_string">Chaîne de Connexion NWC</string>
     <string name="wallet_connect">Connecter</string>
@@ -638,7 +638,7 @@
     <string name="online_in_network">%d en ligne dans votre réseau</string>
     <string name="online_all_nostr">%d en ligne sur tout Nostr</string>
     <string name="splash_people_online">%d personnes en ligne</string>
-    <string name="cd_wisp_logo">Logo Dark Wisp</string>
+    <string name="cd_wisp_logo">Logo Postilla</string>
 
     <!-- NIP-29 Chat Rooms -->
     <string name="tab_direct_messages">Messages directs</string>
@@ -781,7 +781,7 @@
     <string name="marketplace_message_intro">Bonjour ! Votre annonce « %1$s » m’intéresse. Est-elle toujours disponible ?</string>
     <string name="marketplace_contact_button">Continuer dans la conversation privée</string>
     <string name="marketplace_dm_privacy">Une conversation privée NIP-17 va s’ouvrir. Vous pourrez relire le message et l’envoyer depuis celle-ci.</string>
-    <string name="marketplace_dm_relay_required">Ce vendeur n’a pas publié de liste de relais DM NIP-17 (kind 10050). Pour protéger votre confidentialité, Dark Wisp n’utilisera pas de relais de secours.</string>
+    <string name="marketplace_dm_relay_required">Ce vendeur n’a pas publié de liste de relais DM NIP-17 (kind 10050). Pour protéger votre confidentialité, Postilla n’utilisera pas de relais de secours.</string>
     <string name="marketplace_seller_label">Vendeur</string>
     <string name="drawer_set_up_wallet">Configurer le portefeuille</string>
 </resources>
