@@ -52,4 +52,26 @@ class Nip01EventOrderTest {
     fun `editing after a clock rollback still advances past the previous revision`() {
         assertEquals(201L, Nip01EventOrder.nextCreatedAt(now = 150L, previousCreatedAt = 200L))
     }
+
+    @Test
+    fun `newest candidate is independent of arrival order`() {
+        val older = event("f", 100)
+        val newer = event("a", 101)
+
+        assertEquals(newer, Nip01EventOrder.newest(listOf(older, newer)))
+        assertEquals(newer, Nip01EventOrder.newest(listOf(newer, older)))
+    }
+
+    @Test
+    fun `newest candidate applies the NIP-01 tie break`() {
+        val lowerId = event("a", 100)
+        val higherId = event("b", 100)
+
+        assertEquals(lowerId, Nip01EventOrder.newest(listOf(higherId, lowerId)))
+    }
+
+    @Test
+    fun `newest candidate is null for an empty collection`() {
+        assertEquals(null, Nip01EventOrder.newest(emptyList()))
+    }
 }
