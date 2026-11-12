@@ -86,6 +86,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.darkwisp.app.nostr.ProfileData
@@ -97,10 +98,10 @@ import com.darkwisp.app.repo.WalletBalanceDisplayMode
 import com.darkwisp.app.ui.util.AmountFormatter
 import com.darkwisp.app.ui.theme.WispThemeColors
 
-private val TorPurple = Color(0xFF9C59D1)
-private val TorAmber = Color(0xFFFFB74D)
-private val TorGreen = Color(0xFF4CAF50)
-private val AnonGreen = Color(0xFF00C853)
+private val TorPurple = Color(0xFFF08A32)
+private val TorAmber = Color(0xFFF08A32)
+private val TorGreen = Color(0xFFB8AEA1)
+private val AnonGreen = Color(0xFFF08A32)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -170,6 +171,17 @@ fun WispDrawerContent(
             .statusBarsPadding()
             .verticalScroll(scrollState)
         ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            PostillaBrandMark(size = 32.dp)
+            Spacer(Modifier.width(10.dp))
+            PostillaWordmark(fontSize = 22.sp)
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         var showProfileQr by remember { mutableStateOf(false) }
         var showAccountSwitcher by remember { mutableStateOf(false) }
 
@@ -267,7 +279,7 @@ fun WispDrawerContent(
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
                                 tint = if (connectedRelayCount > 0) WispThemeColors.repostColor
-                                    else Color(0xFFFF5252)
+                                    else Color(0xFFF08A32)
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(

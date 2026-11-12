@@ -11,11 +11,13 @@ import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.CurrencyBitcoin
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.Icon
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Column
@@ -28,6 +30,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +53,7 @@ enum class BottomTab(
     HOME(Routes.FEED, R.string.nav_home, Icons.Filled.Home, Icons.Outlined.Home),
     WALLET(Routes.WALLET, R.string.nav_wallet, null, null, R.drawable.ic_wallet, R.drawable.ic_wallet_outlined),
     SEARCH(Routes.SEARCH, R.string.nav_search, Icons.Filled.Search, Icons.Outlined.Search),
+    MARKETPLACE(Routes.MARKETPLACE, R.string.marketplace_title, Icons.Filled.Storefront, Icons.Outlined.Storefront),
     MESSAGES(Routes.DM_LIST, R.string.nav_messages, Icons.Filled.Forum, Icons.Outlined.Forum),
     NOTIFICATIONS(Routes.NOTIFICATIONS, R.string.nav_notifications, Icons.Filled.Notifications, Icons.Outlined.Notifications)
 }
@@ -85,7 +89,7 @@ fun WispBottomBar(
             // don't double-pad.
             modifier = Modifier
                 .windowInsetsPadding(NavigationBarDefaults.windowInsets)
-                .height(56.dp),
+                .height(64.dp),
             windowInsets = WindowInsets(0)
         ) {
         BottomTab.entries.forEach { tab ->
@@ -95,6 +99,7 @@ fun WispBottomBar(
                 BottomTab.HOME -> hasUnreadHome
                 BottomTab.WALLET -> false
                 BottomTab.SEARCH -> false
+                BottomTab.MARKETPLACE -> false
                 BottomTab.MESSAGES -> hasUnreadMessages
                 BottomTab.NOTIFICATIONS -> hasUnreadNotifications
             }
@@ -188,7 +193,13 @@ fun WispBottomBar(
                         }
                     }
                 },
-                label = null
+                label = {
+                    Text(
+                        text = stringResource(tab.labelResId),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                },
+                alwaysShowLabel = false
             )
         }
     }
