@@ -14,6 +14,15 @@ object Nip01EventOrder {
         return candidate.id < current.id
     }
 
+    /** Selects the NIP-01 newest event from candidates, independent of arrival order. */
+    fun newest(candidates: Iterable<NostrEvent>): NostrEvent? {
+        var best: NostrEvent? = null
+        for (candidate in candidates) {
+            if (best == null || isNewer(candidate, best)) best = candidate
+        }
+        return best
+    }
+
     /**
      * Produces a timestamp that is never older than [now] and is strictly
      * newer than [previousCreatedAt] when editing an existing addressable event.
