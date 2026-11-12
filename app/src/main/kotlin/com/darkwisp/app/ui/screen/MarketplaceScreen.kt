@@ -500,7 +500,7 @@ fun MarketplaceDetailScreen(
     fetchPaymentTargets: (suspend (String) -> List<com.darkwisp.app.nostr.NipA3.PaymentTarget>)?,
     onOpenProfile: (String) -> Unit = {},
     onBookmarkSetChanged: (NostrEvent) -> Unit = {},
-    bookmarkSetRepository: BookmarkSetRepository? = null
+    bookmarkSetRepository: BookmarkSetRepository
 ) {
     val profileVersion by eventRepository.profileVersionFor(event.pubkey).collectAsState(initial = 0)
     val sellerProfile = remember(eventRepository, event.pubkey, profileVersion) {
@@ -678,7 +678,7 @@ fun MarketplaceDetailScreen(
                 RelayConfig.DEFAULT_INDEXER_RELAYS +
                 marketplaceRelayUrls
             ).distinct()
-        val savedWatchlist = userPubkey?.let { bookmarkSetRepository?.getSet(it, MARKETPLACE_WATCHLIST_DTAG) }
+        val savedWatchlist = userPubkey?.let { bookmarkSetRepository.getSet(it, MARKETPLACE_WATCHLIST_DTAG) }
         if (savedWatchlist != null && !isOwnListing) {
             isBookmarked = listingAddress in savedWatchlist.coordinates
             bookmarkReady = true
@@ -725,7 +725,7 @@ fun MarketplaceDetailScreen(
                                 )
                                 publicInterestByPubkey = updatedInterests
                             }
-                            val localTimestamp = bookmarkSetRepository?.getSet(userPubkey, MARKETPLACE_WATCHLIST_DTAG)?.createdAt ?: 0L
+                            val localTimestamp = bookmarkSetRepository.getSet(userPubkey, MARKETPLACE_WATCHLIST_DTAG)?.createdAt ?: 0L
                             val latestTimestamp = maxOf(localTimestamp, watchlistEvent?.created_at ?: 0L)
                             if (candidate.created_at > latestTimestamp) {
                                 watchlistEvent = candidate
@@ -733,8 +733,8 @@ fun MarketplaceDetailScreen(
                                 bookmarkReady = true
                                 bookmarkError = null
                                 eventRepository.addEvent(candidate)
-                                bookmarkSetRepository?.setOwner(userPubkey)
-                                bookmarkSetRepository?.updateFromEvent(candidate)
+                                bookmarkSetRepository.setOwner(userPubkey)
+                                bookmarkSetRepository.updateFromEvent(candidate)
                                 onBookmarkSetChanged(candidate)
                             }
                         }
@@ -767,7 +767,7 @@ fun MarketplaceDetailScreen(
                     )
                 }
                 eoseWaiter.join()
-                val localSetAfterFetch = bookmarkSetRepository?.getSet(userPubkey, MARKETPLACE_WATCHLIST_DTAG)
+                val localSetAfterFetch = bookmarkSetRepository.getSet(userPubkey, MARKETPLACE_WATCHLIST_DTAG)
                 bookmarkReady = eoseCount > 0 || localSetAfterFetch != null
                 if (localSetAfterFetch != null) {
                     isBookmarked = listingAddress in localSetAfterFetch.coordinates
@@ -798,13 +798,13 @@ fun MarketplaceDetailScreen(
                             if (interested) eventRepository.requestProfileIfMissing(candidate.pubkey)
                             publicInterestByPubkey = updated
                             if (candidate.pubkey == userPubkey && !isOwnListing) {
-                                val localTimestamp = bookmarkSetRepository?.getSet(userPubkey, MARKETPLACE_WATCHLIST_DTAG)?.createdAt ?: 0L
+                                val localTimestamp = bookmarkSetRepository.getSet(userPubkey, MARKETPLACE_WATCHLIST_DTAG)?.createdAt ?: 0L
                                 if (candidate.created_at > maxOf(localTimestamp, watchlistEvent?.created_at ?: 0L)) {
                                     watchlistEvent = candidate
                                     isBookmarked = listingAddress in set.coordinates
                                     bookmarkReady = true
-                                    bookmarkSetRepository?.setOwner(userPubkey)
-                                    bookmarkSetRepository?.updateFromEvent(candidate)
+                                    bookmarkSetRepository.setOwner(userPubkey)
+                                    bookmarkSetRepository.updateFromEvent(candidate)
                                     onBookmarkSetChanged(candidate)
                                 }
                             }
@@ -983,39 +983,50 @@ fun MarketplaceDetailScreen(
                                         bookmarkBusy = true
                                         bookmarkError = null
                                         try {
-                                            // Prefer the locally persisted snapshot over any relay copy that
-                                            // may still be one revision behind the previous bookmark action.
-                                            val currentSet = bookmarkSetRepository?.getSet(
-                                                activeSigner.pubkeyHex,
-                                                MARKETPLACE_WATCHLIST_DTAG
-                                            ) ?: watchlistEvent?.let { Nip51.parseBookmarkSet(it) }
-                                            val coordinates = currentSet?.coordinates?.toMutableSet() ?: mutableSetOf()
-                                            if (listingAddress in coordinates) coordinates.remove(listingAddress)
-                                            else coordinates.add(listingAddress)
-
-                                            val tags = Nip51.buildBookmarkSetTags(
-                                                dTag = MARKETPLACE_WATCHLIST_DTAG,
-                                                eventIds = currentSet?.eventIds ?: emptySet(),
-                                                coordinates = coordinates,
-                                                hashtags = currentSet?.hashtags ?: emptySet(),
-                                                title = currentSet?.name ?: watchlistTitle
-                                            )
-                                            val updatedEvent = activeSigner.signEvent(
-                                                kind = Nip51.KIND_BOOKMARK_SET,
-                                                content = "",
-                                                tags = tags,
-                                                createdAt = maxOf(
-                                                    System.currentTimeMillis() / 1000,
-                                                    (currentSet?.createdAt ?: 0L) + 1L,
-                                                    (watchlistEvent?.created_at ?: 0L) + 1L
+                                            // All detail routes share this repository. Keep the complete
+                                            // read-modify-sign-write sequence serialized so two screens
+                                            // (or a remote signer round-trip) cannot publish competing snapshots.
+                                            val (updatedEvent, coordinates) = bookmarkSetRepository.withUpdateLock {
+                                                val repositorySet = bookmarkSetRepository.getSet(
+                                                    activeSigner.pubkeyHex,
+                                                    MARKETPLACE_WATCHLIST_DTAG
                                                 )
-                                            )
-                                            // Persist and update the visible state optimistically. A slow or
-                                            // unavailable relay must not make the selected item vanish.
-                                            eventRepository.addEvent(updatedEvent)
-                                            bookmarkSetRepository?.setOwner(activeSigner.pubkeyHex)
-                                            bookmarkSetRepository?.updateFromEvent(updatedEvent)
-                                            onBookmarkSetChanged(updatedEvent)
+                                                val screenSet = watchlistEvent?.let { Nip51.parseBookmarkSet(it) }
+                                                val currentSet = when {
+                                                    repositorySet == null -> screenSet
+                                                    screenSet == null -> repositorySet
+                                                    repositorySet.createdAt >= screenSet.createdAt -> repositorySet
+                                                    else -> screenSet
+                                                }
+                                                val nextCoordinates = currentSet?.coordinates?.toMutableSet() ?: mutableSetOf()
+                                                if (listingAddress in nextCoordinates) nextCoordinates.remove(listingAddress)
+                                                else nextCoordinates.add(listingAddress)
+
+                                                val tags = Nip51.buildBookmarkSetTags(
+                                                    dTag = MARKETPLACE_WATCHLIST_DTAG,
+                                                    eventIds = currentSet?.eventIds ?: emptySet(),
+                                                    coordinates = nextCoordinates,
+                                                    hashtags = currentSet?.hashtags ?: emptySet(),
+                                                    title = currentSet?.name ?: watchlistTitle
+                                                )
+                                                val signedEvent = activeSigner.signEvent(
+                                                    kind = Nip51.KIND_BOOKMARK_SET,
+                                                    content = "",
+                                                    tags = tags,
+                                                    createdAt = maxOf(
+                                                        System.currentTimeMillis() / 1000,
+                                                        (currentSet?.createdAt ?: 0L) + 1L,
+                                                        (watchlistEvent?.created_at ?: 0L) + 1L
+                                                    )
+                                                )
+                                                // Persist the complete snapshot before releasing the shared lock.
+                                                eventRepository.addEvent(signedEvent)
+                                                bookmarkSetRepository.setOwner(activeSigner.pubkeyHex)
+                                                bookmarkSetRepository.updateFromEvent(signedEvent)
+                                                onBookmarkSetChanged(signedEvent)
+                                                signedEvent to nextCoordinates.toSet()
+                                            }
+
                                             watchlistEvent = updatedEvent
                                             isBookmarked = listingAddress in coordinates
                                             bookmarkReady = true
@@ -1025,7 +1036,7 @@ fun MarketplaceDetailScreen(
                                             if (activePubkey != null && activePubkey != event.pubkey) {
                                                 updatedInterests[activePubkey] = MarketplaceWatchlistSnapshot(
                                                     updatedEvent.created_at,
-                                                    coordinates.toSet()
+                                                    coordinates
                                                 )
                                             }
                                             publicInterestByPubkey = updatedInterests
