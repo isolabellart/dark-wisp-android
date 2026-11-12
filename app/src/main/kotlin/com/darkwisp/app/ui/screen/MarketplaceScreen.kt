@@ -512,7 +512,15 @@ fun MarketplaceDetailScreen(
     }
 
     LaunchedEffect(event.id, listingAddress, userPubkey) {
-        val targets = (relayPool.getReadRelayUrls() + RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ).distinct()
+        // Watchlists are written to both the curated Marketplace destinations and
+        // the user's own relays. Read all public Marketplace write destinations too,
+        // otherwise sellers miss interested buyers whose relays are not in READ.
+        val targets = (
+            relayPool.getReadRelayUrls() +
+                RelayConfig.DEFAULT_INDEXER_RELAYS +
+                MarketplaceRelays.READ +
+                MarketplaceRelays.WRITE
+            ).distinct()
         val savedWatchlist = userPubkey?.let { bookmarkSetRepository?.getSet(it, MARKETPLACE_WATCHLIST_DTAG) }
         if (savedWatchlist != null && !isOwnListing) {
             isBookmarked = listingAddress in savedWatchlist.coordinates
