@@ -27,6 +27,7 @@ import okhttp3.OkHttpClient
 import java.util.concurrent.CopyOnWriteArrayList
 
 data class RelayEvent(val event: NostrEvent, val relayUrl: String, val subscriptionId: String)
+data class RelayEoseSignal(val subscriptionId: String, val relayUrl: String)
 data class PublishResult(val relayUrl: String, val eventId: String, val accepted: Boolean, val message: String)
 data class PublishOutcome(val sentCount: Int, val confirmed: Boolean)
 data class BroadcastState(val accepted: Int, val sent: Int)
@@ -257,6 +258,11 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
 
     private val _eoseSignals = MutableSharedFlow<String>(extraBufferCapacity = 64)
     val eoseSignals: SharedFlow<String> = _eoseSignals
+
+    // Detailed EOSE stream for consumers that must track completion per relay.
+    // Keep eoseSignals intact because existing screens depend on its String contract.
+    private val _relayEoseSignals = MutableSharedFlow<RelayEoseSignal>(extraBufferCapacity = 256)
+    val relayEoseSignals: SharedFlow<RelayEoseSignal> = _relayEoseSignals
 
     /** Retraction stream for already-delivered invalid events. Verification now precedes delivery,
      * so rejected network payloads MUST NOT emit here: a forged ID could retract a valid event. */
@@ -509,6 +515,7 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
                         val elapsed = subStartTimes[msg.subscriptionId]?.let { System.currentTimeMillis() - it } ?: -1L
                         Log.d("SUBLOG", "EOSE sub=${msg.subscriptionId} relay=${relay.config.url}: $count events in ${elapsed}ms")
                         _eoseSignals.tryEmit(msg.subscriptionId)
+                        _relayEoseSignals.tryEmit(RelayEoseSignal(msg.subscriptionId, relay.config.url))
                         unsupportedCounts.remove(relay.config.url) // Relay works, clear counter
                     }
                     is RelayMessage.Ok -> {

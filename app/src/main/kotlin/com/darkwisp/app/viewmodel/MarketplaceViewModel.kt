@@ -1,6 +1,7 @@
 package com.darkwisp.app.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.darkwisp.app.nostr.ClientMessage
@@ -14,13 +15,14 @@ import com.darkwisp.app.repo.EventRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicLong
 
@@ -57,9 +59,10 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
     private var currentEventRepository: EventRepository? = null
 
     companion object {
-        private const val LOAD_TIMEOUT_MS = 10_000L
+        private const val LOAD_TIMEOUT_MS = 12_000L
+        private const val EOSE_DRAIN_GRACE_MS = 4_000L
+        private const val MINIMUM_EOSE_COUNT = 6
         private const val MAX_CACHED_LISTINGS = 1000
-
     }
 
     fun setScope(scope: MarketplaceScope) {
@@ -72,6 +75,31 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
             MarketplaceScope.ALL -> true
             MarketplaceScope.FOLLOWING -> event.pubkey in authors
             MarketplaceScope.MINE -> event.pubkey == userPubkey
+        }
+    }
+
+    /**
+     * Store one NIP-99 revision under its stable author + d-tag address.
+     * Returns true when this event becomes the newest locally known revision.
+     */
+    private fun rememberListing(event: NostrEvent): Boolean {
+        if (event.kind != Nip99.KIND_LISTING) return false
+        val dTag = Nip99.dTag(event)
+        if (dTag.isBlank() || Nip99.title(event).isBlank()) return false
+
+        val address = "${event.pubkey}:$dTag"
+        return synchronized(cacheLock) {
+            val previous = cachedByAddress[address]
+            if (previous == null || event.created_at >= previous.created_at) {
+                cachedByAddress[address] = event
+                while (cachedByAddress.size > MAX_CACHED_LISTINGS) {
+                    val oldestKey = cachedByAddress.minByOrNull { it.value.created_at }?.key ?: break
+                    cachedByAddress.remove(oldestKey)
+                }
+                true
+            } else {
+                false
+            }
         }
     }
 
@@ -149,6 +177,31 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
 
         loadJob = viewModelScope.launch(Dispatchers.IO) {
             try {
+                // A seller storefront should render already-known listings before waiting
+                // for network relays. The repository combines in-memory and ObjectBox data.
+                var restoredListingCount = 0
+                if (sellerPubkey != null) {
+                    val locallyKnownListings = withContext(Dispatchers.IO) {
+                        eventRepository.getCachedEventsByAuthorAndKinds(
+                            pubkey = sellerPubkey,
+                            kinds = setOf(Nip99.KIND_LISTING),
+                            limit = MAX_CACHED_LISTINGS
+                        )
+                    }
+                    locallyKnownListings.forEach { event ->
+                        if (event.kind != Nip99.KIND_LISTING || event.pubkey != sellerPubkey) return@forEach
+                        if (!eventRepository.isEventVisibleToUser(event)) return@forEach
+                        if (rememberListing(event)) restoredListingCount++
+                    }
+                    if (activeSubscriptionId == subId) {
+                        publishVisibleCache(selectedScope, authors, userPubkey, sellerPubkey)
+                    }
+                }
+                Log.d(
+                    "MarketplaceVM",
+                    "Storefront cache restored seller=${sellerPubkey?.take(12) ?: "all"} count=$restoredListingCount"
+                )
+
                 val filter = Filter(
                     kinds = listOf(Nip99.KIND_LISTING),
                     authors = authors.takeIf { it.isNotEmpty() }?.toList(),
@@ -161,6 +214,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                 // relying on a single indexer that may not carry external listings.
                 // Subscribe to the result stream before sending REQ. Some relays reply
                 // immediately; collecting afterwards loses their EVENT/EOSE frames.
+                val remoteListingCount = AtomicLong(0L)
                 val eventCollector = launch(start = CoroutineStart.UNDISPATCHED) {
                     relayPool.relayEvents
                         .filter { it.subscriptionId == subId }
@@ -178,38 +232,66 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                             eventRepository.addEvent(event)
                             eventRepository.requestProfileIfMissing(event.pubkey)
 
-                            val address = event.pubkey + ":" + dTag
-                            val updated = synchronized(cacheLock) {
-                                val previous = cachedByAddress[address]
-                                if (previous == null || event.created_at >= previous.created_at) {
-                                    cachedByAddress[address] = event
-                                    while (cachedByAddress.size > MAX_CACHED_LISTINGS) {
-                                        val oldestKey = cachedByAddress.minByOrNull { it.value.created_at }?.key ?: break
-                                        cachedByAddress.remove(oldestKey)
-                                    }
-                                    true
-                                } else false
-                            }
-                            if (updated && activeSubscriptionId == subId) {
-                                publishVisibleCache(selectedScope, authors, userPubkey)
+                            val updated = rememberListing(event)
+                            if (updated) {
+                                remoteListingCount.incrementAndGet()
+                                if (activeSubscriptionId == subId) {
+                                    publishVisibleCache(selectedScope, authors, userPubkey, sellerPubkey)
+                                }
                             }
                         }
                 }
 
                 val targets = (relayPool.getRelayUrls() + RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ).distinct()
-                // EOSE is emitted once per responding relay. Stop after several relays have
-                // completed, or after a short hard timeout, instead of always waiting for timeout.
-                val minimumEoseCount = minOf(6, targets.size)
+                val completionTracker = MarketplaceRelayCompletionTracker()
                 val eoseCollector = launch(start = CoroutineStart.UNDISPATCHED) {
-                    relayPool.eoseSignals
-                        .filter { it == subId }
-                        .take(minimumEoseCount)
-                        .collect { }
+                    relayPool.relayEoseSignals
+                        .filter { it.subscriptionId == subId }
+                        .collect { signal -> completionTracker.markCompleted(signal.relayUrl) }
                 }
+
+                // Register every unique target before sending: a relay can queue the
+                // request while its WebSocket is connecting and still answer later.
+                // EOSE can race with the send call, so completion is reconciled by URL.
                 targets.forEach { relay ->
-                    relayPool.sendToRelayOrEphemeral(relay, request, skipBadCheck = true)
+                    completionTracker.markRequested(relay)
+                    val queuedOrSent = relayPool.sendToRelayOrEphemeral(
+                        relay,
+                        request,
+                        skipBadCheck = true
+                    )
+                    if (!queuedOrSent) {
+                        Log.d("MarketplaceVM", "Listing request deferred or skipped relay=$relay sub=$subId")
+                    }
                 }
-                withTimeoutOrNull(LOAD_TIMEOUT_MS) { eoseCollector.join() }
+
+                var minimumEoseReachedAt = 0L
+                val completedWithinWindow = withTimeoutOrNull(LOAD_TIMEOUT_MS) {
+                    while (true) {
+                        val requestedCount = completionTracker.requestedCount()
+                        if (requestedCount == 0) break
+
+                        val completedCount = completionTracker.completedCount()
+                        if (completedCount >= minOf(MINIMUM_EOSE_COUNT, requestedCount)) {
+                            if (minimumEoseReachedAt == 0L) {
+                                minimumEoseReachedAt = System.currentTimeMillis()
+                            }
+                            val graceElapsed =
+                                System.currentTimeMillis() - minimumEoseReachedAt >= EOSE_DRAIN_GRACE_MS
+                            if (completionTracker.allRequestedCompleted() || graceElapsed) break
+                        }
+                        delay(100)
+                    }
+                    true
+                } == true
+
+                Log.i(
+                    "MarketplaceVM",
+                    "Listing fetch finished sub=$subId seller=${sellerPubkey?.take(12) ?: "all"} " +
+                        "relays=${completionTracker.completedCount()}/${completionTracker.requestedCount()} " +
+                        "remoteUpdates=${remoteListingCount.get()} cacheRestored=$restoredListingCount " +
+                        "timeout=${!completedWithinWindow}"
+                )
                 eoseCollector.cancel()
                 eventCollector.cancel()
                 eventCollector.join()
