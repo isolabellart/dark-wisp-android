@@ -332,7 +332,10 @@ class SocialActionManager(
                     val deletionTags = existingEventIds.map { listOf("e", it) } +
                         listOf(listOf("k", "7"))
                     val deletionEvent = s.signEvent(kind = 5, content = "", tags = deletionTags)
-                    relayPool.sendToWriteRelays(ClientMessage.event(deletionEvent))
+                    // Reactions are routed to both our write relays and the target author's
+                    // inbox relays. Publish the NIP-09 deletion through the same route so
+                    // relays that stored the original Marketplace like also receive its removal.
+                    outboxRouter.publishToInbox(ClientMessage.event(deletionEvent), event.pubkey)
                     eventRepo.removeReaction(event.id, myPubkey, emoji, existingEventIds)
                     return@launch
                 }
