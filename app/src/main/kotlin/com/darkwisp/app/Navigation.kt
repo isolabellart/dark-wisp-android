@@ -1805,6 +1805,9 @@ fun WispNavHost(
                 noteActions = remember {
                     com.darkwisp.app.ui.component.NoteActions(
                         nip05Repo = feedViewModel.nip05Repo,
+                        onMarketplaceListingClick = { event ->
+                            navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}?eventId=${event.id}")
+                        },
                         onPayInvoice = { bolt11 -> feedViewModel.payInvoice(bolt11) },
                         onAddEmojiSet = { pk, dTag -> feedViewModel.addSetToEmojiList(pk, dTag) },
                         onRemoveEmojiSet = { pk, dTag -> feedViewModel.removeSetFromEmojiList(pk, dTag) },
@@ -1896,6 +1899,9 @@ fun WispNavHost(
                 noteActions = remember {
                     com.darkwisp.app.ui.component.NoteActions(
                         nip05Repo = feedViewModel.nip05Repo,
+                        onMarketplaceListingClick = { event ->
+                            navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}?eventId=${event.id}")
+                        },
                         onPayInvoice = { bolt11 -> feedViewModel.payInvoice(bolt11) },
                         onAddEmojiSet = { pk, dTag -> feedViewModel.addSetToEmojiList(pk, dTag) },
                         onRemoveEmojiSet = { pk, dTag -> feedViewModel.removeSetFromEmojiList(pk, dTag) },
