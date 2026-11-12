@@ -44,6 +44,7 @@ import com.darkwisp.app.ui.screen.MarketplaceEditorScreen
 import com.darkwisp.app.ui.screen.MarketplaceDetailScreen
 import com.darkwisp.app.ui.screen.MarketplaceScreen
 import com.darkwisp.app.nostr.Nip99
+import com.darkwisp.app.nostr.Nip01EventOrder
 import com.darkwisp.app.nostr.NostrUriData
 import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.nostr.ProfileData
