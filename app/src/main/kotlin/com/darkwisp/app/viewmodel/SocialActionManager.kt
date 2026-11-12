@@ -419,6 +419,9 @@ class SocialActionManager(
                     } else {
                         outboxRouter.publishToInbox(ClientMessage.event(deletionEvent), event.pubkey)
                     }
+                    // Persist local tombstones too, including duplicate IDs whose
+                    // detailed reaction record may already have left the bounded cache.
+                    existingEventIds.forEach { deletedEventsRepo.markDeleted(it) }
                     // Route our own confirmed NIP-09 through the same repository path
                     // used for deletions received from other accounts/relays.
                     eventRepo.addEvent(deletionEvent)
