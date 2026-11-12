@@ -1090,7 +1090,7 @@ fun WispNavHost(
                 followedPubkeys = feedViewModel.contactRepo.getFollowList().map { it.pubkey },
                 userPubkey = feedViewModel.getUserPubkey(),
                 onBack = { navController.popBackStack() },
-                onOpenListing = { event -> navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}") },
+                onOpenListing = { event -> navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}?eventId=${event.id}") },
                 onCreateListing = { navController.navigate("marketplace/edit") },
                 sellerPubkey = sellerPubkey,
                 sellerName = sellerProfile?.displayString,
@@ -1477,7 +1477,7 @@ fun WispNavHost(
                     } else null
                     val parts = rootAddress?.split(":", limit = 3)
                     if (parts?.size == 3 && parts[0] == Nip99.KIND_LISTING.toString()) {
-                        navController.navigate("marketplace/address/${parts[1]}/${android.net.Uri.encode(parts[2])}")
+                        navController.navigate("marketplace/address/${parts[1]}/${android.net.Uri.encode(parts[2])}?eventId=${event.id}")
                     } else {
                         navController.navigate("thread/${event.id}")
                     }
@@ -1875,6 +1875,7 @@ fun WispNavHost(
                 userProfile = userProfile,
                 userPubkey = userPubkey,
                 eventRepo = feedViewModel.eventRepo,
+                translationRepo = feedViewModel.translationRepo,
                 relayInfoRepo = feedViewModel.relayInfoRepo,
                 onBack = { navController.popBackStack() },
                 onProfileClick = { pk -> navController.navigate("profile/$pk") },
@@ -3693,7 +3694,9 @@ fun WispNavHost(
                     }
                     val parts = address?.split(":", limit = 3)
                     if (parts?.size == 3 && parts[0] == Nip99.KIND_LISTING.toString()) {
-                        navController.navigate("marketplace/address/${parts[1]}/${android.net.Uri.encode(parts[2])}")
+                        val fallback = referenced?.takeIf { it.kind == Nip99.KIND_LISTING }
+                            ?.id?.let { "?eventId=$it" }.orEmpty()
+                        navController.navigate("marketplace/address/${parts[1]}/${android.net.Uri.encode(parts[2])}$fallback")
                     } else {
                         navController.navigate("thread/$eventId")
                     }
