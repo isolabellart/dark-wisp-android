@@ -13,6 +13,7 @@ import com.darkwisp.app.nostr.NostrSigner
 import com.darkwisp.app.nostr.Nip18
 import com.darkwisp.app.nostr.Nip09
 import com.darkwisp.app.nostr.Nip99
+import com.darkwisp.app.nostr.MarketplaceRelays
 import com.darkwisp.app.nostr.Nip57
 import com.darkwisp.app.nostr.Nip88
 import com.darkwisp.app.relay.OutboxRouter
@@ -34,6 +35,8 @@ import com.darkwisp.app.repo.ZapSender
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -277,6 +280,47 @@ class SocialActionManager(
         }
     }
 
+    /**
+     * Marketplace reactions must reach both the seller's inbox and the public
+     * Marketplace relay set used by other buyers to read listing engagement.
+     * Only report success after at least one relay returns an accepted NIP-20 OK.
+     */
+    private suspend fun publishMarketplaceReaction(event: NostrEvent, targetPubkey: String) {
+        val message = ClientMessage.event(event)
+
+        suspend fun prepareRelays(forceReconnect: Boolean) = coroutineScope {
+            val personal = async {
+                if (forceReconnect) relayPool.cycleWriteRelays(timeoutMs = 2_000)
+                else relayPool.ensureWriteRelaysConnected(timeoutMs = 2_000)
+            }
+            val marketplace = async {
+                relayPool.ensureMarketplaceWriteRelaysConnected(
+                    MarketplaceRelays.WRITE,
+                    timeoutMs = 2_000,
+                    forceReconnect = forceReconnect
+                )
+            }
+            personal.await()
+            marketplace.await()
+        }
+
+        prepareRelays(forceReconnect = false)
+        var outcome = relayPool.publishWithConfirmation(event.id, timeoutMs = 4_000) {
+            outboxRouter.publishToInbox(message, targetPubkey) +
+                relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
+        }
+        if (outcome.sentCount == 0 || !outcome.confirmed) {
+            prepareRelays(forceReconnect = true)
+            outcome = relayPool.publishWithConfirmation(event.id, timeoutMs = 4_000) {
+                outboxRouter.publishToInbox(message, targetPubkey) +
+                    relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
+            }
+        }
+        if (outcome.sentCount == 0 || !outcome.confirmed) {
+            throw IllegalStateException("Marketplace reaction was not confirmed by any relay")
+        }
+    }
+
     fun sendReaction(event: NostrEvent, content: String = "+") {
         toggleReaction(event, content)
     }
@@ -338,7 +382,11 @@ class SocialActionManager(
                     // Reactions are routed to both our write relays and the target author's
                     // inbox relays. Publish the NIP-09 deletion through the same route so
                     // relays that stored the original Marketplace like also receive its removal.
-                    outboxRouter.publishToInbox(ClientMessage.event(deletionEvent), event.pubkey)
+                    if (event.kind == Nip99.KIND_LISTING) {
+                        publishMarketplaceReaction(deletionEvent, event.pubkey)
+                    } else {
+                        outboxRouter.publishToInbox(ClientMessage.event(deletionEvent), event.pubkey)
+                    }
                     eventRepo.removeReaction(event.id, myPubkey, reactionEmoji, existingEventIds)
                     return@launch
                 }
@@ -382,12 +430,28 @@ class SocialActionManager(
                 }
 
                 val reactionEvent = s.signEvent(kind = 7, content = emoji, tags = tags, createdAt = createdAt)
-                val msg = ClientMessage.event(reactionEvent)
-                outboxRouter.publishToInbox(msg, event.pubkey)
-                eventRepo.addEvent(reactionEvent)
+                if (event.kind == Nip99.KIND_LISTING) {
+                    // Keep the local card responsive; revert the optimistic state if no
+                    // Marketplace or inbox relay confirms the public reaction.
+                    eventRepo.addEvent(reactionEvent)
+                    try {
+                        publishMarketplaceReaction(reactionEvent, event.pubkey)
+                    } catch (error: Exception) {
+                        eventRepo.removeReaction(event.id, myPubkey, reactionEmoji, setOf(reactionEvent.id))
+                        throw error
+                    }
+                } else {
+                    outboxRouter.publishToInbox(ClientMessage.event(reactionEvent), event.pubkey)
+                    eventRepo.addEvent(reactionEvent)
+                }
                 _reactionSent.tryEmit(Unit)
                 customEmojiRepo.recordEmojiUsage(emoji)
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                android.util.Log.w(
+                    "SocialActionManager",
+                    "Reaction toggle failed for target=${actionTarget.take(24)}",
+                    error
+                )
             } finally {
                 reactionActionsInProgress.remove(actionKey)
             }
