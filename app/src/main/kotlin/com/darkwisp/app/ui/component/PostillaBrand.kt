@@ -29,23 +29,43 @@ fun PostillaBrandMark(size: Dp = 32.dp, modifier: Modifier = Modifier) {
 
 @Composable
 fun PostillaWordmark(fontSize: TextUnit = 22.sp, modifier: Modifier = Modifier) {
-    val wordmark = buildAnnotatedString {
-        append("post")
-        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)) {
-            append("i")
-        }
-        append("lla")
-    }
-    Text(
-        text = wordmark,
-        modifier = modifier,
-        style = MaterialTheme.typography.titleLarge.copy(
-            fontFamily = FontFamily.SansSerif,
-            fontSize = fontSize,
-            lineHeight = fontSize * 1.2f,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = (-0.45).sp
-        ),
-        color = MaterialTheme.colorScheme.onBackground
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val fontSizeDp = with(density) { fontSize.toDp() }
+    val lineHeightDp = fontSizeDp * 1.2f
+    val textStyle = MaterialTheme.typography.titleLarge.copy(
+        fontFamily = FontFamily.SansSerif,
+        fontSize = fontSize,
+        lineHeight = fontSize * 1.2f,
+        fontWeight = FontWeight.Medium,
+        letterSpacing = (-0.45).sp
     )
+    val ink = MaterialTheme.colorScheme.onBackground
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Text("Post", style = textStyle, color = ink)
+        Box(
+            modifier = Modifier
+                .width(fontSizeDp * 0.32f)
+                .height(lineHeightDp)
+        ) {
+            Text(
+                text = "ı",
+                modifier = Modifier.align(Alignment.BottomCenter),
+                style = textStyle,
+                color = ink
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = fontSizeDp * 0.13f)
+                    .size(fontSizeDp * 0.14f)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+        }
+        Text("lla", style = textStyle, color = ink)
+    }
 }
