@@ -420,7 +420,9 @@ class DmRepository(
     }
 
     fun cacheDmRelays(pubkey: String, urls: List<String>) {
-        if (urls.isNotEmpty()) dmRelayCache.put(pubkey, urls)
+        // An empty list is meaningful when a fresh kind 10050 explicitly contains
+        // no relay entries; do not retain an older list in that case.
+        dmRelayCache.put(pubkey, urls)
     }
 
     fun getCachedDmRelays(pubkey: String): List<String>? = dmRelayCache.get(pubkey)
