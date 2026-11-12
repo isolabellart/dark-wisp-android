@@ -52,7 +52,7 @@ fun GroupCard(
 
     val host = relayUrl.removePrefix("wss://").removePrefix("ws://").trimEnd('/')
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         modifier = Modifier

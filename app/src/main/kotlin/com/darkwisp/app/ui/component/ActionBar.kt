@@ -416,7 +416,7 @@ private fun RepostPopup(
         properties = PopupProperties(focusable = true)
     ) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.surfaceVariant,
             shadowElevation = 8.dp,
             tonalElevation = 4.dp

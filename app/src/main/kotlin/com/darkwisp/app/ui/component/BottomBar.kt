@@ -19,7 +19,6 @@ import androidx.compose.material.icons.outlined.CurrencyBitcoin
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.Icon
-import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
@@ -45,13 +44,10 @@ import com.darkwisp.app.Routes
 enum class BottomTab(
     val route: String,
     val labelResId: Int,
-    val selectedIcon: ImageVector?,
-    val unselectedIcon: ImageVector?,
-    val selectedIconRes: Int? = null,
-    val unselectedIconRes: Int? = null
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector
 ) {
     HOME(Routes.FEED, R.string.nav_home, Icons.Filled.Home, Icons.Outlined.Home),
-    WALLET(Routes.WALLET, R.string.nav_wallet, null, null, R.drawable.ic_wallet, R.drawable.ic_wallet_outlined),
     SEARCH(Routes.SEARCH, R.string.nav_search, Icons.Filled.Search, Icons.Outlined.Search),
     MARKETPLACE(Routes.MARKETPLACE, R.string.marketplace_title, Icons.Filled.Storefront, Icons.Outlined.Storefront),
     MESSAGES(Routes.DM_LIST, R.string.nav_messages, Icons.Filled.Forum, Icons.Outlined.Forum),
@@ -97,7 +93,6 @@ fun WispBottomBar(
             val selected = currentRoute == tab.route
             val hasUnread = when (tab) {
                 BottomTab.HOME -> hasUnreadHome
-                BottomTab.WALLET -> false
                 BottomTab.SEARCH -> false
                 BottomTab.MARKETPLACE -> false
                 BottomTab.MESSAGES -> hasUnreadMessages
@@ -128,20 +123,11 @@ fun WispBottomBar(
                                 contentDescription = stringResource(tab.labelResId),
                                 tint = zapTint
                             )
-                        } else if (tab.selectedIconRes != null && tab.unselectedIconRes != null) {
-                            // Drawable-backed tabs (wallet) — solid when selected,
-                            // outlined when not.
-                            val iconRes = if (selected) tab.selectedIconRes else tab.unselectedIconRes
-                            Icon(
-                                painter = painterResource(iconRes),
-                                contentDescription = stringResource(tab.labelResId),
-                                tint = zapTint
-                            )
                         } else {
                             val icon = if (tab == BottomTab.NOTIFICATIONS && isZapAnimating)
                                 Icons.Outlined.CurrencyBitcoin
-                            else if (selected) tab.selectedIcon!!
-                            else tab.unselectedIcon!!
+                            else if (selected) tab.selectedIcon
+                            else tab.unselectedIcon
                             Icon(
                                 imageVector = icon,
                                 contentDescription = stringResource(tab.labelResId),
