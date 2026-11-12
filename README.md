@@ -4,7 +4,7 @@ An independent Enhanced build of [Dark Wisp](https://github.com/barrydeen/dark-w
 
 Dark Wisp Enhanced is an independent downstream fork, not an official release of the upstream project. It uses its own Android application ID, so it can be installed alongside the original Dark Wisp.
 
-> **Status:** v1.0.5 — current stable release. [Download the latest APK](https://github.com/isolabellart/dark-wisp-android/releases/latest).
+> **Status:** v1.0.10 prepared — staging validation #119 passed and the production release workflow is ready. v1.0.5 remains the latest published stable APK until the signed 1.0.10 release is published. [Download the latest stable APK](https://github.com/isolabellart/dark-wisp-android/releases/latest).
 
 ---
 
