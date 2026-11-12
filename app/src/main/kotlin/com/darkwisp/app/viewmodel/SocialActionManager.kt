@@ -387,6 +387,11 @@ class SocialActionManager(
                     } else {
                         outboxRouter.publishToInbox(ClientMessage.event(deletionEvent), event.pubkey)
                     }
+                    // Route our own confirmed NIP-09 through the same repository path
+                    // used for deletions received from other accounts/relays.
+                    eventRepo.addEvent(deletionEvent)
+                    // Also sweep every locally indexed duplicate, including IDs whose
+                    // per-event record may have been evicted from the bounded reaction cache.
                     eventRepo.removeReaction(event.id, myPubkey, reactionEmoji, existingEventIds)
                     return@launch
                 }
