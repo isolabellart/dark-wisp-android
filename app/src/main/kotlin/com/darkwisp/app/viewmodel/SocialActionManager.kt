@@ -285,7 +285,7 @@ class SocialActionManager(
         val s = getSigner() ?: return
         val myPubkey = s.pubkeyHex
         val actionTarget = event.takeIf { it.kind == Nip99.KIND_LISTING }
-            ?.let(Nip99::addressTag)
+            ?.let { Nip99.addressTag(it) }
             ?: event.id
         val actionKey = "$actionTarget:$myPubkey"
 
