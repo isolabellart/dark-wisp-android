@@ -284,6 +284,9 @@ class SocialActionManager(
     fun toggleReaction(event: NostrEvent, emoji: String) {
         val s = getSigner() ?: return
         val myPubkey = s.pubkeyHex
+        // NIP-25 represents a standard like with content "+", while addReaction
+        // indexes it under the canonical heart emoji. Use the same key for Undo.
+        val reactionEmoji = if (emoji.isBlank() || emoji == "+") "❤️" else emoji
         val actionTarget = event.takeIf { it.kind == Nip99.KIND_LISTING }
             ?.let { Nip99.addressTag(it) }
             ?: event.id
@@ -324,8 +327,8 @@ class SocialActionManager(
                 // not just the most recent one. This also cleans up duplicates created
                 // by earlier repeated taps on older app versions.
                 val existingEventIds = (
-                    eventRepo.getUserReactionEventIds(event.id, myPubkey, emoji) +
-                        listOfNotNull(eventRepo.getUserReactionEventId(event.id, myPubkey, emoji))
+                    eventRepo.getUserReactionEventIds(event.id, myPubkey, reactionEmoji) +
+                        listOfNotNull(eventRepo.getUserReactionEventId(event.id, myPubkey, reactionEmoji))
                     ).toSet()
 
                 if (existingEventIds.isNotEmpty()) {
@@ -336,7 +339,7 @@ class SocialActionManager(
                     // inbox relays. Publish the NIP-09 deletion through the same route so
                     // relays that stored the original Marketplace like also receive its removal.
                     outboxRouter.publishToInbox(ClientMessage.event(deletionEvent), event.pubkey)
-                    eventRepo.removeReaction(event.id, myPubkey, emoji, existingEventIds)
+                    eventRepo.removeReaction(event.id, myPubkey, reactionEmoji, existingEventIds)
                     return@launch
                 }
 
