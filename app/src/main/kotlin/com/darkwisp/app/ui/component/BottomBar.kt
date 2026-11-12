@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.CurrencyBitcoin
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
@@ -135,16 +136,14 @@ fun WispBottomBar(
                             )
                         }
                         if (hasUnread) {
-                            // Notification dot uses iOS-standard badge red
-                            // (#FF3B30) instead of the primary accent so it
-                            // reads as "alert" rather than "branded highlight."
+                            // Unread state is a small orange punctuation mark in Postilla.
                             Box(
                                 modifier = Modifier
                                     .size(8.dp)
                                     .align(Alignment.TopEnd)
                                     .offset(x = 2.dp, y = (-2).dp)
                                     .background(
-                                        color = Color(0xFFFF3B30),
+                                        color = MaterialTheme.colorScheme.primary,
                                         shape = CircleShape
                                     )
                             )
