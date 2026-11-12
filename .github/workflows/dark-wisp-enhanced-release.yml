@@ -170,9 +170,13 @@ jobs:
           test -n "$VERSION_NAME"
           TAG="$RELEASE_TAG_INPUT"
           [[ -n "$TAG" ]] || TAG="v$VERSION_NAME"
+          if [[ "$TAG" != "v$VERSION_NAME" ]]; then
+            echo "::error::This workflow is prepared for v$VERSION_NAME only; received $TAG."
+            exit 1
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          # A push to the designated Enhanced release branch publishes a
-          # normal GitHub Release. Manual dispatch can still opt into prerelease.
+          # Manual dispatch creates a normal GitHub Release by default.
+          # A pre-release is created only when the input explicitly requests it.
           if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           elif [[ "$PRERELEASE_INPUT" == "true" ]]; then
