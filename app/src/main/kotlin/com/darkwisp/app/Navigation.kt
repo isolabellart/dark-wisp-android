@@ -1477,7 +1477,9 @@ fun WispNavHost(
                     } else null
                     val parts = rootAddress?.split(":", limit = 3)
                     if (parts?.size == 3 && parts[0] == Nip99.KIND_LISTING.toString()) {
-                        navController.navigate("marketplace/address/${parts[1]}/${android.net.Uri.encode(parts[2])}?eventId=${event.id}")
+                        val fallback = event.takeIf { it.kind == Nip99.KIND_LISTING }
+                            ?.id?.let { "?eventId=$it" }.orEmpty()
+                        navController.navigate("marketplace/address/${parts[1]}/${android.net.Uri.encode(parts[2])}$fallback")
                     } else {
                         navController.navigate("thread/${event.id}")
                     }
