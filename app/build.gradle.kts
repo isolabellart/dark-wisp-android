@@ -28,7 +28,7 @@ android {
         targetSdk = 35
         versionCode = 11
         versionName = "1.0.10"
-        resValue("string", "app_name", "Dark Wisp Enhanced")
+        resValue("string", "app_name", "Postilla")
 
         ndk {
             abiFilters += "arm64-v8a"
@@ -52,7 +52,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = debugApplicationIdSuffix
-            resValue("string", "app_name", "Dark Wisp Enhanced Debug")
+            resValue("string", "app_name", "Postilla Debug")
         }
 
         release {
@@ -71,7 +71,7 @@ android {
             // Local builds without release secrets fall back to the debug key.
             initWith(getByName("release"))
             applicationIdSuffix = ".staging"
-            resValue("string", "app_name", "Dark Wisp Enhanced Staging")
+            resValue("string", "app_name", "Postilla Preview")
             val releaseConfig = signingConfigs.getByName("release")
             signingConfig = if (releaseConfig.storeFile != null) {
                 releaseConfig

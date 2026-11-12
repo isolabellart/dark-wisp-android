@@ -149,6 +149,9 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.FilterList
+import com.darkwisp.app.ui.component.PostillaBrandMark
+import com.darkwisp.app.ui.component.PostillaWordmark
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ButtonDefaults
@@ -358,6 +361,7 @@ fun FeedScreen(
     val onlinePubkeys by viewModel.eventRepo.onlinePubkeys.collectAsState()
     val globalOnlineCount by viewModel.globalOnlineCount.collectAsState()
     var showFeedTypeDropdown by remember { mutableStateOf(false) }
+    var showContentFilterDropdown by remember { mutableStateOf(false) }
     var showSocialGraphDialog by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -1023,73 +1027,102 @@ fun FeedScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
-                            .padding(horizontal = 8.dp),
+                            .height(60.dp)
+                            .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Keep the menu avatar on the same physical edge as the drawer.
                         if (!drawerOnRight) {
                             IconButton(
                                 onClick = { scope.launch { drawerState.open() } },
-                                modifier = Modifier.size(44.dp)
+                                modifier = Modifier.size(48.dp)
                             ) {
-                                ProfilePicture(url = userProfile?.picture, size = 32)
+                                ProfilePicture(url = userProfile?.picture, size = 34)
                             }
+                            Spacer(Modifier.width(10.dp))
                         }
+
                         Row(
                             modifier = Modifier.weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(0.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            FeedContentFilterIconTab(
-                                filter = FeedContentFilter.ALL,
-                                selected = contentFilter == FeedContentFilter.ALL,
-                                onClick = { viewModel.setFeedContentFilter(FeedContentFilter.ALL) },
-                                modifier = Modifier.weight(1f)
-                            )
-                            FeedContentFilterIconTab(
-                                filter = FeedContentFilter.TEXT_ONLY,
-                                selected = contentFilter == FeedContentFilter.TEXT_ONLY,
-                                onClick = { viewModel.setFeedContentFilter(FeedContentFilter.TEXT_ONLY) },
-                                modifier = Modifier.weight(1f)
-                            )
-                            if (feedType != FeedType.WITH_REPLIES) {
-                                FeedContentFilterIconTab(
-                                    filter = FeedContentFilter.GALLERY_ONLY,
-                                    selected = contentFilter == FeedContentFilter.GALLERY_ONLY,
-                                    onClick = { viewModel.setFeedContentFilter(FeedContentFilter.GALLERY_ONLY) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                FeedContentFilterIconTab(
-                                    filter = FeedContentFilter.POLLS_ONLY,
-                                    selected = contentFilter == FeedContentFilter.POLLS_ONLY,
-                                    onClick = { viewModel.setFeedContentFilter(FeedContentFilter.POLLS_ONLY) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .clickable(onClick = onMarketplace)
-                                    .padding(horizontal = 2.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                            PostillaBrandMark(size = 32.dp)
+                            Spacer(Modifier.width(10.dp))
+                            PostillaWordmark(fontSize = 23.sp)
+                        }
+
+                        Box {
+                            IconButton(
+                                onClick = { showContentFilterDropdown = true },
+                                modifier = Modifier.size(48.dp)
                             ) {
                                 Icon(
-                                    Icons.Outlined.Storefront,
-                                    contentDescription = stringResource(R.string.marketplace_title),
-                                    modifier = Modifier.size(22.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    imageVector = Icons.Outlined.FilterList,
+                                    contentDescription = stringResource(R.string.tab_all),
+                                    modifier = Modifier.size(24.dp),
+                                    tint = if (contentFilter == FeedContentFilter.ALL) {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    } else {
+                                        MaterialTheme.colorScheme.primary
+                                    }
                                 )
                             }
+                            DropdownMenu(
+                                expanded = showContentFilterDropdown,
+                                onDismissRequest = { showContentFilterDropdown = false },
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.tab_all)) },
+                                    onClick = {
+                                        viewModel.setFeedContentFilter(FeedContentFilter.ALL)
+                                        showContentFilterDropdown = false
+                                    },
+                                    trailingIcon = if (contentFilter == FeedContentFilter.ALL) {{
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    }} else null
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.tab_text)) },
+                                    onClick = {
+                                        viewModel.setFeedContentFilter(FeedContentFilter.TEXT_ONLY)
+                                        showContentFilterDropdown = false
+                                    },
+                                    trailingIcon = if (contentFilter == FeedContentFilter.TEXT_ONLY) {{
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    }} else null
+                                )
+                                if (feedType != FeedType.WITH_REPLIES) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.tab_gallery)) },
+                                        onClick = {
+                                            viewModel.setFeedContentFilter(FeedContentFilter.GALLERY_ONLY)
+                                            showContentFilterDropdown = false
+                                        },
+                                        trailingIcon = if (contentFilter == FeedContentFilter.GALLERY_ONLY) {{
+                                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        }} else null
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.tab_polls)) },
+                                        onClick = {
+                                            viewModel.setFeedContentFilter(FeedContentFilter.POLLS_ONLY)
+                                            showContentFilterDropdown = false
+                                        },
+                                        trailingIcon = if (contentFilter == FeedContentFilter.POLLS_ONLY) {{
+                                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        }} else null
+                                    )
+                                }
+                            }
                         }
+
                         if (drawerOnRight) {
+                            Spacer(Modifier.width(8.dp))
                             IconButton(
                                 onClick = { scope.launch { drawerState.open() } },
-                                modifier = Modifier.size(44.dp)
+                                modifier = Modifier.size(48.dp)
                             ) {
-                                ProfilePicture(url = userProfile?.picture, size = 32)
+                                ProfilePicture(url = userProfile?.picture, size = 34)
                             }
                         }
                     }
