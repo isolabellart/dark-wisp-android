@@ -1598,10 +1598,14 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
             // Keep the selected emoji active while any matching reaction ID remains.
             // If the previous representative was deleted, point the UI at a surviving ID.
             if (remainingIds.isNotEmpty()) {
-                val activeId = latestId?.takeIf { it in remainingIds } ?: remainingIds.first()
-                val activeMap = emojiMap
-                    ?: ConcurrentHashMap<String, String>().also { userReactions.put(userKey, it) }
-                activeMap[emoji] = activeId
+                // userReactions is the active account's UI state, not a mirror of
+                // every reactor. Preserve/rebuild it only for the authenticated user.
+                if (userPubkey == currentUserPubkey) {
+                    val activeId = latestId?.takeIf { it in remainingIds } ?: remainingIds.first()
+                    val activeMap = emojiMap
+                        ?: ConcurrentHashMap<String, String>().also { userReactions.put(userKey, it) }
+                    activeMap[emoji] = activeId
+                }
             } else {
                 emojiMap?.remove(emoji)
                 if (emojiMap?.isEmpty() == true) userReactions.remove(userKey)
