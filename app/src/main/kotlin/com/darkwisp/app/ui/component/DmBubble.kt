@@ -44,8 +44,10 @@ import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.CurrencyBitcoin
 import androidx.compose.material.icons.outlined.FlashOn
+import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.ui.draw.scale
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -90,6 +92,8 @@ import com.darkwisp.app.nostr.DmReaction
 import com.darkwisp.app.nostr.EncryptedMedia
 import com.darkwisp.app.ui.component.FullScreenEncryptedImageViewer
 import com.darkwisp.app.repo.EventRepository
+import com.darkwisp.app.repo.TranslationState
+import com.darkwisp.app.repo.TranslationStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
@@ -108,6 +112,8 @@ fun DmBubble(
     isSelected: Boolean,
     conversationMessages: List<DmMessage>,
     eventRepo: EventRepository? = null,
+    translationState: TranslationState = TranslationState(),
+    onTranslate: () -> Unit = {},
     relayIcons: List<Pair<String, String?>> = emptyList(),
     onSelect: () -> Unit,
     onReply: (DmMessage) -> Unit,
@@ -132,6 +138,17 @@ fun DmBubble(
     val swipeThresholdPx = with(density) { 72.dp.toPx() }
     val senderProfile = remember(message.senderPubkey) { eventRepo?.getProfileData(message.senderPubkey) }
     val senderName = senderProfile?.displayString ?: (message.senderPubkey.take(8) + "…")
+    var showTranslation by remember(message.id) { mutableStateOf(true) }
+    val isTranslating =
+        translationState.status == TranslationStatus.IDENTIFYING_LANGUAGE ||
+            translationState.status == TranslationStatus.DOWNLOADING_MODEL ||
+            translationState.status == TranslationStatus.TRANSLATING
+    val displayedContent =
+        if (translationState.status == TranslationStatus.DONE && showTranslation) {
+            translationState.translatedText
+        } else {
+            message.content
+        }
 
     val animatedSwipe by animateFloatAsState(
         targetValue = swipeOffsetPx,
@@ -264,7 +281,7 @@ fun DmBubble(
                             )
                         } else {
                             RichContent(
-                                content = message.content,
+                                content = displayedContent,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 linkColor = MaterialTheme.colorScheme.primary,
@@ -275,8 +292,66 @@ fun DmBubble(
                                 noteActions = noteActions
                             )
                         }
-                        // Timestamp at bottom only for sent messages (received shows it in header)
-                        if (isSent) {
+                        if (translationState.status == TranslationStatus.ERROR) {
+                            Text(
+                                text = translationState.errorMessage,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                        // On-demand translation stays inside the bubble. The signed
+                        // NIP-17 message is never altered.
+                        if (message.content.isNotBlank() && message.encryptedFileMetadata == null) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        if (translationState.status == TranslationStatus.DONE) {
+                                            showTranslation = !showTranslation
+                                        } else if (!isTranslating) {
+                                            onTranslate()
+                                        }
+                                    },
+                                    enabled = !isTranslating,
+                                    modifier = Modifier.size(26.dp)
+                                ) {
+                                    if (isTranslating) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(15.dp),
+                                            strokeWidth = 1.5.dp
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Translate,
+                                            contentDescription = stringResource(
+                                                if (translationState.status == TranslationStatus.DONE && showTranslation) {
+                                                    R.string.translate_show_original
+                                                } else {
+                                                    R.string.translate_translate
+                                                }
+                                            ),
+                                            tint = if (translationState.status == TranslationStatus.DONE && showTranslation) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                                if (isSent) {
+                                    Text(
+                                        text = formatTime(message.createdAt),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else if (isSent) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End
