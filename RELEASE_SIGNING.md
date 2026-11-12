@@ -13,11 +13,11 @@ This document describes the permanent signing identity and the release process f
 | Minimum Android version | Android 8.0 (API 26) |
 | Packaged ABI | `arm64-v8a` |
 
-The Enhanced application ID is intentionally separate from the upstream Dark Wisp package. It allows both applications to be installed side by side, with separate local application data.
+The Postilla Android application ID is intentionally preserved from the former Dark Wisp Enhanced installation line. It remains separate from the upstream Dark Wisp package, so both applications can coexist with separate local application data.
 
 ## Permanent APK signing identity
 
-Every public Enhanced APK update must be signed with the same private keystore. **Never generate a replacement key for an existing installation line, change the alias, or change the expected certificate fingerprint.** Android will reject an update signed with a different certificate.
+Every public Postilla APK update must be signed with the same private keystore. **Never generate a replacement key for an existing installation line, change the alias, or change the expected certificate fingerprint.** Android will reject an update signed with a different certificate.
 
 - Keystore file: `dark-wisp-enhanced-release.jks` (kept outside the repository)
 - Keystore type: JKS
@@ -86,7 +86,7 @@ For every new release:
 5. Run staging validation, install the APK on a device, and verify the features being released.
 6. Dispatch the release workflow with a new tag. Confirm the resulting GitHub Release is stable (not marked as a pre-release) unless a pre-release was intentional.
 
-Do not reuse a published version code or tag. Keep the application ID, keystore, alias, and certificate fingerprint unchanged across all updates in this release line.
+Do not reuse a published version code or tag. Keep the Postilla application ID, keystore, alias, and certificate fingerprint unchanged across all updates in this release line.
 
 ## Wallet and user-data safety
 

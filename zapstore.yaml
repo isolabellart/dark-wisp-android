@@ -1,6 +1,6 @@
 repository: https://github.com/isolabellart/dark-wisp-android
-release_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
-match: '(?i)^(?:Postilla|Dark-Wisp-Enhanced)-v[0-9]+\.[0-9]+\.[0-9]+\.apk$'
+release_filter: '^v[0-9]+\\.[0-9]+\\.[0-9]+$'
+match: '(?i)^(?:Postilla|Dark-Wisp-Enhanced)-v[0-9]+\\.[0-9]+\\.[0-9]+\\.apk$'
 
 name: Postilla
 summary: An independent Android Nostr client for social conversations, private messaging, Lightning and a NIP-99 marketplace.
@@ -14,59 +14,6 @@ license: MIT
 website: https://github.com/isolabellart/dark-wisp-android/releases/latest
 images:
   - ./docs/brand/postilla-rebrand-board.webp
-tags:
-  - android
-  - nostr
-  - social
-  - messaging
-  - lightning
-  - marketplace
-  - open-source
-supported_nips:
-  - "01"
-  - "02"
-  - "04"
-  - "05"
-  - "09"
-  - "10"
-  - "11"
-  - "13"
-  - "17"
-  - "18"
-  - "19"
-  - "23"
-  - "25"
-  - "29"
-  - "30"
-  - "37"
-  - "42"
-  - "44"
-  - "47"
-  - "51"
-  - "53"
-  - "55"
-  - "57"
-  - "65"
-  - "68"
-  - "69"
-  - "71"
-  - "78"
-  - "88"
-  - "99"
-metadata_sources:
-  - github
-
-
-name: Dark Wisp Enhanced
-summary: An independent Android Nostr client with translation, a NIP-99 marketplace, and Lightning wallet access.
-description: |
-  Dark Wisp Enhanced is an independent Android Nostr client built on the foundations of the original Dark Wisp project.
-
-  It adds a customizable left/right navigation drawer, online-user and connected-relay indicators, integrated DeepL translation, improvements to the Conversations feed, a NIP-99 marketplace with private seller contact, and convenient access to the integrated Lightning wallet.
-
-  Dark Wisp Enhanced is a separate application with its own Android package ID. It is an independent downstream project, not an official release of the upstream Dark Wisp project.
-license: MIT
-website: https://github.com/isolabellart/dark-wisp-android/releases/latest
 tags:
   - android
   - nostr
