@@ -6,6 +6,7 @@ import com.darkwisp.app.nostr.Nip09
 import com.darkwisp.app.nostr.Nip10
 import com.darkwisp.app.nostr.Nip22
 import com.darkwisp.app.nostr.Nip30
+import com.darkwisp.app.nostr.Nip51
 import com.darkwisp.app.nostr.Bolt11
 import com.darkwisp.app.nostr.Nip57
 import com.darkwisp.app.nostr.Nip69
@@ -1222,6 +1223,32 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         val event = eventCache[id] ?: eventPersistence?.getEvent(id)?.also { eventCache[id] = it }
         if (event != null && muteRepo?.isBlocked(event.pubkey) == true) return null
         return event
+    }
+
+    /**
+     * Resolve the latest locally known public Marketplace watchlist snapshots.
+     * These are NIP-51 kind 30003 sets with the app's dedicated Marketplace d-tag.
+     * Both the in-memory cache and ObjectBox are consulted so counters can render
+     * immediately instead of waiting for every relay to answer a fresh REQ.
+     */
+    fun getRecentMarketplaceWatchlistEvents(limit: Int = 5000): List<NostrEvent> {
+        if (limit <= 0) return emptyList()
+        val matches: (NostrEvent) -> Boolean = { event ->
+            event.kind == Nip51.KIND_BOOKMARK_SET &&
+                event.tags.any { it.size >= 2 && it[0] == "d" && it[1] == "dark-wisp-marketplace-watchlist" } &&
+                isVisible(event)
+        }
+        val cached = eventCache.values.filter(matches)
+        val persisted = eventPersistence
+            ?.getRecentEventsByKind(Nip51.KIND_BOOKMARK_SET, limit = limit)
+            .orEmpty()
+        return (cached + persisted)
+            .asSequence()
+            .filter(matches)
+            .distinctBy { it.id }
+            .sortedByDescending { it.created_at }
+            .take(limit)
+            .toList()
     }
 
     /**
