@@ -34,6 +34,22 @@ import java.util.concurrent.ConcurrentHashMap
 
 private const val ADDRESS_INDEX_CAPACITY = 512
 
+/**
+ * Resolve which reaction IDs a deletion should remove.
+ * A remote NIP-09 lists only the IDs it actually deletes; a local manual Unlike
+ * passes the whole known set. If no explicit IDs are supplied, fall back to the
+ * current representative, or all known IDs when no representative remains.
+ */
+internal fun reactionIdsToRemove(
+    knownIds: Set<String>,
+    explicitlyDeletedIds: Set<String>,
+    latestReactionId: String?
+): Set<String> = when {
+    explicitlyDeletedIds.isNotEmpty() -> explicitlyDeletedIds
+    latestReactionId != null -> setOf(latestReactionId)
+    else -> knownIds
+}
+
 data class ZapDetail(
     val pubkey: String,
     val sats: Long,
@@ -1541,15 +1557,10 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
 
             val idsKey = "${targetKey}:${userPubkey}:${emoji}"
             val knownIds = userReactionEventIds.get(idsKey)
-            // A remote NIP-09 may delete just one duplicate reaction. Never add the
-            // current/latest ID to that explicit deletion set: it may be a different,
-            // still-active event from the same author. Manual Unlike passes the full
-            // known ID set and therefore still removes every duplicate.
-            val idsToRemove = if (eventIdsToRemove.isNotEmpty()) {
-                eventIdsToRemove
-            } else {
-                setOfNotNull(latestId)
-            }
+            val knownIdsSnapshot = knownIds?.let { synchronized(it) { it.toSet() } } ?: emptySet()
+            // Explicit NIP-09 IDs are authoritative; a remote deletion of one
+            // duplicate must never silently remove another still-active reaction.
+            val idsToRemove = reactionIdsToRemove(knownIdsSnapshot, eventIdsToRemove, latestId)
             idsToRemove.forEach { reactionRecordsById.remove(it) }
             var removedCount = 0
             var remainingIds: Set<String> = emptySet()
