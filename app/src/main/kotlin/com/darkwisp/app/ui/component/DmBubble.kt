@@ -156,8 +156,8 @@ fun DmBubble(
         label = "swipe"
     )
 
-    val bubbleColor = if (isSent) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f)
+    val bubbleColor = if (isSent) MaterialTheme.colorScheme.surfaceVariant
+    else MaterialTheme.colorScheme.surface
 
     val quotedMessage = remember(message.replyToId, conversationMessages.size) {
         message.replyToId?.let { rid -> conversationMessages.firstOrNull { it.rumorId == rid || it.id == rid } }
@@ -223,10 +223,10 @@ fun DmBubble(
                         .wrapContentWidth(if (isSent) Alignment.End else Alignment.Start)
                         .clip(
                             RoundedCornerShape(
-                                topStart = 16.dp,
-                                topEnd = 16.dp,
-                                bottomStart = if (isSent) 16.dp else 4.dp,
-                                bottomEnd = if (isSent) 4.dp else 16.dp
+                                topStart = 8.dp,
+                                topEnd = 8.dp,
+                                bottomStart = if (isSent) 8.dp else 3.dp,
+                                bottomEnd = if (isSent) 3.dp else 8.dp
                             )
                         )
                         .background(bubbleColor)
@@ -618,12 +618,10 @@ private fun QuotedDmPreview(
         eventRepo?.getProfileData(message.senderPubkey)?.displayString
             ?: message.senderPubkey.take(8) + "…"
     }
-    val accentColor = if (parentIsSent) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
-    else MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-    val bgColor = if (parentIsSent) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
-    else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
-    val textColor = if (parentIsSent) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-    else MaterialTheme.colorScheme.onSurfaceVariant
+    val accentColor = MaterialTheme.colorScheme.primary
+    val bgColor = if (parentIsSent) MaterialTheme.colorScheme.surfaceVariant
+    else MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)
+    val textColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Row(
         modifier = Modifier
@@ -666,7 +664,7 @@ private fun ReactionChips(
     resolvedEmojis: Map<String, String> = emptyMap()
 ) {
     val grouped = remember(reactions) { reactions.groupBy { it.emoji } }
-    val pillColor = if (isSent) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
+    val pillColor = if (isSent) MaterialTheme.colorScheme.surfaceVariant
                     else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
 
     Row(

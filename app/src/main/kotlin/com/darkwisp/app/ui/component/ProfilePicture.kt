@@ -26,9 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -95,26 +95,18 @@ private fun HighlightedProfilePicture(
     )
 
     val orange = WispThemeColors.bookmarkColor
-    val glowSpread = (size * 0.2f).coerceIn(5f, 10f)
 
     Box(
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .drawBehind {
                 val center = Offset(this.size.width / 2f, this.size.height / 2f)
-                val radius = this.size.minDimension / 2f
+                val radius = this.size.minDimension / 2f + 2.dp.toPx()
                 drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            orange.copy(alpha = glowAlpha * 0.8f),
-                            orange.copy(alpha = glowAlpha * 0.3f),
-                            Color.Transparent
-                        ),
-                        center = center,
-                        radius = radius + glowSpread.dp.toPx()
-                    ),
+                    color = orange.copy(alpha = glowAlpha),
                     center = center,
-                    radius = radius + glowSpread.dp.toPx()
+                    radius = radius,
+                    style = Stroke(width = 2.dp.toPx())
                 )
             }
     ) {

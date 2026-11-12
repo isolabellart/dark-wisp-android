@@ -62,6 +62,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -395,19 +396,19 @@ internal fun MarketplaceListingCard(
         eventRepository.getProfileData(event.pubkey)
     }
     LaunchedEffect(event.pubkey) { eventRepository.requestProfileIfMissing(event.pubkey) }
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(112.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (image != null) {
@@ -477,6 +478,10 @@ internal fun MarketplaceListingCard(
                 }
             }
         }
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
     }
 }
 
@@ -918,7 +923,7 @@ fun MarketplaceDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (event.pubkey != userPubkey) {
-                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -970,7 +975,7 @@ fun MarketplaceDetailScreen(
                             ZoomableMarketplaceImage(
                                 imageUrl = image,
                                 contentDescription = title,
-                                modifier = Modifier.width(280.dp).height(280.dp).clip(RoundedCornerShape(16.dp)),
+                                modifier = Modifier.width(280.dp).height(280.dp).clip(RoundedCornerShape(8.dp)),
                                 contentScale = ContentScale.Crop
                             )
                         }
@@ -1012,7 +1017,7 @@ fun MarketplaceDetailScreen(
                                 Icon(
                                     imageVector = if (userHasReacted) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                                     contentDescription = stringResource(if (userHasReacted) R.string.marketplace_unlike else R.string.marketplace_like),
-                                    tint = Color(0xFFE53935)
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                             Text(reactionCount.toString(), style = MaterialTheme.typography.labelLarge)
