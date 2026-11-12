@@ -202,6 +202,7 @@ class ListCrudManager(
     fun removeNoteFromBookmarkSet(dTag: String, eventId: String) {
         val s = getSigner() ?: return
         val myPubkey = s.pubkeyHex
+        bookmarkSetRepo.setOwner(myPubkey)
         val existing = bookmarkSetRepo.getSet(myPubkey, dTag) ?: return
         // Marketplace entries are stored as stable NIP-99 coordinates (a-tags),
         // while ordinary notes are stored as event IDs (e-tags).
