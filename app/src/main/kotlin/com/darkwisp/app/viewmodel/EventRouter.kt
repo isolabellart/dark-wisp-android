@@ -575,7 +575,15 @@ class EventRouter(
                     } catch (_: Exception) {}
                 }
             } else {
-                eventRepo.cacheEvent(event)
+                // Engagement events from screen-owned subscriptions must pass through
+                // addEvent(), not cacheEvent(). cacheEvent marks IDs as seen without
+                // applying reaction/deletion side effects; the screen collector may
+                // then lose a race to that dedup marker and show stale Marketplace counts.
+                if (event.kind == 5 || event.kind == 7) {
+                    eventRepo.addEvent(event)
+                } else {
+                    eventRepo.cacheEvent(event)
+                }
                 // NIP-38: route user status events to addEvent so they get processed
                 if (event.kind == 30315) eventRepo.addEvent(event)
             }
