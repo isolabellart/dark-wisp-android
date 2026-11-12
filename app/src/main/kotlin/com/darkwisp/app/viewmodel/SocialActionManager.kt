@@ -12,6 +12,7 @@ import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.nostr.NostrSigner
 import com.darkwisp.app.nostr.Nip18
 import com.darkwisp.app.nostr.Nip09
+import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.Nip57
 import com.darkwisp.app.nostr.Nip88
 import com.darkwisp.app.relay.OutboxRouter
@@ -81,6 +82,9 @@ class SocialActionManager(
 
     private val _reactionSent = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
     val reactionSent: SharedFlow<Unit> = _reactionSent
+
+    // Prevent concurrent reaction sends/toggles for the same target and account.
+    private val reactionActionsInProgress = ConcurrentHashMap.newKeySet<String>()
 
     // Non-null while the first-follow confirmation dialog is visible (holds the target pubkey).
     private val _pendingFirstFollow = MutableStateFlow<String?>(null)
@@ -280,21 +284,27 @@ class SocialActionManager(
     fun toggleReaction(event: NostrEvent, emoji: String) {
         val s = getSigner() ?: return
         val myPubkey = s.pubkeyHex
+        val actionTarget = event.takeIf { it.kind == Nip99.KIND_LISTING }
+            ?.let(Nip99::addressTag)
+            ?: event.id
+        val actionKey = "$actionTarget:$myPubkey"
 
-        // NIP-17 private replies are reacted to with a gift-wrapped kind-7 rumor so
-        // the target rumor id never lands on a public relay. v1 is add-only: if the
-        // user has already reacted with this emoji we no-op rather than publishing a
-        // gift-wrapped NIP-09 deletion (gift-wrapped deletion is a future enhancement).
-        if (eventRepo.isPrivate(event.id)) {
-            val existingEmoji = eventRepo.getUserReactionEmoji(event.id, myPubkey)
-            if (existingEmoji != null) return
-            val shortcodeMatch = Nip30.shortcodeRegex.matchEntire(emoji)
-            val emojiUrl = if (shortcodeMatch != null) {
-                val shortcode = shortcodeMatch.groupValues[1]
-                customEmojiRepo.resolvedEmojis.value[shortcode]
-            } else null
-            scope.launch {
-                try {
+        // A tap can arrive again while the signer/PoW/publish path is still running.
+        // Treat the action as one in-flight operation per target and account.
+        if (!reactionActionsInProgress.add(actionKey)) return
+
+        scope.launch {
+            try {
+                // NIP-17 private replies are reacted to with a gift-wrapped kind-7 rumor
+                // so the target rumor id never lands on a public relay. v1 remains add-only.
+                if (eventRepo.isPrivate(event.id)) {
+                    val existingEmoji = eventRepo.getUserReactionEmoji(event.id, myPubkey)
+                    if (existingEmoji != null) return@launch
+                    val shortcodeMatch = Nip30.shortcodeRegex.matchEntire(emoji)
+                    val emojiUrl = if (shortcodeMatch != null) {
+                        val shortcode = shortcodeMatch.groupValues[1]
+                        customEmojiRepo.resolvedEmojis.value[shortcode]
+                    } else null
                     PrivateReactionPublisher.send(
                         signer = s,
                         relayPool = relayPool,
@@ -307,67 +317,74 @@ class SocialActionManager(
                     )
                     _reactionSent.tryEmit(Unit)
                     customEmojiRepo.recordEmojiUsage(emoji)
-                } catch (_: Exception) {}
-            }
-            return
-        }
+                    return@launch
+                }
 
-        val existingEventId = eventRepo.getUserReactionEventId(event.id, myPubkey, emoji)
+                // If the account already reacted, delete every known matching event,
+                // not just the most recent one. This also cleans up duplicates created
+                // by earlier repeated taps on older app versions.
+                val existingEventIds = (
+                    eventRepo.getUserReactionEventIds(event.id, myPubkey, emoji) +
+                        listOfNotNull(eventRepo.getUserReactionEventId(event.id, myPubkey, emoji))
+                    ).toSet()
 
-        scope.launch {
-            try {
-                if (existingEventId != null) {
-                    val tags = Nip09.buildDeletionTags(existingEventId, 7)
-                    val deletionEvent = s.signEvent(kind = 5, content = "", tags = tags)
+                if (existingEventIds.isNotEmpty()) {
+                    val deletionTags = existingEventIds.map { listOf("e", it) } +
+                        listOf(listOf("k", "7"))
+                    val deletionEvent = s.signEvent(kind = 5, content = "", tags = deletionTags)
                     relayPool.sendToWriteRelays(ClientMessage.event(deletionEvent))
-                    eventRepo.removeReaction(event.id, myPubkey, emoji)
-                } else {
-                    val shortcodeMatch = Nip30.shortcodeRegex.matchEntire(emoji)
-                    var tags: List<List<String>> = if (shortcodeMatch != null) {
-                        val shortcode = shortcodeMatch.groupValues[1]
-                        val url = customEmojiRepo.resolvedEmojis.value[shortcode]
-                        if (url != null) {
-                            Nip25.buildReactionTagsWithEmoji(
-                                event, CustomEmoji(shortcode, url)
-                            )
-                        } else {
-                            Nip25.buildReactionTags(event)
-                        }
+                    eventRepo.removeReaction(event.id, myPubkey, emoji, existingEventIds)
+                    return@launch
+                }
+
+                val shortcodeMatch = Nip30.shortcodeRegex.matchEntire(emoji)
+                var tags: List<List<String>> = if (shortcodeMatch != null) {
+                    val shortcode = shortcodeMatch.groupValues[1]
+                    val url = customEmojiRepo.resolvedEmojis.value[shortcode]
+                    if (url != null) {
+                        Nip25.buildReactionTagsWithEmoji(
+                            event, CustomEmoji(shortcode, url)
+                        )
                     } else {
                         Nip25.buildReactionTags(event)
                     }
-
-                    if (interfacePrefs.isClientTagEnabled()) {
-                        tags = tags + listOf(listOf("client", "Dark Wisp"))
-                    }
-
-                    val createdAt: Long
-                    if (powPrefs.isReactionPowEnabled()) {
-                        val pinned = System.currentTimeMillis() / 1000
-                        val result = withContext(Dispatchers.Default) {
-                            Nip13.mine(
-                                pubkeyHex = myPubkey,
-                                kind = 7,
-                                content = emoji,
-                                tags = tags,
-                                targetDifficulty = powPrefs.getReactionDifficulty(),
-                                createdAt = pinned
-                            )
-                        }
-                        tags = result.tags
-                        createdAt = result.createdAt
-                    } else {
-                        createdAt = System.currentTimeMillis() / 1000
-                    }
-
-                    val reactionEvent = s.signEvent(kind = 7, content = emoji, tags = tags, createdAt = createdAt)
-                    val msg = ClientMessage.event(reactionEvent)
-                    outboxRouter.publishToInbox(msg, event.pubkey)
-                    eventRepo.addEvent(reactionEvent)
-                    _reactionSent.tryEmit(Unit)
-                    customEmojiRepo.recordEmojiUsage(emoji)
+                } else {
+                    Nip25.buildReactionTags(event)
                 }
-            } catch (_: Exception) {}
+
+                if (interfacePrefs.isClientTagEnabled()) {
+                    tags = tags + listOf(listOf("client", "Dark Wisp"))
+                }
+
+                val createdAt: Long
+                if (powPrefs.isReactionPowEnabled()) {
+                    val pinned = System.currentTimeMillis() / 1000
+                    val result = withContext(Dispatchers.Default) {
+                        Nip13.mine(
+                            pubkeyHex = myPubkey,
+                            kind = 7,
+                            content = emoji,
+                            tags = tags,
+                            targetDifficulty = powPrefs.getReactionDifficulty(),
+                            createdAt = pinned
+                        )
+                    }
+                    tags = result.tags
+                    createdAt = result.createdAt
+                } else {
+                    createdAt = System.currentTimeMillis() / 1000
+                }
+
+                val reactionEvent = s.signEvent(kind = 7, content = emoji, tags = tags, createdAt = createdAt)
+                val msg = ClientMessage.event(reactionEvent)
+                outboxRouter.publishToInbox(msg, event.pubkey)
+                eventRepo.addEvent(reactionEvent)
+                _reactionSent.tryEmit(Unit)
+                customEmojiRepo.recordEmojiUsage(emoji)
+            } catch (_: Exception) {
+            } finally {
+                reactionActionsInProgress.remove(actionKey)
+            }
         }
     }
 
