@@ -1206,6 +1206,7 @@ fun WispNavHost(
                         feedViewModel.bookmarkSetRepo.setOwner(bookmarkEvent.pubkey)
                         feedViewModel.bookmarkSetRepo.updateFromEvent(bookmarkEvent)
                     },
+                    bookmarkSetRepository = feedViewModel.bookmarkSetRepo,
                     onEdit = { navController.navigate("marketplace/edit?eventId=${android.net.Uri.encode(event!!.id)}") },
                     onContactSeller = { message ->
                         val listingAddress = Nip19.naddrEncode(
