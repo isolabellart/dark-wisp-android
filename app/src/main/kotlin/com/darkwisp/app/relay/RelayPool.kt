@@ -869,7 +869,7 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
     suspend fun publishWithConfirmation(
         eventId: String,
         timeoutMs: Long = PUBLISH_OK_TIMEOUT_MS,
-        send: () -> Int
+        send: suspend () -> Int
     ): PublishOutcome {
         val firstAccepted = CompletableDeferred<Unit>()
         var accepted = 0
