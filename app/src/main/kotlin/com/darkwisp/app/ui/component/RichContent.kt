@@ -164,6 +164,7 @@ data class NoteActions(
     val onZapInstant: (NostrEvent) -> Unit = {},
     val onProfileClick: (String) -> Unit = {},
     val onNoteClick: (String) -> Unit = {},
+    val onMarketplaceListingClick: ((NostrEvent) -> Unit)? = null,
     val onAddToList: (String) -> Unit = {},
     val onFollowAuthor: (String) -> Unit = {},
     val onBlockAuthor: (String) -> Unit = {},
@@ -1048,7 +1049,7 @@ fun RichContent(
                                         author = segment.author,
                                         relayHints = segment.relays,
                                         eventRepo = eventRepo,
-                                        onClick = onMarketplaceListingClick
+                                        onClick = onMarketplaceListingClick ?: noteActions?.onMarketplaceListingClick
                                     )
                                 } else {
                                     UnsupportedKindBadge(kind = kind, style = style)
