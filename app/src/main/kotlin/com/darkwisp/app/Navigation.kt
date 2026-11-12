@@ -1177,14 +1177,28 @@ fun WispNavHost(
                 ?.map { it.trim() }
                 ?.filter { it.startsWith("wss://") }
                 ?: emptyList()
-            val cachedFallbackEvent = fallbackEventId?.let { feedViewModel.eventRepo.getEvent(it) }
-                ?: feedViewModel.eventRepo.findAddressableEvent(Nip99.KIND_LISTING, author, dTag)
+            val cachedFallbackEvent = Nip01EventOrder.newest(
+                listOfNotNull(
+                    fallbackEventId?.let { feedViewModel.eventRepo.getEvent(it) },
+                    feedViewModel.eventRepo.findAddressableEvent(Nip99.KIND_LISTING, author, dTag)
+                ).filter { candidate ->
+                    candidate.kind == Nip99.KIND_LISTING &&
+                        candidate.pubkey == author &&
+                        Nip99.dTag(candidate) == dTag
+                }
+            )
             val addressableEvent by feedViewModel.eventRepo
                 .observeAddressableEvent(Nip99.KIND_LISTING, author, dTag)
                 .collectAsState(initial = cachedFallbackEvent)
-            // A NIP-09 address deletion hides the live addressable event. Keep the
-            // exact cached revision so an already-seen listing can open as an archive.
-            val event = addressableEvent ?: cachedFallbackEvent
+            // Keep the exact cached revision for withdrawn listings, but never let an
+            // older address-index snapshot replace a newer event selected by its ID.
+            val event = Nip01EventOrder.newest(
+                listOfNotNull(cachedFallbackEvent, addressableEvent).filter { candidate ->
+                    candidate.kind == Nip99.KIND_LISTING &&
+                        candidate.pubkey == author &&
+                        Nip99.dTag(candidate) == dTag
+                }
+            )
             LaunchedEffect(author, dTag, relayHints) {
                 feedViewModel.eventRepo.requestAddressableEvent(
                     Nip99.KIND_LISTING,
