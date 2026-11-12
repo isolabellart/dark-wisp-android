@@ -340,7 +340,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     private val countedMarketplaceReactionEmoji = LruCache<String, String>(30000)
     // Keep every reaction event ID per target/author/emoji so Undo can delete duplicates too.
     private val userReactionEventIds = LruCache<String, MutableSet<String>>(30000)
-    private data class ReactionRecord(val targetKey: String, val authorPubkey: String, val emoji: String)
+    private data class ReactionRecord(val targetKeys: List<String>, val authorPubkey: String, val emoji: String)
     private val reactionRecordsById = LruCache<String, ReactionRecord>(30000)
     private val countedZapIds = LruCache<String, MutableSet<String>>(15000)
     // Reply dedup: parentEventId -> set of counted reply event IDs (LRU so it evicts with replyCounts)
@@ -767,12 +767,18 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
                         // index so remote NIP-09 unlikes update Marketplace counts too.
                         reactionRecordsById.remove(id)
                         deletedEventsRepo?.markDeleted(id)
-                        removeReaction(
-                            reactionRecord.targetKey,
-                            event.pubkey,
-                            reactionRecord.emoji,
-                            setOf(id)
-                        )
+                        // A Marketplace reaction is indexed under both its
+                        // exact revision ID and stable NIP-99 coordinate. Remove the
+                        // event ID from every index so a later Like is not mistaken for
+                        // another Unlike on devices receiving this remote deletion.
+                        reactionRecord.targetKeys.forEach { targetKey ->
+                            removeReaction(
+                                targetKey,
+                                event.pubkey,
+                                reactionRecord.emoji,
+                                setOf(id)
+                            )
+                        }
                     }
 
                     val target = eventCache[id]
@@ -870,7 +876,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         // can reconcile counts even when the listing has since been revised.
         reactionRecordsById.put(
             event.id,
-            ReactionRecord(addressTarget ?: eventTargetId, event.pubkey, emoji)
+            ReactionRecord(targetKeys, event.pubkey, emoji)
         )
 
         for (targetKey in targetKeys) {
