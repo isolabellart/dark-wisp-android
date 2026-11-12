@@ -915,7 +915,7 @@ fun WispNavHost(
                     }
                 },
                 marketplaceWatchlistPriceTracker = marketplaceWatchlistPriceTracker,
-                onListingClick = { event -> navController.navigate("marketplace/detail/${event.id}") },
+                onListingClick = { event -> navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}") },
                 onDms = {
                     navController.navigate(Routes.DM_LIST)
                 },
@@ -1070,7 +1070,7 @@ fun WispNavHost(
                 followedPubkeys = followedPubkeys,
                 userPubkey = feedViewModel.getUserPubkey(),
                 onBack = { navController.popBackStack() },
-                onOpenListing = { event -> navController.navigate("marketplace/detail/${event.id}") },
+                onOpenListing = { event -> navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}") },
                 onCreateListing = { navController.navigate("marketplace/edit") }
             )
         }
@@ -1090,7 +1090,7 @@ fun WispNavHost(
                 followedPubkeys = feedViewModel.contactRepo.getFollowList().map { it.pubkey },
                 userPubkey = feedViewModel.getUserPubkey(),
                 onBack = { navController.popBackStack() },
-                onOpenListing = { event -> navController.navigate("marketplace/detail/${event.id}") },
+                onOpenListing = { event -> navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}") },
                 onCreateListing = { navController.navigate("marketplace/edit") },
                 sellerPubkey = sellerPubkey,
                 sellerName = sellerProfile?.displayString,
@@ -1248,7 +1248,7 @@ fun WispNavHost(
                 onBack = { navController.popBackStack() },
                 onPublished = { event ->
                     marketplaceViewModel.addOrUpdate(event)
-                    navController.navigate("marketplace/detail/${event.id}") {
+                    navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}") {
                         launchSingleTop = true
                     }
                 },
