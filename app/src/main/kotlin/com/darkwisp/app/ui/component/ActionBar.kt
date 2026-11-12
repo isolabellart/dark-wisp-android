@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import com.darkwisp.app.R
 import com.darkwisp.app.repo.FiatPreferences
 import com.darkwisp.app.ui.theme.WispThemeColors
+import com.darkwisp.app.ui.theme.PostillaPalette
 import com.darkwisp.app.ui.util.AmountFormatter
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.window.Popup
@@ -378,7 +379,7 @@ internal fun LightningAnimation(modifier: Modifier = Modifier) {
             )
             // White-core silhouette on top. Don't tint — the white IS
             // the luminous core; the warm halos do the heat work.
-            drawPath(path = boltPath, color = Color.White)
+            drawPath(path = boltPath, color = PostillaPalette.Ivory)
         }
     }
 }

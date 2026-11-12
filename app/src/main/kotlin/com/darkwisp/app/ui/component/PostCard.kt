@@ -1376,7 +1376,7 @@ internal fun Nip05Badge(
                 isImpersonator -> Icon(
                     Icons.Default.Cancel,
                     contentDescription = "Impersonator",
-                    tint = Color.Red,
+                    tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(14.dp)
                 )
             }
@@ -1404,7 +1404,7 @@ internal fun Nip05Badge(
             Icon(
                 Icons.Default.Cancel,
                 contentDescription = "Impersonator",
-                tint = Color.Red,
+                tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(14.dp)
             )
         }

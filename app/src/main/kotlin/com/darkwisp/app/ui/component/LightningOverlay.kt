@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalContext
 import com.darkwisp.app.ui.theme.WispThemeColors
+import com.darkwisp.app.ui.theme.PostillaPalette
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
@@ -80,16 +81,9 @@ fun ZapBurstEffect(
             val flashP = p / 0.25f
             val flashAlpha = (1f - flashP) * 0.7f
             drawCircle(
-                brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = flashAlpha),
-                        zapColor.copy(alpha = flashAlpha * 0.6f),
-                        Color.Transparent
-                    ),
-                    center = androidx.compose.ui.geometry.Offset(cx, cy),
-                    radius = size.minDimension * 0.4f * (0.5f + flashP * 0.5f)
-                ),
-                radius = size.minDimension * 0.4f
+                color = zapColor.copy(alpha = flashAlpha * 0.22f),
+                radius = size.minDimension * 0.28f * (0.5f + flashP * 0.5f),
+                center = androidx.compose.ui.geometry.Offset(cx, cy)
             )
         }
 
@@ -194,7 +188,7 @@ private fun DrawScope.drawBoltParticle(
             )
         )
         drawPath(path = boltPath, color = zapColor.copy(alpha = alpha * 0.9f), style = Fill)
-        drawPath(path = boltPath, color = Color.White.copy(alpha = alpha * 0.3f), style = Fill)
+        drawPath(path = boltPath, color = PostillaPalette.Ivory.copy(alpha = alpha * 0.3f), style = Fill)
     }
 }
 
@@ -218,7 +212,7 @@ private fun DrawScope.drawSparkParticle(
     if (alpha <= 0f) return
 
     drawCircle(
-        color = Color.White.copy(alpha = alpha * 0.9f),
+        color = PostillaPalette.Ivory.copy(alpha = alpha * 0.9f),
         radius = r,
         center = androidx.compose.ui.geometry.Offset(px, py)
     )

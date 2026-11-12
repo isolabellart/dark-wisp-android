@@ -23,13 +23,14 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.platform.LocalContext
 import com.darkwisp.app.ui.theme.WispThemeColors
+import com.darkwisp.app.ui.theme.PostillaPalette
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * ICQ-style green flower burst that blooms outward from center when triggered.
+ * Postilla flower burst in orange and ivory that blooms outward when a reply arrives.
  * Each petal grows and rotates slightly, then fades out.
  */
 @Composable
@@ -49,7 +50,7 @@ fun IcqFlowerBurstEffect(
     val progress = remember { Animatable(0f) }
     val rotation = remember { Animatable(0f) }
 
-    val repostColor = WispThemeColors.repostColor
+    val repostColor = WispThemeColors.zapColor
 
     if (!isActive && progress.value <= 0f) return
 
@@ -109,12 +110,12 @@ private fun DrawScope.drawIcqFlower(
     // Center circle
     val centerRadius = 5f * density * scale
     drawCircle(
-        color = Color(0xFF8BC34A).copy(alpha = alpha),
+        color = repostColor.copy(alpha = alpha),
         radius = centerRadius,
         center = Offset(cx, cy)
     )
     drawCircle(
-        color = Color(0xFFCDDC39).copy(alpha = alpha * 0.8f),
+        color = PostillaPalette.OrangeSoft.copy(alpha = alpha * 0.8f),
         radius = centerRadius * 0.6f,
         center = Offset(cx, cy)
     )
@@ -199,7 +200,7 @@ private fun DrawScope.drawPetal(
 
     drawPath(
         path = innerPath,
-        color = Color(0xFF66BB6A).copy(alpha = alpha * 0.8f),
+        color = PostillaPalette.Ivory.copy(alpha = alpha * 0.8f),
         style = Fill
     )
 }
