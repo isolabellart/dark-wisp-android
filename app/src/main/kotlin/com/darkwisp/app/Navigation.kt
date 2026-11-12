@@ -1176,12 +1176,14 @@ fun WispNavHost(
                 ?.map { it.trim() }
                 ?.filter { it.startsWith("wss://") }
                 ?: emptyList()
+            val cachedFallbackEvent = fallbackEventId?.let { feedViewModel.eventRepo.getEvent(it) }
+                ?: feedViewModel.eventRepo.findAddressableEvent(Nip99.KIND_LISTING, author, dTag)
             val addressableEvent by feedViewModel.eventRepo
                 .observeAddressableEvent(Nip99.KIND_LISTING, author, dTag)
-                .collectAsState(initial = feedViewModel.eventRepo.findAddressableEvent(Nip99.KIND_LISTING, author, dTag))
+                .collectAsState(initial = cachedFallbackEvent)
             // A NIP-09 address deletion hides the live addressable event. Keep the
-            // exact revision that opened this route as a local archive fallback.
-            val event = addressableEvent ?: fallbackEventId?.let { feedViewModel.eventRepo.getEvent(it) }
+            // exact cached revision so an already-seen listing can open as an archive.
+            val event = addressableEvent ?: cachedFallbackEvent
             LaunchedEffect(author, dTag, relayHints) {
                 feedViewModel.eventRepo.requestAddressableEvent(
                     Nip99.KIND_LISTING,
@@ -1477,8 +1479,9 @@ fun WispNavHost(
                     } else null
                     val parts = rootAddress?.split(":", limit = 3)
                     if (parts?.size == 3 && parts[0] == Nip99.KIND_LISTING.toString()) {
-                        val fallback = event.takeIf { it.kind == Nip99.KIND_LISTING }
-                            ?.id?.let { "?eventId=$it" }.orEmpty()
+                        val cachedListing = event.takeIf { it.kind == Nip99.KIND_LISTING }
+                            ?: feedViewModel.eventRepo.findAddressableEvent(Nip99.KIND_LISTING, parts[1], parts[2])
+                        val fallback = cachedListing?.id?.let { "?eventId=$it" }.orEmpty()
                         navController.navigate("marketplace/address/${parts[1]}/${android.net.Uri.encode(parts[2])}$fallback")
                     } else {
                         navController.navigate("thread/${event.id}")
@@ -3696,8 +3699,9 @@ fun WispNavHost(
                     }
                     val parts = address?.split(":", limit = 3)
                     if (parts?.size == 3 && parts[0] == Nip99.KIND_LISTING.toString()) {
-                        val fallback = referenced?.takeIf { it.kind == Nip99.KIND_LISTING }
-                            ?.id?.let { "?eventId=$it" }.orEmpty()
+                        val cachedListing = referenced?.takeIf { it.kind == Nip99.KIND_LISTING }
+                            ?: feedViewModel.eventRepo.findAddressableEvent(Nip99.KIND_LISTING, parts[1], parts[2])
+                        val fallback = cachedListing?.id?.let { "?eventId=$it" }.orEmpty()
                         navController.navigate("marketplace/address/${parts[1]}/${android.net.Uri.encode(parts[2])}$fallback")
                     } else {
                         navController.navigate("thread/$eventId")
