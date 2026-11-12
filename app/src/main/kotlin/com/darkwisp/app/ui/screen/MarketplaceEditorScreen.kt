@@ -61,6 +61,7 @@ import com.darkwisp.app.R
 import com.darkwisp.app.nostr.ClientMessage
 import com.darkwisp.app.nostr.Nip09
 import com.darkwisp.app.nostr.Nip99
+import com.darkwisp.app.nostr.Nip01EventOrder
 import com.darkwisp.app.nostr.MarketplaceRelays
 import com.darkwisp.app.nostr.MarketplaceCurrencies
 import com.darkwisp.app.ui.screen.MarketplaceLightningEstimate
@@ -390,10 +391,24 @@ fun MarketplaceEditorScreen(
                                     images = images,
                                     status = status
                                 )
+                                val latestKnownCreatedAt = eventRepository.findAddressableEvent(
+                                    kind = Nip99.KIND_LISTING,
+                                    author = signer.pubkeyHex,
+                                    dTag = dTag
+                                )?.created_at
+                                val previousCreatedAt = listOfNotNull(
+                                    existingEvent?.takeIf { it.pubkey == signer.pubkeyHex }?.created_at,
+                                    latestKnownCreatedAt
+                                ).maxOrNull()
+                                val createdAt = Nip01EventOrder.nextCreatedAt(
+                                    now = System.currentTimeMillis() / 1000,
+                                    previousCreatedAt = previousCreatedAt
+                                )
                                 val event = signer.signEvent(
                                     kind = Nip99.KIND_LISTING,
                                     content = description.trim(),
-                                    tags = tags
+                                    tags = tags,
+                                    createdAt = createdAt
                                 )
                                 publishMarketplaceEvent(relayPool, event, context)
                                 eventRepository.addEvent(event)

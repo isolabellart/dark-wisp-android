@@ -13,4 +13,15 @@ object Nip01EventOrder {
         }
         return candidate.id < current.id
     }
+
+    /**
+     * Produces a timestamp that is never older than [now] and is strictly
+     * newer than [previousCreatedAt] when editing an existing addressable event.
+     */
+    fun nextCreatedAt(now: Long, previousCreatedAt: Long?): Long {
+        val afterPrevious = previousCreatedAt?.let {
+            if (it == Long.MAX_VALUE) it else it + 1L
+        } ?: now
+        return maxOf(now, afterPrevious)
+    }
 }
