@@ -119,7 +119,7 @@ private const val MARKETPLACE_WATCHLIST_DTAG = "dark-wisp-marketplace-watchlist"
 
 private data class MarketplaceWatchlistSnapshot(
     val createdAt: Long,
-    val isInterested: Boolean
+    val coordinates: Set<String>
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,6 +147,96 @@ fun MarketplaceScreen(
 
     LaunchedEffect(selectedScope, followedPubkeys, userPubkey, sellerPubkey) {
         viewModel.load(selectedScope, relayPool, eventRepository, followedPubkeys, userPubkey, sellerPubkey)
+    }
+
+    var storefrontWatchlists by remember(sellerPubkey, userPubkey) {
+        mutableStateOf<Map<String, MarketplaceWatchlistSnapshot>>(emptyMap())
+    }
+    LaunchedEffect(sellerPubkey, userPubkey, eventRepository, relayPool) {
+        if (sellerPubkey == null || userPubkey == null || sellerPubkey != userPubkey) {
+            storefrontWatchlists = emptyMap()
+            return@LaunchedEffect
+        }
+
+        val cachedEvents = withContext(Dispatchers.IO) {
+            eventRepository.getRecentMarketplaceWatchlistEvents(limit = 5000)
+        }
+        val latestByAuthor = mutableMapOf<String, MarketplaceWatchlistSnapshot>()
+        cachedEvents.forEach { candidate ->
+            val set = Nip51.parseBookmarkSet(candidate) ?: return@forEach
+            val previous = latestByAuthor[candidate.pubkey]
+            if (previous == null || candidate.created_at > previous.createdAt) {
+                latestByAuthor[candidate.pubkey] = MarketplaceWatchlistSnapshot(
+                    createdAt = candidate.created_at,
+                    coordinates = set.coordinates
+                )
+            }
+        }
+        storefrontWatchlists = latestByAuthor
+
+        val marketplaceRelayUrls = (MarketplaceRelays.READ + MarketplaceRelays.WRITE).distinct()
+        val targets = (
+            relayPool.getReadRelayUrls() +
+                RelayConfig.DEFAULT_INDEXER_RELAYS +
+                marketplaceRelayUrls
+            ).distinct()
+        val subId = "marketplace-storefront-interests-" + sellerPubkey.take(12)
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            relayPool.relayEvents
+                .filter { it.subscriptionId == subId }
+                .collect { frame ->
+                    val candidate = frame.event
+                    val dTag = candidate.tags.firstOrNull { it.size >= 2 && it[0] == "d" }?.get(1)
+                    if (candidate.kind != Nip51.KIND_BOOKMARK_SET || dTag != MARKETPLACE_WATCHLIST_DTAG) {
+                        return@collect
+                    }
+                    val set = Nip51.parseBookmarkSet(candidate) ?: return@collect
+                    val previous = storefrontWatchlists[candidate.pubkey]?.createdAt ?: 0L
+                    if (candidate.created_at > previous) {
+                        storefrontWatchlists = storefrontWatchlists.toMutableMap().apply {
+                            put(
+                                candidate.pubkey,
+                                MarketplaceWatchlistSnapshot(candidate.created_at, set.coordinates)
+                            )
+                        }
+                    }
+                }
+        }
+        val request = ClientMessage.req(
+            subId,
+            Filter(
+                kinds = listOf(Nip51.KIND_BOOKMARK_SET),
+                dTags = listOf(MARKETPLACE_WATCHLIST_DTAG),
+                limit = 1000
+            )
+        )
+        targets.forEach { relay ->
+            relayPool.sendToRelayOrEphemeral(
+                relay,
+                request,
+                skipBadCheck = true,
+                autoReconnect = relay in marketplaceRelayUrls
+            )
+        }
+        try {
+            awaitCancellation()
+        } finally {
+            collector.cancel()
+            relayPool.closeOnAllRelays(subId)
+        }
+    }
+
+    val storefrontBookmarkCounts = remember(listings, storefrontWatchlists, sellerPubkey, userPubkey) {
+        if (sellerPubkey == null || userPubkey == null || sellerPubkey != userPubkey) {
+            emptyMap()
+        } else {
+            listings.associate { listing ->
+                val address = Nip99.addressTag(listing)
+                address to storefrontWatchlists.count { (author, snapshot) ->
+                    author != listing.pubkey && address in snapshot.coordinates
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -276,7 +366,13 @@ fun MarketplaceScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(listings, key = { it.pubkey + ":" + Nip99.dTag(it) }) { event ->
-                        MarketplaceListingCard(event = event, eventRepository = eventRepository, onClick = { onOpenListing(event) })
+                        val bookmarkCount = storefrontBookmarkCounts[Nip99.addressTag(event)]
+                        MarketplaceListingCard(
+                            event = event,
+                            eventRepository = eventRepository,
+                            bookmarkCount = bookmarkCount,
+                            onClick = { onOpenListing(event) }
+                        )
                     }
                 }
             }
@@ -285,7 +381,12 @@ fun MarketplaceScreen(
 }
 
 @Composable
-internal fun MarketplaceListingCard(event: NostrEvent, eventRepository: EventRepository, onClick: () -> Unit) {
+internal fun MarketplaceListingCard(
+    event: NostrEvent,
+    eventRepository: EventRepository,
+    bookmarkCount: Int? = null,
+    onClick: () -> Unit
+) {
     val image = Nip99.images(event).firstOrNull()
     val sold = Nip99.isSold(event)
     val profileVersion by eventRepository.profileVersionFor(event.pubkey).collectAsState(initial = 0)
@@ -302,19 +403,40 @@ internal fun MarketplaceListingCard(event: NostrEvent, eventRepository: EventRep
             modifier = Modifier.fillMaxWidth().padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (image != null) {
-                ZoomableMarketplaceImage(
-                    imageUrl = image,
-                    contentDescription = Nip99.title(event),
-                    modifier = Modifier.size(112.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier.size(112.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Outlined.Storefront, contentDescription = null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Box(
+                modifier = Modifier
+                    .size(112.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                if (image != null) {
+                    ZoomableMarketplaceImage(
+                        imageUrl = image,
+                        contentDescription = Nip99.title(event),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.Storefront, contentDescription = null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                if (bookmarkCount != null && bookmarkCount > 0) {
+                    Surface(
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(5.dp),
+                        color = Color.Black.copy(alpha = 0.72f),
+                        contentColor = Color.White,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(Icons.Filled.Bookmark, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Text(bookmarkCount.toString(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
             Spacer(Modifier.width(12.dp))
@@ -413,11 +535,12 @@ fun MarketplaceDetailScreen(
         mutableStateOf<Map<String, MarketplaceWatchlistSnapshot>>(emptyMap())
     }
     val publicInterestCount = publicInterestByPubkey.count { (pubkey, entry) ->
-        pubkey != event.pubkey && entry.isInterested
+        pubkey != event.pubkey && listingAddress in entry.coordinates
     }
-    val interestedAuthors = remember(publicInterestByPubkey, event.pubkey) {
-        publicInterestByPubkey.filter { (pubkey, entry) -> pubkey != event.pubkey && entry.isInterested }
-            .keys.sorted()
+    val interestedAuthors = remember(publicInterestByPubkey, event.pubkey, listingAddress) {
+        publicInterestByPubkey.filter { (pubkey, entry) ->
+            pubkey != event.pubkey && listingAddress in entry.coordinates
+        }.keys.sorted()
     }
     val suggestedMessage = stringResource(R.string.marketplace_message_intro, title)
     val watchlistTitle = stringResource(R.string.marketplace_watchlist_title)
@@ -524,6 +647,24 @@ fun MarketplaceDetailScreen(
     }
 
     LaunchedEffect(event.id, listingAddress, userPubkey) {
+        // Hydrate the latest public snapshot per author from ObjectBox/cache first.
+        // The live relay subscription below then replaces these entries only with newer revisions.
+        val cachedWatchlists = withContext(Dispatchers.IO) {
+            eventRepository.getRecentMarketplaceWatchlistEvents(limit = 5000)
+        }
+        val cachedByAuthor = mutableMapOf<String, MarketplaceWatchlistSnapshot>()
+        cachedWatchlists.forEach { candidate ->
+            val set = Nip51.parseBookmarkSet(candidate) ?: return@forEach
+            val previous = cachedByAuthor[candidate.pubkey]
+            if (previous == null || candidate.created_at > previous.createdAt) {
+                cachedByAuthor[candidate.pubkey] = MarketplaceWatchlistSnapshot(
+                    createdAt = candidate.created_at,
+                    coordinates = set.coordinates
+                )
+            }
+        }
+        publicInterestByPubkey = cachedByAuthor
+
         // Watchlists are written to both the curated Marketplace destinations and
         // the user's own relays. Read all public Marketplace write destinations too,
         // otherwise sellers miss interested buyers whose relays are not in READ.
@@ -628,7 +769,7 @@ fun MarketplaceDetailScreen(
                         if (candidate.created_at > previous) {
                             val interested = candidate.pubkey != event.pubkey && listingAddress in set.coordinates
                             val updated = publicInterestByPubkey.toMutableMap()
-                            updated[candidate.pubkey] = MarketplaceWatchlistSnapshot(candidate.created_at, interested)
+                            updated[candidate.pubkey] = MarketplaceWatchlistSnapshot(candidate.created_at, set.coordinates)
                             if (interested) eventRepository.requestProfileIfMissing(candidate.pubkey)
                             publicInterestByPubkey = updated
                             if (candidate.pubkey == userPubkey && !isOwnListing) {
@@ -859,7 +1000,7 @@ fun MarketplaceDetailScreen(
                                             if (activePubkey != null && activePubkey != event.pubkey) {
                                                 updatedInterests[activePubkey] = MarketplaceWatchlistSnapshot(
                                                     updatedEvent.created_at,
-                                                    isBookmarked
+                                                    coordinates.toSet()
                                                 )
                                             }
                                             publicInterestByPubkey = updatedInterests
