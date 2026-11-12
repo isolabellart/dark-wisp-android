@@ -298,7 +298,11 @@ class MetadataFetcher(
         val targetUrls = (topRelays + relayHints + marketplaceRelays).distinct()
         if (targetUrls.isNotEmpty()) {
             for (url in targetUrls) {
-                relayPool.sendToRelayOrEphemeral(url, msg)
+                relayPool.sendToRelayOrEphemeral(
+                    url,
+                    msg,
+                    autoReconnect = url in marketplaceRelays
+                )
             }
         } else {
             relayPool.sendToTopRelays(msg, maxRelays = 10)

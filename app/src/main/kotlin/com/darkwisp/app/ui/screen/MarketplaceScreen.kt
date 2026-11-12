@@ -462,12 +462,18 @@ fun MarketplaceDetailScreen(
             subId,
             Filter(kinds = listOf(Nip22.KIND_COMMENT), bigATags = listOf(commentAddress), limit = 100)
         )
+        val marketplaceReadRelays = (MarketplaceRelays.READ + MarketplaceRelays.WRITE).distinct()
         (
             relayPool.getReadRelayUrls() +
-                MarketplaceRelays.READ +
+                marketplaceReadRelays +
                 RelayConfig.DEFAULT_INDEXER_RELAYS
             ).distinct().forEach { relay ->
-                relayPool.sendToRelayOrEphemeral(relay, commentRequest, skipBadCheck = true)
+                relayPool.sendToRelayOrEphemeral(
+                    relay,
+                    commentRequest,
+                    skipBadCheck = true,
+                    autoReconnect = relay in marketplaceReadRelays
+                )
             }
         try { awaitCancellation() } finally {
             collector.cancel()
@@ -501,9 +507,15 @@ fun MarketplaceDetailScreen(
                 Filter(kinds = listOf(7), aTags = listOf(listingAddress), limit = 1000)
             )
         )
-        (relayPool.getReadRelayUrls() + MarketplaceRelays.READ + RelayConfig.DEFAULT_INDEXER_RELAYS)
+        val marketplaceReadRelays = (MarketplaceRelays.READ + MarketplaceRelays.WRITE).distinct()
+        (relayPool.getReadRelayUrls() + marketplaceReadRelays + RelayConfig.DEFAULT_INDEXER_RELAYS)
             .distinct().forEach { relay ->
-                relayPool.sendToRelayOrEphemeral(relay, request, skipBadCheck = true)
+                relayPool.sendToRelayOrEphemeral(
+                    relay,
+                    request,
+                    skipBadCheck = true,
+                    autoReconnect = relay in marketplaceReadRelays
+                )
             }
         try { awaitCancellation() } finally {
             collector.cancel()
@@ -581,7 +593,12 @@ fun MarketplaceDetailScreen(
                     )
                 )
                 targets.forEach { relay ->
-                    relayPool.sendToRelayOrEphemeral(relay, request, skipBadCheck = true)
+                    relayPool.sendToRelayOrEphemeral(
+                        relay,
+                        request,
+                        skipBadCheck = true,
+                        autoReconnect = relay in marketplaceRelayUrls
+                    )
                 }
                 eoseWaiter.join()
                 val localSetAfterFetch = bookmarkSetRepository?.getSet(userPubkey, MARKETPLACE_WATCHLIST_DTAG)
@@ -639,7 +656,12 @@ fun MarketplaceDetailScreen(
                 )
             )
             targets.forEach { relay ->
-                relayPool.sendToRelayOrEphemeral(relay, interestRequest, skipBadCheck = true)
+                relayPool.sendToRelayOrEphemeral(
+                    relay,
+                    interestRequest,
+                    skipBadCheck = true,
+                    autoReconnect = relay in marketplaceRelayUrls
+                )
             }
 
             awaitCancellation()
