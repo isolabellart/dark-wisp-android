@@ -328,10 +328,12 @@ fun DmBubble(
                                         Icon(
                                             imageVector = Icons.Outlined.Translate,
                                             contentDescription = stringResource(
-                                                if (translationState.status == TranslationStatus.DONE && showTranslation) {
-                                                    R.string.translate_show_original
-                                                } else {
-                                                    R.string.translate_translate
+                                                when {
+                                                    translationState.status == TranslationStatus.DONE && showTranslation ->
+                                                        R.string.translate_show_original
+                                                    translationState.status == TranslationStatus.DONE ->
+                                                        R.string.translate_show_translation
+                                                    else -> R.string.translate_translate
                                                 }
                                             ),
                                             tint = if (translationState.status == TranslationStatus.DONE && showTranslation) {
