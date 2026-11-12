@@ -1415,7 +1415,7 @@ fun FeedScreen(
                                         TextButton(onClick = {
                                             onExitAnonMode()
                                         }) {
-                                            Text("Exit", color = anonGreen)
+                                            Text("Exit", color = anonAccent)
                                         }
                                     }
                                 }
