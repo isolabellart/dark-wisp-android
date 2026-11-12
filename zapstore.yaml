@@ -1,6 +1,6 @@
 repository: https://github.com/isolabellart/dark-wisp-android
 release_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
-match: '(?i)^Dark-Wisp-Enhanced-v[0-9]+\.[0-9]+\.[0-9]+\.apk$'
+match: '(?i)^(Dark-Wisp-Enhanced-v[0-9]+\.[0-9]+\.[0-9]+\.apk|app-release\.apk)$'
 
 name: Dark Wisp Enhanced
 summary: An independent Android Nostr client with translation, a NIP-99 marketplace, and Lightning wallet access.
