@@ -12,6 +12,7 @@ import com.darkwisp.app.nostr.Nip57
 import com.darkwisp.app.nostr.Nip69
 import com.darkwisp.app.nostr.Nip88
 import com.darkwisp.app.nostr.Nip99
+import com.darkwisp.app.nostr.Nip01EventOrder
 import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.nostr.NostrEvent.Companion.fromJson
 import com.darkwisp.app.nostr.ProfileData
@@ -442,7 +443,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
             if (event.kind != kind || event.pubkey != author || !isVisible(event)) continue
             val eventDTag = event.tags.firstOrNull { it.size >= 2 && it[0] == "d" }?.get(1) ?: ""
             if (eventDTag != dTag) continue
-            if (best == null || best.created_at <= event.created_at) best = event
+            if (best == null || Nip01EventOrder.isNewer(event, best)) best = event
         }
         return best
     }
@@ -458,7 +459,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
             val key = addressableKey(event)
             if (key != null) {
                 val existing = addressIndex[key]
-                if (existing == null || existing.created_at <= event.created_at) {
+                if (existing == null || Nip01EventOrder.isNewer(event, existing)) {
                     if (existing != null && existing.id != event.id) addressIdIndex.remove(existing.id)
                     addressIndex[key] = event
                     addressIdIndex[event.id] = key
@@ -1301,13 +1302,16 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
 
     fun findAddressableEvent(kind: Int, author: String, dTag: String): NostrEvent? {
         if (muteRepo?.isBlocked(author) == true) return null
-        return eventCache.values
-            .asSequence()
-            .filter { event ->
-                event.kind == kind && event.pubkey == author &&
-                    event.tags.any { it.size >= 2 && it[0] == "d" && it[1] == dTag }
+        var best: NostrEvent? = null
+        for (event in eventCache.values) {
+            if (event.kind != kind || event.pubkey != author) continue
+            if (event.tags.none { it.size >= 2 && it[0] == "d" && it[1] == dTag }) continue
+            val current = best
+            if (current == null || Nip01EventOrder.isNewer(event, current)) {
+                best = event
             }
-            .maxByOrNull { it.created_at }
+        }
+        return best
     }
 
     fun getEvent(id: String): NostrEvent? {

@@ -259,8 +259,8 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
     private val _eoseSignals = MutableSharedFlow<String>(extraBufferCapacity = 64)
     val eoseSignals: SharedFlow<String> = _eoseSignals
 
-    // Detailed EOSE stream for consumers that must track completion per relay.
-    // Keep eoseSignals intact because existing screens depend on its String contract.
+    // URL-aware EOSE signals let Marketplace count distinct responding relays.
+    // The original subscription-only stream remains unchanged for existing callers.
     private val _relayEoseSignals = MutableSharedFlow<RelayEoseSignal>(extraBufferCapacity = 256)
     val relayEoseSignals: SharedFlow<RelayEoseSignal> = _relayEoseSignals
 
