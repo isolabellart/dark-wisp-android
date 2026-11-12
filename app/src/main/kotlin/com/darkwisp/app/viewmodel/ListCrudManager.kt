@@ -174,6 +174,7 @@ class ListCrudManager(
     fun addNoteToBookmarkSet(dTag: String, eventId: String) {
         val s = getSigner() ?: return
         val myPubkey = s.pubkeyHex
+        bookmarkSetRepo.setOwner(myPubkey)
         val existing = bookmarkSetRepo.getSet(myPubkey, dTag) ?: return
         val newIds = existing.eventIds + eventId
         val title = existing.name.takeIf { it != existing.dTag }
@@ -242,6 +243,7 @@ class ListCrudManager(
     fun deleteBookmarkSet(dTag: String) {
         val s = getSigner() ?: return
         val myPubkey = s.pubkeyHex
+        bookmarkSetRepo.setOwner(myPubkey)
         val deletionTags = Nip09.buildAddressableDeletionTags(Nip51.KIND_BOOKMARK_SET, myPubkey, dTag)
         scope.launch {
             val deleteEvent = s.signEvent(kind = 5, content = "", tags = deletionTags)
