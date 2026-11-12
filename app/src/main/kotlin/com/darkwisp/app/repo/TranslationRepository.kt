@@ -58,7 +58,14 @@ class TranslationRepository(context: Context) {
     fun getState(eventId: String): TranslationState =
         states[eventId] ?: TranslationState()
 
-    fun translate(eventId: String, content: String) {
+    fun translate(eventId: String, content: String) =
+        translateInternal(eventId, content, forceDeepL = false)
+
+    /** Always use the configured DeepL account for private-message translation. */
+    fun translateWithDeepL(messageId: String, content: String) =
+        translateInternal(messageId, content, forceDeepL = true)
+
+    private fun translateInternal(eventId: String, content: String, forceDeepL: Boolean) {
         fun publish(state: TranslationState) = synchronized(this) {
             states[eventId] = state
             observations.publish(eventId)
@@ -73,7 +80,8 @@ class TranslationRepository(context: Context) {
 
         val targetLanguage = interfacePrefs.getResolvedTranslationTargetLanguage()
         val targetDisplayName = displayName(targetLanguage)
-        val engine = interfacePrefs.getTranslationEngine()
+        val engine = if (forceDeepL) InterfacePreferences.TranslationEngine.DEEPL
+            else interfacePrefs.getTranslationEngine()
 
         scope.launch {
             try {
