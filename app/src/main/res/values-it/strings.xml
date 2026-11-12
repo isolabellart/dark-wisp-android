@@ -837,7 +837,6 @@
     <string name="marketplace_watchlist_title">Lista desideri Marketplace</string>
     <string name="marketplace_watchlist_price_changed">Prezzo modificato</string>
     <string name="marketplace_watchlist_open_listing">Apri annuncio</string>
-    <string name="marketplace_dm_relay_required">Il venditore non ha pubblicato un elenco di relay DM NIP-17 (kind 10050). Per proteggere la tua privacy, Dark Wisp non userà relay alternativi.</string>
     <string name="dm_delivery_unconfirmed">Nessun relay DM del destinatario ha confermato la consegna. Verifica l'elenco relay NIP-17 del destinatario e la connessione, poi riprova.</string>
     <string name="dm_signer_unavailable">Non è disponibile un firmatario Nostr attivo. Ricollega l'account e riprova.</string>
 </resources>
