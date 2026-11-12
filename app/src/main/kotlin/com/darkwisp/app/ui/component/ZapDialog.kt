@@ -1254,13 +1254,13 @@ private fun EditPresetsSheet(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .background(Color(0xFFFF3B30)),
+                                        .background(MaterialTheme.colorScheme.error),
                                     contentAlignment = Alignment.CenterEnd
                                 ) {
                                     Icon(
                                         Icons.Filled.Delete,
                                         contentDescription = "Delete preset",
-                                        tint = Color.White,
+                                        tint = MaterialTheme.colorScheme.onError,
                                         modifier = Modifier.padding(end = 24.dp)
                                     )
                                 }

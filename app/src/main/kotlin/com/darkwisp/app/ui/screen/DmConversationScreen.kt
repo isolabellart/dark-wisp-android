@@ -41,7 +41,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.onSizeChanged
@@ -444,19 +443,19 @@ fun DmConversationScreen(
                 if (listState.isScrollInProgress) viewModel.selectMessage(null)
             }
 
-            // Bottom bar overlay with gradient
+            // Postilla composer: a calm, flat surface separated from the conversation.
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
                     .onSizeChanged { bottomBarHeightPx = it.height }
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background)
-                        )
-                    )
+                    .background(MaterialTheme.colorScheme.background)
                     .navigationBarsPadding()
             ) {
+                HorizontalDivider(
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
                 AnimatedVisibility(visible = uploadProgress != null) {
                     Text(
                         text = uploadProgress ?: "",

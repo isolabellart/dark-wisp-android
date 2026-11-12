@@ -1337,14 +1337,14 @@ private fun ProfileHeader(
                                 Icon(
                                     painter = painterResource(R.drawable.ic_bolt),
                                     contentDescription = stringResource(R.string.profile_pay_zap),
-                                    tint = Color(0xFFFFC107),
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.padding(11.dp)
                                 )
                             } else {
                                 Icon(
                                     Icons.Outlined.CurrencyBitcoin,
                                     contentDescription = stringResource(R.string.profile_pay_zap),
-                                    tint = Color(0xFFFFC107),
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.padding(10.dp)
                                 )
                             }
@@ -1512,14 +1512,14 @@ private fun ProfileHeader(
                         Icon(
                             painter = painterResource(R.drawable.ic_bolt),
                             contentDescription = null,
-                            tint = Color(0xFFFFC107),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
                     } else {
                         Icon(
                             Icons.Outlined.CurrencyBitcoin,
                             contentDescription = null,
-                            tint = Color(0xFFFFC107),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -1551,14 +1551,14 @@ private fun ProfileHeader(
                         Icon(
                             painter = painterResource(R.drawable.ic_bolt),
                             contentDescription = null,
-                            tint = Color(0xFFFFC107),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
                     } else {
                         Icon(
                             Icons.Outlined.CurrencyBitcoin,
                             contentDescription = null,
-                            tint = Color(0xFFFFC107),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -1597,7 +1597,7 @@ private fun ProfileHeader(
                     com.darkwisp.app.ui.component.PaymentTargetGlyph(
                         type = target.type,
                         size = 16.dp,
-                        tint = Color(0xFFFFC107)
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 Spacer(Modifier.width(8.dp))
@@ -1634,7 +1634,7 @@ private fun ProfileHeader(
                         com.darkwisp.app.ui.component.PaymentTargetGlyph(
                             type = target.type,
                             size = 16.dp,
-                            tint = Color(0xFFFFC107)
+                            tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(

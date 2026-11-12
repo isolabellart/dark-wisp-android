@@ -1388,11 +1388,11 @@ fun FeedScreen(
                         ) {
                             if (anonMode != null) {
                                 item(key = "anon-banner", contentType = "anon-banner") {
-                                    val anonGreen = androidx.compose.ui.graphics.Color(0xFF00C853)
+                                    val anonAccent = MaterialTheme.colorScheme.primary
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .background(anonGreen.copy(alpha = 0.12f))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
                                             .clickable { onExitAnonMode() }
                                             .padding(horizontal = 16.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically
@@ -1403,7 +1403,7 @@ fun FeedScreen(
                                             Text(
                                                 text = "Anon Mode",
                                                 style = MaterialTheme.typography.labelMedium,
-                                                color = anonGreen
+                                                color = anonAccent
                                             )
                                             val anonName = anonMode?.name ?: ""
                                             Text(
@@ -3239,7 +3239,7 @@ private fun RelayFeedBar(
         is RelayFeedStatus.Streaming -> WispThemeColors.repostColor
         is RelayFeedStatus.Connecting, is RelayFeedStatus.Subscribing -> WispThemeColors.paidColor
         is RelayFeedStatus.Disconnected, is RelayFeedStatus.ConnectionFailed,
-        is RelayFeedStatus.TimedOut -> androidx.compose.ui.graphics.Color(0xFFFF5252)
+        is RelayFeedStatus.TimedOut -> MaterialTheme.colorScheme.error
         is RelayFeedStatus.RateLimited, is RelayFeedStatus.BadRelay,
         is RelayFeedStatus.Cooldown -> WispThemeColors.zapColor
         else -> MaterialTheme.colorScheme.onSurfaceVariant
