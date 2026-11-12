@@ -10,9 +10,13 @@ import com.darkwisp.app.relay.OutboxRouter
 import com.darkwisp.app.relay.RelayPool
 import com.darkwisp.app.relay.SubscriptionManager
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -59,6 +63,8 @@ class MetadataFetcher(
     companion object {
         private const val MAX_PROFILE_ATTEMPTS = 2
         private const val QUOTE_RETRY_MS = 30_000L // retry failed quotes after 30s
+        private const val ADDRESSABLE_EOSE_TIMEOUT_MS = 15_000L
+        private const val ADDRESSABLE_EOSE_DRAIN_GRACE_MS = 3_000L
     }
 
     // Batched quote fetching (unified queue for inline + on-demand)
@@ -296,6 +302,22 @@ class MetadataFetcher(
             emptyList()
         }
         val targetUrls = (topRelays + relayHints + marketplaceRelays).distinct()
+        val eoseTracker = AddressableRelayEoseTracker(targetUrls)
+
+        // Collect per-relay EOSE before sending REQ. Waiting for the first EOSE
+        // can close the other subscriptions while they still hold a newer revision.
+        val eoseCollector = if (targetUrls.isNotEmpty()) {
+            scope.launch(processingContext, start = CoroutineStart.UNDISPATCHED) {
+                relayPool.relayEoseSignals.collect { signal ->
+                    if (signal.subscriptionId == subId) {
+                        eoseTracker.markCompleted(signal.relayUrl)
+                    }
+                }
+            }
+        } else {
+            null
+        }
+
         if (targetUrls.isNotEmpty()) {
             for (url in targetUrls) {
                 relayPool.sendToRelayOrEphemeral(
@@ -309,10 +331,40 @@ class MetadataFetcher(
         }
 
         scope.launch(processingContext) {
-            subManager.awaitEoseWithTimeout(subId)
-            subManager.closeSubscription(subId)
-            synchronized(pendingOnDemandQuotes) {
-                inFlightAddressables.remove(coordKey)
+            try {
+                if (targetUrls.isEmpty()) {
+                    subManager.awaitEoseWithTimeout(subId)
+                } else {
+                    var drainStartedAt = 0L
+                    val completedWithinWindow = withTimeoutOrNull(ADDRESSABLE_EOSE_TIMEOUT_MS) {
+                        while (true) {
+                            val completedCount = eoseTracker.completedCount()
+                            if (completedCount >= eoseTracker.minimumResponseCount()) {
+                                if (drainStartedAt == 0L) {
+                                    drainStartedAt = System.currentTimeMillis()
+                                }
+                                val graceElapsed =
+                                    System.currentTimeMillis() - drainStartedAt >= ADDRESSABLE_EOSE_DRAIN_GRACE_MS
+                                if (eoseTracker.allTargetsCompleted() || graceElapsed) break
+                            }
+                            delay(100)
+                        }
+                        true
+                    } == true
+
+                    android.util.Log.i(
+                        "MetadataFetcher",
+                        "Addressable fetch finished sub=$subId kind=$kind relays=" +
+                            "${eoseTracker.completedCount()}/${eoseTracker.targetCount()} " +
+                            "timeout=${!completedWithinWindow}"
+                    )
+                }
+            } finally {
+                eoseCollector?.cancelAndJoin()
+                subManager.closeSubscription(subId)
+                synchronized(pendingOnDemandQuotes) {
+                    inFlightAddressables.remove(coordKey)
+                }
             }
         }
     }
