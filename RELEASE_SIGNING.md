@@ -1,6 +1,6 @@
-# Dark Wisp Enhanced — release signing and publishing
+# Postilla — release signing and publishing
 
-This document describes the permanent signing identity and the release process for the independent Dark Wisp Enhanced Android application.
+This document describes the permanent signing identity and the release process for the independent Postilla Android application.
 
 ## Current release identity
 
@@ -8,8 +8,8 @@ This document describes the permanent signing identity and the release process f
 |---|---|
 | Application ID | `com.isolabellart.darkwispenhanced` |
 | Staging application ID | `com.isolabellart.darkwispenhanced.staging` |
-| Current stable version | `1.0.5` |
-| Current version code | `6` |
+| Current stable version | `1.0.10` |
+| Current version code | `11` |
 | Minimum Android version | Android 8.0 (API 26) |
 | Packaged ABI | `arm64-v8a` |
 
@@ -29,7 +29,7 @@ Keep at least two secure backups of the keystore and store both passwords in a p
 
 ## GitHub Actions secrets
 
-Configure these as repository Actions secrets under **Settings → Secrets and variables → Actions**:
+Configure these as repository Actions secrets under **Settings → Secrets and variables → Actions**. Their `DARK_WISP_ENHANCED_` names are intentionally retained during the rebrand so existing CI signing configuration is not broken; do not rename or recreate them as part of this source-only transition:
 
 1. `DARK_WISP_ENHANCED_KEYSTORE_BASE64` — base64-encoded contents of the JKS file.
 2. `DARK_WISP_ENHANCED_STORE_PASSWORD` — keystore password.
@@ -51,7 +51,7 @@ On the Mac used to publish with `zsp`, keep the temporary `SIGN_WITH=bunker://�
 
 ## Build and release workflow
 
-The dedicated workflow is `.github/workflows/dark-wisp-enhanced-release.yml` on the `release/dark-wisp-enhanced` branch. It is **manual-only**: a push does not publish a release.
+The dedicated workflow is still stored at `.github/workflows/dark-wisp-enhanced-release.yml` on the existing `release/dark-wisp-enhanced` branch. Its visible Actions name is Postilla; the historical file path and branch name are retained for continuity during this preparation phase. It is **manual-only**: a push does not publish a release.
 
 The workflow performs the following checks and actions:
 
@@ -69,7 +69,7 @@ To dispatch the release workflow with GitHub CLI, from a checkout authenticated 
 ```bash
 gh workflow run dark-wisp-enhanced-release.yml \
   --ref release/dark-wisp-enhanced \
-  -f release_tag=v1.0.6 \
+  -f release_tag=v1.0.11 \
   -f prerelease=false
 ```
 
@@ -80,7 +80,7 @@ Replace the example tag with the exact new version being released. The workflow 
 For every new release:
 
 1. Increase `versionCode` by at least one and update `versionName` in `app/build.gradle.kts`.
-2. Update the expected package/version checks and version-specific artifact names in both Enhanced staging and release workflows.
+2. Update the version-specific artifact and release notes as appropriate. The Postilla release workflow reads the expected version name and code directly from Gradle.
 3. Update the English and Italian release-note text embedded in the release workflow so it describes the actual version and features.
 4. Commit the changes to `release/dark-wisp-enhanced`.
 5. Run staging validation, install the APK on a device, and verify the features being released.
@@ -90,6 +90,6 @@ Do not reuse a published version code or tag. Keep the application ID, keystore,
 
 ## Wallet and user-data safety
 
-Dark Wisp Enhanced is a separate application from upstream Dark Wisp. Installing it does not migrate or overwrite the original application's local data. Users must import or restore accounts and wallet access through the app's normal secure recovery flow.
+Postilla is a separate application from upstream Dark Wisp. Installing it does not migrate or overwrite the original application's local data. Users must import or restore accounts and wallet access through the app's normal secure recovery flow.
 
 Never ask users to share a wallet recovery phrase or private key. Keep recovery material offline and never include it in release assets, logs, or support messages.

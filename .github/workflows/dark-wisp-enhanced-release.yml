@@ -1,4 +1,4 @@
-name: Dark Wisp Enhanced release
+name: Postilla release (manual, protected)
 
 # Manual publication only. Build and certificate checks run before any release is created.
 on:
@@ -18,7 +18,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: dark-wisp-enhanced-release
+  group: postilla-release
   cancel-in-progress: true
 
 jobs:
@@ -26,6 +26,16 @@ jobs:
     timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
+      - name: Block releases outside the established release branch
+        shell: bash
+        run: |
+          EXPECTED_RELEASE_BRANCH="release/dark-wisp-enhanced"
+          ACTUAL_REF="${GITHUB_REF#refs/heads/}"
+          if [[ "$ACTUAL_REF" != "$EXPECTED_RELEASE_BRANCH" ]]; then
+            echo "::error::Postilla releases are disabled from this preparation branch. Only $EXPECTED_RELEASE_BRANCH may publish after explicit approval."
+            exit 1
+          fi
+
       - name: Check signing secrets
         id: signing
         shell: bash
@@ -88,7 +98,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.DARK_WISP_ENHANCED_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.DARK_WISP_ENHANCED_KEY_PASSWORD }}
         run: |
-          KEYSTORE_PATH="$RUNNER_TEMP/dark-wisp-enhanced-release.jks"
+          KEYSTORE_PATH="$RUNNER_TEMP/postilla-release.jks"
           printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
           chmod 600 "$KEYSTORE_PATH"
           test -s "$KEYSTORE_PATH"
@@ -102,7 +112,7 @@ jobs:
       # Compile the staging test variant and release variant in separate Gradle
       # invocations. Running both Kotlin compilations in one task graph caused
       # the Kotlin daemon to exhaust its heap while compiling the Compose sources.
-      # The matching signed staging build 1.0.5 (Build #16) already passed
+      # The Postilla staging branch is validated separately before stable promotion.
       # these tests on the exact application source. Re-run them on manual
       # dispatches; a release push proceeds straight to the release build.
       - name: Run staging unit tests
@@ -136,8 +146,12 @@ jobs:
           echo "Package: $PACKAGE_ID"
           echo "Version: $VERSION_NAME ($VERSION_CODE)"
           [[ "$PACKAGE_ID" == "com.isolabellart.darkwispenhanced" ]]
-          [[ "$VERSION_NAME" == "1.0.5" ]]
-          [[ "$VERSION_CODE" == "6" ]]
+          EXPECTED_VERSION_NAME="$(grep -m1 "versionName" app/build.gradle.kts | cut -d '"' -f2)"
+          EXPECTED_VERSION_CODE="$(grep -m1 "versionCode" app/build.gradle.kts | sed -E 's/.*= ([0-9]+).*/\1/')"
+          test -n "$EXPECTED_VERSION_NAME"
+          test -n "$EXPECTED_VERSION_CODE"
+          [[ "$VERSION_NAME" == "$EXPECTED_VERSION_NAME" ]]
+          [[ "$VERSION_CODE" == "$EXPECTED_VERSION_CODE" ]]
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
@@ -170,6 +184,14 @@ jobs:
           test -n "$VERSION_NAME"
           TAG="$RELEASE_TAG_INPUT"
           [[ -n "$TAG" ]] || TAG="v$VERSION_NAME"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Release tag must use vMAJOR.MINOR.PATCH."
+            exit 1
+          fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists. Bump versionName and versionCode before publishing."
+            exit 1
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           # A push to the designated Enhanced release branch publishes a
           # normal GitHub Release. Manual dispatch can still opt into prerelease.
@@ -185,7 +207,7 @@ jobs:
         if: steps.signing.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: dark-wisp-enhanced-${{ steps.release.outputs.tag }}
+          name: postilla-${{ steps.release.outputs.tag }}
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 90
@@ -202,11 +224,11 @@ jobs:
           APK_SHA256="$(sha256sum "$APK" | awk '{print $1}')"
           NOTES="$RUNNER_TEMP/release-notes.md"
           cat > "$NOTES" <<'EOF'
-          # Dark Wisp Enhanced 1.0.5
+          # Postilla @@VERSION_NAME@@
 
-          **An independent Enhanced build of Dark Wisp for Android.**
+          **An independent Android Nostr client built on the foundations of Dark Wisp.**
 
-          Dark Wisp Enhanced keeps the solid foundations of Dark Wisp and adds optional interface and workflow improvements. It is a separate project line: not an official upstream release, not a replacement for the original app, and not a promise of a bug-free nightly. Some ideas may be proposed to the upstream project in the future.
+          Postilla is an independently maintained downstream project based on the original Dark Wisp Android client. It is not an official upstream release. It brings social feeds, NIP-17 private messaging, translation, Lightning and a NIP-99 marketplace into one native Android app.
 
           ## Highlights
           - Drawer placement can be chosen on the left or right, with online-user and connected-relay indicators.
@@ -216,23 +238,23 @@ jobs:
           - The mini-wallet entry, including **Set up wallet**, is available in the drawer.
 
           ## Separate installation and wallet safety
-          Dark Wisp Enhanced uses its own Android application ID: \`com.isolabellart.darkwispenhanced\`. Installing it does not overwrite the original Dark Wisp app or erase its local data. The two apps keep separate local app data; accounts and wallet access in Enhanced should be imported or restored using the normal secure recovery process. Keep your recovery phrase/private-key backup offline and never share it.
+          Postilla keeps the established Android application ID: `com.isolabellart.darkwispenhanced`. Existing Dark Wisp Enhanced installations can receive Postilla updates without changing package or losing local app data. Postilla remains a separate app from upstream Dark Wisp. Keep recovery material offline and never share it.
 
           Future Enhanced updates use the same permanent APK signing certificate:
           \`86868a3659729a6531f3e8a31d5dcfe04405e2a86866f3e0eb0abb6965cdb841\`.
 
           Package: com.isolabellart.darkwispenhanced
-          Version: 1.0.5 (6)
-          Signed APK: Dark-Wisp-Enhanced-@@RELEASE_TAG@@.apk
+          Version: @@VERSION_NAME@@ (@@VERSION_CODE@@)
+          Signed APK: Postilla-@@RELEASE_TAG@@.apk
           SHA-256: @@APK_SHA256@@
 
           ---
 
-          # Dark Wisp Enhanced 1.0.5 (Italiano)
+          # Postilla @@VERSION_NAME@@ (Italiano)
 
-          **Una versione Enhanced indipendente di Dark Wisp per Android.**
+          **Un client Nostr Android indipendente, sviluppato sulle basi del progetto Dark Wisp.**
 
-          Conserva le basi solide di Dark Wisp e aggiunge miglioramenti facoltativi all'interfaccia e al modo di usarla. È una linea di sviluppo separata: non è una release ufficiale upstream, non sostituisce Dark Wisp originale e non promette una nightly priva di bug. Alcune idee potranno essere proposte al progetto originale in futuro.
+          Postilla è un progetto downstream indipendente basato sul client Android Dark Wisp originale. Non è una release ufficiale upstream. Riunisce feed social, messaggistica privata NIP-17, traduzione, Lightning e marketplace NIP-99 in un'unica app Android nativa.
 
           ## Novità principali
           - Drawer spostabile a sinistra o a destra, con indicatori di utenti online e relay connessi.
@@ -242,19 +264,21 @@ jobs:
           - Mini-wallet nel drawer, compresa la voce **Set up wallet**.
 
           ## Installazione separata e sicurezza del wallet
-          Dark Wisp Enhanced usa un proprio identificativo Android: \`com.isolabellart.darkwispenhanced\`. L'installazione non sovrascrive Dark Wisp originale e non cancella i suoi dati locali. Le due app mantengono dati locali separati; per usare account e wallet in Enhanced occorre importarli o ripristinarli con la normale procedura sicura. Conserva offline il backup della frase di recupero/chiave privata e non condividerlo mai.
+          Postilla conserva l'identificativo Android esistente: `com.isolabellart.darkwispenhanced`. Le installazioni Dark Wisp Enhanced potranno ricevere gli aggiornamenti Postilla senza cambiare package e senza perdere i dati locali. Postilla resta un'app separata da Dark Wisp upstream. Conserva offline il backup della frase di recupero e non condividerlo mai.
 
           Le future versioni Enhanced manterranno lo stesso certificato di firma permanente.
 
           Package: com.isolabellart.darkwispenhanced
-          Versione: 1.0.5 (6)
-          APK firmato: Dark-Wisp-Enhanced-@@RELEASE_TAG@@.apk
+          Versione: @@VERSION_NAME@@ (@@VERSION_CODE@@)
+          APK firmato: Postilla-@@RELEASE_TAG@@.apk
           SHA-256: @@APK_SHA256@@
           EOF
-          sed -i "s|@@RELEASE_TAG@@|$RELEASE_TAG|g; s|@@APK_SHA256@@|$APK_SHA256|g" "$NOTES"
+          VERSION_NAME="$(grep -m1 "versionName" app/build.gradle.kts | cut -d '"' -f2)"
+          VERSION_CODE="$(grep -m1 "versionCode" app/build.gradle.kts | sed -E 's/.*= ([0-9]+).*/\1/')"
+          sed -i "s|@@VERSION_NAME@@|$VERSION_NAME|g; s|@@VERSION_CODE@@|$VERSION_CODE|g; s|@@RELEASE_TAG@@|$RELEASE_TAG|g; s|@@APK_SHA256@@|$APK_SHA256|g" "$NOTES"
           args=()
           [[ "$IS_PRERELEASE" == "true" ]] && args+=(--prerelease)
-          gh release create "$RELEASE_TAG" "$APK#Dark-Wisp-Enhanced-${RELEASE_TAG}.apk" \
-            --title "Dark Wisp Enhanced ${RELEASE_TAG}" \
+          gh release create "$RELEASE_TAG" "$APK#Postilla-${RELEASE_TAG}.apk" \
+            --title "Postilla ${RELEASE_TAG}" \
             --target "$GITHUB_SHA" \
             --notes-file "$NOTES" "${args[@]}"

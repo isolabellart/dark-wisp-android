@@ -5,6 +5,12 @@ Postilla is an editorial, human social space. A post is a small note left for ot
 a marketplace listing is another thing worth sharing. The interface should feel like a
 modern independent publication, not a technical Nostr dashboard.
 
+## Official presentation board
+
+![Postilla official rebrand board](postilla-rebrand-board.webp)
+
+The board above is the approved public presentation of the mark and wordmark. Keep it as the visual reference; do not redraw or reinterpret the approved icon.
+
 ## Mark
 The master mark is an ivory sheet with three dark lines and an orange folded corner,
 set on a flat ebony rounded square. The lowercase wordmark uses a restrained sans-serif;
@@ -41,3 +47,8 @@ or block first paint to load typography.
 ## Implementation rule
 This branch is a visual redesign. Preserve Nostr event semantics, signing, relay behaviour,
 persistence and Marketplace data paths while the presentation changes.
+
+
+## Frozen assets
+
+The launcher icon, paper-note mark, wordmark and four feed-navigation glyphs approved in staging #155 are frozen. Any later visual work must build around them, not alter their geometry, proportions or character.

@@ -1,16 +1,23 @@
-# Dark Wisp Enhanced
+# Postilla
 
-An independent Enhanced build of [Dark Wisp](https://github.com/barrydeen/dark-wisp-android) for Android. It is built with Kotlin and Jetpack Compose (Material 3), carrying the original project's Nostr foundations into a separately maintained release line.
+![Postilla — official rebrand board](docs/brand/postilla-rebrand-board.webp)
 
-Dark Wisp Enhanced is an independent downstream fork, not an official release of the upstream project. It uses its own Android application ID, so it can be installed alongside the original Dark Wisp.
+**A place for things worth sharing.**
 
-> **Status:** v1.0.5 — current stable release. [Download the latest APK](https://github.com/isolabellart/dark-wisp-android/releases/latest).
+
+Postilla is an independent, open-source Android Nostr client built with Kotlin and Jetpack Compose. It brings social conversations, private messaging, Lightning and a NIP-99 marketplace into one native mobile application.
+
+Postilla continues the work of the original [Dark Wisp Android project](https://github.com/barrydeen/dark-wisp-android) as an independently maintained downstream fork. It is not an official upstream release.
+
+The rebrand deliberately preserves the existing Android application ID and signing certificate, so current Dark Wisp Enhanced installations can receive future Postilla updates without becoming a separate app.
+
+> **Transition status:** The Postilla rebrand is being prepared in an isolated branch. The current stable release remains **v1.0.10**, still published under the Dark Wisp Enhanced name. No Postilla release or Zapstore metadata update has been published yet. [View the current stable release](https://github.com/isolabellart/dark-wisp-android/releases/latest).
 
 ---
 
 ## Table of Contents
 
-- [Why Dark Wisp](#why-dark-wisp)
+- [Why Postilla](#why-postilla)
 - [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Supported NIPs](#supported-nips)
@@ -22,11 +29,11 @@ Dark Wisp Enhanced is an independent downstream fork, not an official release of
 
 ---
 
-## Why Dark Wisp
+## Why Postilla
 
-Most Nostr clients treat relays as interchangeable dumb pipes and lean on a small handful of "mega-relays." Dark Wisp takes a different approach — it implements the full outbox/inbox relay model with reliability scoring, routes messages based on where users actually publish and read, and is built so that decentralization is the default path, not an opt-in.
+Most Nostr clients treat relays as interchangeable dumb pipes and lean on a small handful of "mega-relays." Postilla takes a different approach — it implements the full outbox/inbox relay model with reliability scoring, routes messages based on where users actually publish and read, and is built so that decentralization is the default path, not an opt-in.
 
-The result is faster event delivery, less wasted bandwidth, and a client that actively reinforces the architecture Nostr was designed for. Dark Wisp is built to be fast, lightweight, and respectful of both your device and the relay network.
+The result is faster event delivery, less wasted bandwidth, and a client that actively reinforces the architecture Nostr was designed for. Postilla is designed to be lightweight, lightweight, and respectful of both your device and the relay network.
 
 ---
 
@@ -34,7 +41,7 @@ The result is faster event delivery, less wasted bandwidth, and a client that ac
 
 ### Intelligent Outbox/Inbox Relay Routing
 
-Dark Wisp implements a full NIP-65 outbox/inbox model with relay scoring:
+Postilla implements a full NIP-65 outbox/inbox model with relay scoring:
 
 - **Outbox reads** — fetches a user's posts from their *write relays* (where they actually publish), not from a hardcoded list
 - **Inbox writes** — delivers replies, reactions, and mentions to the recipient's *read relays* so they actually see them
@@ -51,7 +58,7 @@ Dark Wisp implements a full NIP-65 outbox/inbox model with relay scoring:
 - **NIP-04 fallback** — legacy encrypted DMs still read for backward compatibility
 - **Dedicated DM relays** — publish DMs to a separate relay set (NIP-51 kind 10050) from your public posts
 - **Encrypted media** — optional encrypted image attachments in DMs
-- **Optional Amber / NIP-55 remote signer** — keep your `nsec` in a dedicated signer app and never hand it to Dark Wisp at all
+- **Optional Amber / NIP-55 remote signer** — keep your `nsec` in a dedicated signer app and never hand it to Postilla at all
 
 ### Lightning & Zaps
 
@@ -116,7 +123,7 @@ A built-in non-custodial Lightning wallet powered by [Breez SDK (Spark)](https:/
 - **Multiple accounts** with per-account encrypted storage
 - **EncryptedSharedPreferences** (AES256-GCM) for private keys — `nsec` never touches plain SharedPreferences
 - **Biometric authentication** for key access
-- **NIP-55 remote signing** — delegate all signing/encryption to Amber (or another signer app) via Android intents, so Dark Wisp never holds the key
+- **NIP-55 remote signing** — delegate all signing/encryption to Amber (or another signer app) via Android intents, so Postilla never holds the key
 - **NIP-19 bech32** — npub, nsec, note, nevent, nprofile encode/decode, with `nostr:` URI rendering in post content
 - **NIP-05 DNS verification** with result caching
 - **QR code display** for sharing keys and profiles
@@ -138,7 +145,7 @@ A built-in non-custodial Lightning wallet powered by [Breez SDK (Spark)](https:/
 
 ## Architecture
 
-Dark Wisp follows an MVVM architecture with clear layer separation:
+Postilla follows an MVVM architecture with clear layer separation:
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -243,16 +250,16 @@ Also: **Blossom** media servers (BUDs 01–03), **NWC** transport, and **bolt11*
 
 ### Installation
 
-Download the current stable APK from the [latest GitHub Release](https://github.com/isolabellart/dark-wisp-android/releases/latest). The current release is **Dark Wisp Enhanced v1.0.5**.
+Download the current stable APK from the [latest GitHub Release](https://github.com/isolabellart/dark-wisp-android/releases/latest). The latest published release is **v1.0.10**, still carrying the previous Dark Wisp Enhanced branding.
 
-Dark Wisp Enhanced is a separate Android application with package ID `com.isolabellart.darkwispenhanced`; it can be installed alongside the original Dark Wisp without replacing it. This build targets Android 8.0 (API 26) or later and currently packages the `arm64-v8a` architecture.
+Postilla keeps the established Android application ID `com.isolabellart.darkwispenhanced` and the permanent signing certificate. This is intentional: a future Postilla release will update existing installations rather than create a second app. The package remains separate from the original upstream Dark Wisp application, so its local data is not overwritten. Postilla targets Android 8.0 (API 26) or later and currently packages the `arm64-v8a` architecture.
 
 ### First Launch
 
 1. **Create, import, or pair a signer** — generate a fresh keypair, paste your `nsec`, or connect Amber for remote signing
 2. **Set up your profile** — the onboarding flow walks you through name, picture, and bio
 3. **Pick some interests** — topic/interest selection seeds your first follow suggestions
-4. **Follow some people** — Dark Wisp suggests popular accounts to get your feed started
+4. **Follow some people** — Postilla suggests popular accounts to get your feed started
 5. **Configure relays** — your relay list is published as a NIP-65 event so other outbox-aware clients can find you
 
 ---
@@ -288,7 +295,7 @@ Release builds use R8 minification; keep rules live in `app/proguard-rules.pro` 
 
 ## Contributing
 
-Contributions are welcome. Dark Wisp is open source and community help makes it better.
+Contributions are welcome. Postilla is open source, and community help makes it better.
 
 ### How to Contribute
 
@@ -348,7 +355,7 @@ GitHub Issues are currently disabled for this repository, so the `/issues` page 
 
 ## License
 
-Dark Wisp Enhanced retains the upstream project's [MIT License](LICENSE) and original copyright notice.
+Postilla is an independent downstream fork of Dark Wisp and retains the upstream project's [MIT License](LICENSE) and original copyright notice.
 
 ```
 MIT License

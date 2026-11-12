@@ -11,15 +11,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew clean               # Clean build artifacts
 ```
 
-No test suite exists yet. JDK 17 and Android SDK 35 are required.
+Staging unit tests run with `./gradlew testStagingUnitTest`. JDK 17 and Android SDK 35 are required.
 
 ## Architecture
 
-Wisp is a minimal Android Nostr client using Kotlin + Jetpack Compose (Material 3). MVVM with five layers:
+Postilla is an independent Android Nostr client using Kotlin + Jetpack Compose (Material 3), developed from the original Dark Wisp Android project. MVVM with five layers:
 
 **UI** (`ui/screen/`, `ui/component/`) → **ViewModel** (`viewmodel/`) → **Repository** (`repo/`) → **Protocol** (`nostr/`) → **Relay** (`relay/`)
 
-All source lives under `app/src/main/kotlin/com/wisp/app/`.
+Application source lives under `app/src/main/kotlin/com/darkwisp/app/`. The historical namespace and Android application ID are intentionally retained for update continuity.
 
 ### Key Design Decisions
 
@@ -69,3 +69,13 @@ Each NIP is a standalone Kotlin `object`:
 ## ProGuard / R8
 
 Release builds use R8 minification. Keep rules in `app/proguard-rules.pro` cover kotlinx.serialization, secp256k1 JNI, Bouncy Castle, OkHttp, Coil, Security Crypto, Media3, and ZXing.
+
+
+## Postilla brand and release continuity
+
+- Public product name: **Postilla**.
+- The approved Postilla icon, launcher mark and four feed navigation glyphs from staging #155 are frozen. Do not redesign or replace them unless the user explicitly requests it.
+- Visual identity: ebony, ivory and small orange accents only; no purple or gradients.
+- Keep `com.darkwisp.app`, `com.isolabellart.darkwispenhanced` and `com.isolabellart.darkwispenhanced.staging` unchanged during the rebrand. Do not change the signing certificate.
+- GitHub Actions secret identifiers beginning `DARK_WISP_ENHANCED_` are intentionally retained until a separately approved secrets migration.
+- Do not rename the GitHub repository, modify the official release branch, publish GitHub Releases or publish Zapstore/Nostr events as part of source-only rebranding work.

@@ -9,6 +9,7 @@ on:
       - "fix/marketplace-1.0.8-feedback"
       - "fix/marketplace-1.0.10-feedback"
       - "feature/postilla-visual-identity"
+      - "rebrand/postilla-public-identity"
     paths:
       - "app/**"
       - "gradle/**"
@@ -21,7 +22,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: dark-wisp-enhanced-staging-${{ github.sha }}
+  group: postilla-staging-${{ github.sha }}
   cancel-in-progress: true
 
 permissions:
@@ -61,7 +62,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Decode permanent signing keystore
+      - name: Decode Postilla signing keystore
         shell: bash
         env:
           KEYSTORE_B64: ${{ secrets.DARK_WISP_ENHANCED_KEYSTORE_BASE64 }}
@@ -69,7 +70,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.DARK_WISP_ENHANCED_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.DARK_WISP_ENHANCED_KEY_PASSWORD }}
         run: |
-          KEYSTORE_PATH="$RUNNER_TEMP/dark-wisp-enhanced-staging.jks"
+          KEYSTORE_PATH="$RUNNER_TEMP/postilla-staging.jks"
           printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
           chmod 600 "$KEYSTORE_PATH"
           test -s "$KEYSTORE_PATH"
