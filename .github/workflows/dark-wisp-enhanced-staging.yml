@@ -1,4 +1,4 @@
-name: Dark Wisp Enhanced staging validation
+name: Postilla staging validation
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - "feature/marketplace-1.0.7"
       - "fix/marketplace-1.0.8-feedback"
       - "fix/marketplace-1.0.10-feedback"
+      - "feature/postilla-visual-identity"
     paths:
       - "app/**"
       - "gradle/**"
@@ -129,7 +130,7 @@ jobs:
       - name: Upload signed staging APK
         uses: actions/upload-artifact@v4
         with:
-          name: dark-wisp-enhanced-staging-1.0.10
+          name: postilla-staging-1.0.10
           path: app/build/outputs/apk/staging/app-staging.apk
           if-no-files-found: error
           retention-days: 90

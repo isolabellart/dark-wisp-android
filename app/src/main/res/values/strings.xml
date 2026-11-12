@@ -1078,4 +1078,6 @@
     <string name="marketplace_watchlist_open_listing">Open listing</string>
     <string name="dm_delivery_unconfirmed">No recipient DM relay confirmed delivery. Check the recipient DM relay list for NIP-17 and your connection, then retry.</string>
     <string name="dm_signer_unavailable">No active Nostr signer is available. Reconnect your account and try again.</string>
+    <string name="postilla_appearance_title">Postilla appearance</string>
+    <string name="postilla_appearance_body">One visual identity. Switch between light and dark from the app menu.</string>
 </resources>

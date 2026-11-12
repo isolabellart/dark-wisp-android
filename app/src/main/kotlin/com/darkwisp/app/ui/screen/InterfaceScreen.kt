@@ -75,6 +75,7 @@ import com.darkwisp.app.repo.ExchangeRateRepository
 import com.darkwisp.app.repo.FiatPreferences
 import com.darkwisp.app.repo.InterfacePreferences
 import com.darkwisp.app.ui.component.TranslationSettingsSection
+import com.darkwisp.app.ui.component.PostillaBrandMark
 import com.darkwisp.app.repo.LocaleRepository
 import com.darkwisp.app.ui.theme.ThemePreset
 import com.darkwisp.app.ui.theme.Themes
@@ -297,137 +298,30 @@ fun InterfaceScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // Popular Themes section
-            var themesExpanded by remember { mutableStateOf(false) }
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { themesExpanded = !themesExpanded }
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                    .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                PostillaBrandMark(size = 40.dp)
+                Spacer(Modifier.width(14.dp))
                 Column {
                     Text(
-                        text = stringResource(R.string.settings_popular_themes),
+                        text = stringResource(R.string.postilla_appearance_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = stringResource(R.string.settings_choose_color_scheme),
+                        text = stringResource(R.string.postilla_appearance_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Text(
-                    text = if (themesExpanded) "▲" else "▼",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
 
-            if (themesExpanded) {
-                Spacer(Modifier.height(12.dp))
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Themes.themes.forEach { theme ->
-                        ThemeCard(
-                            theme = theme,
-                            isSelected = selectedTheme == theme.name,
-                            isDark = true,
-                            onClick = {
-                                selectedTheme = theme.name
-                                isCustomTheme = theme.name == "custom"
-                                interfacePrefs.setTheme(theme.name)
-                                onChanged()
-                            }
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            if (isCustomTheme) {
-                // Accent Color section — collapsed by default, tap to expand
-                var colorPickerExpanded by remember { mutableStateOf(false) }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { colorPickerExpanded = !colorPickerExpanded }
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(currentColor)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = stringResource(R.string.settings_accent_color),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = stringResource(R.string.settings_accent_color_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Text(
-                        text = if (colorPickerExpanded) "▲" else "▼",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                AnimatedVisibility(visible = colorPickerExpanded) {
-                    Column {
-                        Spacer(Modifier.height(12.dp))
-
-                        // Saturation/Brightness square
-                        SatBrightnessSquare(
-                            hue = hue,
-                            saturation = saturation,
-                            brightness = brightness,
-                            onChanged = { s, b ->
-                                saturation = s
-                                brightness = b
-                                interfacePrefs.setAccentColor(
-                                    android.graphics.Color.HSVToColor(floatArrayOf(hue, s, b))
-                                )
-                                onChanged()
-                            }
-                        )
-
-                        Spacer(Modifier.height(12.dp))
-
-                        // Hue slider
-                        HueBar(
-                            hue = hue,
-                            onHueChanged = { h ->
-                                hue = h
-                                interfacePrefs.setAccentColor(
-                                    android.graphics.Color.HSVToColor(floatArrayOf(h, saturation, brightness))
-                                )
-                                onChanged()
-                            }
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(24.dp))
-            }
+            Spacer(Modifier.height(20.dp))
 
             // New Notes Button section
             Text(

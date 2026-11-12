@@ -839,4 +839,6 @@
     <string name="marketplace_watchlist_open_listing">Apri annuncio</string>
     <string name="dm_delivery_unconfirmed">Nessun relay DM del destinatario ha confermato la consegna. Controlla i relay DM NIP-17 del destinatario e la connessione, quindi riprova.</string>
     <string name="dm_signer_unavailable">Non è disponibile un firmatario Nostr attivo. Ricollega il tuo account e riprova.</string>
+    <string name="postilla_appearance_title">Aspetto Postilla</string>
+    <string name="postilla_appearance_body">Una sola identita visiva. Passa dal tema chiaro a quello scuro dal menu dell'app.</string>
 </resources>
