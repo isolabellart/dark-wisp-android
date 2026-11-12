@@ -145,7 +145,7 @@ object Routes {
     const val MARKETPLACE = "marketplace"
     const val MARKETPLACE_SELLER = "marketplace/seller/{pubkey}"
     const val MARKETPLACE_DETAIL = "marketplace/detail/{eventId}"
-    const val MARKETPLACE_ADDRESS = "marketplace/address/{author}/{dTag}?relays={relays}"
+    const val MARKETPLACE_ADDRESS = "marketplace/address/{author}/{dTag}?relays={relays}&eventId={eventId}"
     const val MARKETPLACE_EDITOR = "marketplace/edit?eventId={eventId}"
     const val COMPOSE = "compose"
     const val RELAYS = "relays"
@@ -915,7 +915,7 @@ fun WispNavHost(
                     }
                 },
                 marketplaceWatchlistPriceTracker = marketplaceWatchlistPriceTracker,
-                onListingClick = { event -> navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}") },
+                onListingClick = { event -> navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}?eventId=${event.id}") },
                 onDms = {
                     navController.navigate(Routes.DM_LIST)
                 },
@@ -1070,7 +1070,7 @@ fun WispNavHost(
                 followedPubkeys = followedPubkeys,
                 userPubkey = feedViewModel.getUserPubkey(),
                 onBack = { navController.popBackStack() },
-                onOpenListing = { event -> navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}") },
+                onOpenListing = { event -> navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}?eventId=${event.id}") },
                 onCreateListing = { navController.navigate("marketplace/edit") }
             )
         }
@@ -1160,6 +1160,7 @@ fun WispNavHost(
             arguments = listOf(
                 navArgument("author") { type = NavType.StringType },
                 navArgument("dTag") { type = NavType.StringType },
+                navArgument("eventId") { type = NavType.StringType; nullable = true; defaultValue = null },
                 navArgument("relays") {
                     type = NavType.StringType
                     nullable = true
@@ -1169,14 +1170,18 @@ fun WispNavHost(
         ) { backStackEntry ->
             val author = backStackEntry.arguments?.getString("author") ?: return@composable
             val dTag = backStackEntry.arguments?.getString("dTag") ?: return@composable
+            val fallbackEventId = backStackEntry.arguments?.getString("eventId")
             val relayHints = backStackEntry.arguments?.getString("relays")
                 ?.split(",")
                 ?.map { it.trim() }
                 ?.filter { it.startsWith("wss://") }
                 ?: emptyList()
-            val event by feedViewModel.eventRepo
+            val addressableEvent by feedViewModel.eventRepo
                 .observeAddressableEvent(Nip99.KIND_LISTING, author, dTag)
                 .collectAsState(initial = feedViewModel.eventRepo.findAddressableEvent(Nip99.KIND_LISTING, author, dTag))
+            // A NIP-09 address deletion hides the live addressable event. Keep the
+            // exact revision that opened this route as a local archive fallback.
+            val event = addressableEvent ?: fallbackEventId?.let { feedViewModel.eventRepo.getEvent(it) }
             LaunchedEffect(author, dTag, relayHints) {
                 feedViewModel.eventRepo.requestAddressableEvent(
                     Nip99.KIND_LISTING,
@@ -1248,7 +1253,7 @@ fun WispNavHost(
                 onBack = { navController.popBackStack() },
                 onPublished = { event ->
                     marketplaceViewModel.addOrUpdate(event)
-                    navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}") {
+                    navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}?eventId=${event.id}") {
                         launchSingleTop = true
                     }
                 },
@@ -1301,7 +1306,7 @@ fun WispNavHost(
                     val dTag = Nip99.dTag(event)
                     if (dTag.isNotBlank()) {
                         navController.navigate(
-                            "marketplace/address/${event.pubkey}/${android.net.Uri.encode(dTag)}"
+                            "marketplace/address/${event.pubkey}/${android.net.Uri.encode(dTag)}?eventId=${event.id}"
                         )
                     }
                 }
@@ -1780,6 +1785,7 @@ fun WispNavHost(
                 userProfile = userProfile,
                 userPubkey = userPubkey,
                 eventRepo = feedViewModel.eventRepo,
+                translationRepo = feedViewModel.translationRepo,
                 relayInfoRepo = feedViewModel.relayInfoRepo,
                 onBack = { navController.popBackStack() },
                 onProfileClick = { pk -> navController.navigate("profile/$pk") },
@@ -3424,7 +3430,7 @@ fun WispNavHost(
                 onToggleFollow = { pubkey -> feedViewModel.toggleFollow(pubkey) },
                 onBlockUser = { pubkey -> feedViewModel.blockUser(pubkey) },
                 translationRepo = feedViewModel.translationRepo,
-                 onMarketplaceListingClick = { event -> navController.navigate("marketplace/detail/" + event.id) },
+                 onMarketplaceListingClick = { event -> navController.navigate("marketplace/address/${event.pubkey}/${android.net.Uri.encode(Nip99.dTag(event))}?eventId=${event.id}") },
                 priceTracker = marketplaceWatchlistPriceTracker
             )
         }
