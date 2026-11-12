@@ -37,6 +37,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -304,20 +306,49 @@ class SocialActionManager(
             marketplace.await()
         }
 
-        prepareRelays(forceReconnect = false)
-        var outcome = relayPool.publishWithConfirmation(event.id, timeoutMs = 4_000) {
-            outboxRouter.publishToInbox(message, targetPubkey) +
-                relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
-        }
-        if (outcome.sentCount == 0 || !outcome.confirmed) {
-            prepareRelays(forceReconnect = true)
-            outcome = relayPool.publishWithConfirmation(event.id, timeoutMs = 4_000) {
+        suspend fun publishAndAwaitMarketplaceOk(): Pair<Int, Boolean> = coroutineScope {
+            val acceptedByMarketplaceRelay = CompletableDeferred<Unit>()
+            val marketplaceUrls = MarketplaceRelays.WRITE.toSet()
+            val collector = launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+                relayPool.publishResults
+                    .filter {
+                        it.eventId == event.id &&
+                            it.accepted &&
+                            it.relayUrl in marketplaceUrls
+                    }
+                    .collect {
+                        if (!acceptedByMarketplaceRelay.isCompleted) {
+                            acceptedByMarketplaceRelay.complete(Unit)
+                        }
+                    }
+            }
+            val sentCount = try {
                 outboxRouter.publishToInbox(message, targetPubkey) +
                     relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
+            } catch (error: Exception) {
+                collector.cancel()
+                throw error
             }
+            val confirmed = if (sentCount > 0) {
+                withTimeoutOrNull(4_000) {
+                    acceptedByMarketplaceRelay.await()
+                    true
+                } ?: false
+            } else {
+                false
+            }
+            collector.cancel()
+            sentCount to confirmed
         }
-        if (outcome.sentCount == 0 || !outcome.confirmed) {
-            throw IllegalStateException("Marketplace reaction was not confirmed by any relay")
+
+        prepareRelays(forceReconnect = false)
+        var outcome = publishAndAwaitMarketplaceOk()
+        if (outcome.first == 0 || !outcome.second) {
+            prepareRelays(forceReconnect = true)
+            outcome = publishAndAwaitMarketplaceOk()
+        }
+        if (outcome.first == 0 || !outcome.second) {
+            throw IllegalStateException("Marketplace reaction was not confirmed by a public Marketplace relay")
         }
     }
 
