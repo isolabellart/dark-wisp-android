@@ -70,6 +70,7 @@ fun BookmarkSetScreen(
     val profileVersion by eventRepo.profileVersion.collectAsState()
     val reactionVersion by eventRepo.reactionVersion.collectAsState()
     val eventCacheVersion by eventRepo.eventCacheVersion.collectAsState()
+    val quotedEventVersion by eventRepo.quotedEventVersion.collectAsState()
     val translationVersion by translationRepo?.version?.collectAsState() ?: remember { mutableStateOf(0) }
     val emptyPriceChanges = remember {
         mutableStateOf<Map<String, com.darkwisp.app.repo.MarketplaceWatchlistPriceTracker.PriceChange>>(emptyMap())
@@ -88,7 +89,9 @@ fun BookmarkSetScreen(
         }
     }
 
-    val events = remember(bookmarkSet?.eventIds, bookmarkCoordinates, profileVersion, eventCacheVersion) {
+    // Addressable listing fetches update quotedEventVersion via cacheEvent().
+    // Observe it so every resolved NIP-99 coordinate appears without another list mutation.
+    val events = remember(bookmarkSet?.eventIds, bookmarkCoordinates, profileVersion, eventCacheVersion, quotedEventVersion) {
         val resolved = linkedMapOf<String, NostrEvent>()
         bookmarkSet?.eventIds?.forEach { id ->
             val event = eventRepo.getEvent(id) ?: return@forEach
