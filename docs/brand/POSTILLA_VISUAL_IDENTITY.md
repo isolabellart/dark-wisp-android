@@ -20,7 +20,7 @@ Only two appearances are supported.
 | Inset surface | #EAE1D3 | #302C27 |
 | Primary text | Ebony #1B1916 | Ivory #F4EBDD |
 | Secondary text | #6C645A | #B8AEA1 |
-| Accent | #C76A27 | #F08A32 |
+| Accent | #A65318 | #F08A32 |
 
 No purple, alternate colour themes, gradients, glows or ornamental shadows.
 Orange is reserved for selected navigation, focus, small state cues and important actions.

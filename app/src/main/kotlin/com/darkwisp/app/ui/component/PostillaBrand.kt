@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.darkwisp.app.R
+import com.darkwisp.app.ui.theme.PostillaPalette
 
 @Composable
 fun PostillaBrandMark(size: Dp = 32.dp, modifier: Modifier = Modifier) {
@@ -69,7 +70,7 @@ fun PostillaWordmark(fontSize: TextUnit = 22.sp, modifier: Modifier = Modifier) 
                     .offset(y = fontSizeDp * 0.13f)
                     .size(fontSizeDp * 0.14f)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(PostillaPalette.Orange)
             )
         }
         Text("lla", style = textStyle, color = ink)

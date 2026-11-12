@@ -30,7 +30,7 @@ object PostillaPalette {
     val IvoryMuted = Color(0xFF6C645A)
 
     val Orange = Color(0xFFF08A32)
-    val OrangeDark = Color(0xFFC76A27)
+    val OrangeDark = Color(0xFFA65318)
     val OrangeSoft = Color(0xFFFFD8B4)
 }
 
