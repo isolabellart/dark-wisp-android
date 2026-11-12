@@ -837,9 +837,16 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         val eventTargetId = event.tags.lastOrNull { it.size >= 2 && it[0] == "e" }?.get(1)
             ?: resolveAddressableTarget(event)
             ?: return
-        val addressTarget = event.tags.lastOrNull { it.size >= 2 && it[0] == "a" }
+        val explicitAddressTarget = event.tags.lastOrNull { it.size >= 2 && it[0] == "a" }
             ?.get(1)
             ?.takeIf { it.startsWith("${Nip99.KIND_LISTING}:") }
+        // Older NIP-25 clients may omit the address tag and reference only the
+        // listing revision by event ID. When that revision is cached, still index
+        // the reaction against the stable NIP-99 coordinate so the product count
+        // does not reset when the listing is edited.
+        val addressTarget = explicitAddressTarget ?: eventCache[eventTargetId]
+            ?.takeIf { it.kind == Nip99.KIND_LISTING }
+            ?.let { Nip99.addressTag(it) }
         val targetKeys = listOfNotNull(eventTargetId, addressTarget).distinct()
         val emoji = if (event.content.isBlank() || event.content == "+") "❤️" else event.content
         val emojiTags = Nip30.parseEmojiTags(event)
