@@ -8,8 +8,11 @@ This document describes the permanent signing identity and the release process f
 |---|---|
 | Application ID | `com.isolabellart.darkwispenhanced` |
 | Staging application ID | `com.isolabellart.darkwispenhanced.staging` |
-| Current stable version | `1.0.5` |
-| Current version code | `6` |
+| Current published stable version | `1.0.5` |
+| Current published version code | `6` |
+| Prepared next stable version | `1.0.10` |
+| Prepared next version code | `11` |
+| Staging validation | `#119` — successful, manually tested on device |
 | Minimum Android version | Android 8.0 (API 26) |
 | Packaged ABI | `arm64-v8a` |
 
@@ -69,7 +72,7 @@ To dispatch the release workflow with GitHub CLI, from a checkout authenticated 
 ```bash
 gh workflow run dark-wisp-enhanced-release.yml \
   --ref release/dark-wisp-enhanced \
-  -f release_tag=v1.0.6 \
+  -f release_tag=v1.0.10 \
   -f prerelease=false
 ```
 
