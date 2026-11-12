@@ -318,6 +318,12 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     val reactionVersion: StateFlow<Int> = _reactionVersion
     // Per-target-event dedup sets — evict with the same lifecycle as their count caches
     private val countedReactionIds = LruCache<String, MutableSet<String>>(15000)
+    // Marketplace likes are counted once per pubkey and stable listing address,
+    // because repeated kind-7 events from one author must not inflate the product score.
+    private val countedMarketplaceReactionAuthors = LruCache<String, MutableSet<String>>(15000)
+    private val countedMarketplaceReactionEmoji = LruCache<String, String>(30000)
+    // Keep every reaction event ID per target/author/emoji so Undo can delete duplicates too.
+    private val userReactionEventIds = LruCache<String, MutableSet<String>>(30000)
     private val countedZapIds = LruCache<String, MutableSet<String>>(15000)
     // Reply dedup: parentEventId -> set of counted reply event IDs (LRU so it evicts with replyCounts)
     private val countedReplyIds = LruCache<String, MutableSet<String>>(15000)
@@ -822,10 +828,11 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         val emojiTags = Nip30.parseEmojiTags(event)
 
         for (targetKey in targetKeys) {
-            // The same reaction is indexed under its event ID and stable listing
-            // coordinate, allowing older likes to survive later listing revisions.
-            val dedupSet = countedReactionIds.get(targetKey)
-                ?: mutableSetOf<String>().also { countedReactionIds.put(targetKey, it) }
+            // Event-ID dedup still prevents relays from replaying the same event twice.
+            val dedupSet = synchronized(countedReactionIds) {
+                countedReactionIds.get(targetKey)
+                    ?: mutableSetOf<String>().also { countedReactionIds.put(targetKey, it) }
+            }
             val wasAdded = synchronized(dedupSet) { dedupSet.add(event.id) }
             if (!wasAdded) continue
 
@@ -835,19 +842,51 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
                 for ((shortcode, url) in emojiTags) urlMap[":$shortcode:"] = url
             }
 
-            val counts = reactionCounts.get(targetKey)
-                ?: ConcurrentHashMap<String, Int>().also { reactionCounts.put(targetKey, it) }
-            counts[emoji] = (counts[emoji] ?: 0) + 1
+            // A NIP-99 listing has a stable address across revisions. Count each
+            // reacting pubkey once for that address, regardless of how many kind-7
+            // events the same account publishes.
+            val isMarketplaceAddress = targetKey.startsWith("${Nip99.KIND_LISTING}:")
+            val shouldIncrementCount = if (isMarketplaceAddress) {
+                val authorKey = "${targetKey}:${event.pubkey}"
+                val authors = synchronized(countedMarketplaceReactionAuthors) {
+                    countedMarketplaceReactionAuthors.get(targetKey)
+                        ?: mutableSetOf<String>().also {
+                            countedMarketplaceReactionAuthors.put(targetKey, it)
+                        }
+                }
+                val firstReaction = synchronized(authors) { authors.add(event.pubkey) }
+                if (firstReaction) {
+                    synchronized(countedMarketplaceReactionEmoji) {
+                        countedMarketplaceReactionEmoji.put(authorKey, emoji)
+                    }
+                }
+                firstReaction
+            } else {
+                true
+            }
+
+            if (shouldIncrementCount) {
+                val counts = reactionCounts.get(targetKey)
+                    ?: ConcurrentHashMap<String, Int>().also { reactionCounts.put(targetKey, it) }
+                counts[emoji] = (counts[emoji] ?: 0) + 1
+            }
 
             val details = reactionDetails.get(targetKey)
                 ?: ConcurrentHashMap<String, MutableList<String>>().also { reactionDetails.put(targetKey, it) }
             val pubkeys = details.getOrPut(emoji) { java.util.Collections.synchronizedList(mutableListOf()) }
             synchronized(pubkeys) { if (event.pubkey !in pubkeys) pubkeys.add(event.pubkey) }
 
+            val idsKey = "${targetKey}:${event.pubkey}:${emoji}"
+            val ids = synchronized(userReactionEventIds) {
+                userReactionEventIds.get(idsKey)
+                    ?: mutableSetOf<String>().also { userReactionEventIds.put(idsKey, it) }
+            }
+            synchronized(ids) { ids.add(event.id) }
+
             if (event.pubkey == currentUserPubkey) {
-                val key = "${targetKey}:${event.pubkey}"
-                val emojiMap = userReactions.get(key)
-                    ?: ConcurrentHashMap<String, String>().also { userReactions.put(key, it) }
+                val userKey = "${targetKey}:${event.pubkey}"
+                val emojiMap = userReactions.get(userKey)
+                    ?: ConcurrentHashMap<String, String>().also { userReactions.put(userKey, it) }
                 emojiMap[emoji] = event.id
             }
             markEventVersionDirty(targetKey)
@@ -1410,6 +1449,12 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     }
 
     fun getReactionCount(eventId: String): Int {
+        val addressKey = reactionTargetKeys(eventId)
+            .firstOrNull { it.startsWith("${Nip99.KIND_LISTING}:") }
+        if (addressKey != null) {
+            val authors = countedMarketplaceReactionAuthors.get(addressKey) ?: return 0
+            return synchronized(authors) { authors.size }
+        }
         return reactionCounts.get(eventId)?.values?.sum() ?: 0
     }
 
@@ -1446,20 +1491,87 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
             userReactions.get("${key}:${userPubkey}")?.get(emoji)
         }
 
-    fun removeReaction(eventId: String, userPubkey: String, emoji: String) {
-        for (targetKey in reactionTargetKeys(eventId)) {
-            val key = "${targetKey}:${userPubkey}"
-            val emojiMap = userReactions.get(key) ?: continue
-            if (emojiMap.remove(emoji) == null) continue
+    /** All known reaction IDs for one author/emoji on the event or stable listing address. */
+    fun getUserReactionEventIds(eventId: String, userPubkey: String, emoji: String): Set<String> =
+        reactionTargetKeys(eventId).flatMap { key ->
+            val ids = userReactionEventIds.get("${key}:${userPubkey}:${emoji}") ?: return@flatMap emptyList()
+            synchronized(ids) { ids.toList() }
+        }.toSet()
 
-            val counts = reactionCounts.get(targetKey)
-            if (counts != null) {
-                val current = counts[emoji] ?: 0
-                if (current > 1) counts[emoji] = current - 1 else counts.remove(emoji)
+    fun removeReaction(
+        eventId: String,
+        userPubkey: String,
+        emoji: String,
+        eventIdsToRemove: Set<String> = emptySet()
+    ) {
+        for (targetKey in reactionTargetKeys(eventId)) {
+            val userKey = "${targetKey}:${userPubkey}"
+            val emojiMap = userReactions.get(userKey)
+            val latestId = emojiMap?.remove(emoji)
+            if (emojiMap?.isEmpty() == true) userReactions.remove(userKey)
+
+            val idsKey = "${targetKey}:${userPubkey}:${emoji}"
+            val knownIds = userReactionEventIds.get(idsKey)
+            val idsToRemove = (eventIdsToRemove + listOfNotNull(latestId)).toSet()
+            var removedCount = 0
+            if (knownIds != null) {
+                synchronized(knownIds) {
+                    val toRemove = if (idsToRemove.isNotEmpty()) idsToRemove else knownIds.toSet()
+                    toRemove.forEach { id ->
+                        if (knownIds.remove(id)) {
+                            val counted = countedReactionIds.get(targetKey)
+                            if (counted != null && synchronized(counted) { counted.remove(id) }) {
+                                removedCount++
+                            }
+                        }
+                    }
+                }
+                if (synchronized(knownIds) { knownIds.isEmpty() }) userReactionEventIds.remove(idsKey)
+            } else if (idsToRemove.isNotEmpty()) {
+                val counted = countedReactionIds.get(targetKey)
+                if (counted != null) {
+                    synchronized(counted) {
+                        idsToRemove.forEach { if (counted.remove(it)) removedCount++ }
+                    }
+                }
+            }
+
+            val isMarketplaceAddress = targetKey.startsWith("${Nip99.KIND_LISTING}:")
+            if (isMarketplaceAddress) {
+                // Keep one counted author while any other emoji reaction from this
+                // account remains. Remove the product's like only after the last one.
+                val prefix = "${targetKey}:${userPubkey}:"
+                val hasOtherReaction = synchronized(userReactionEventIds) {
+                    userReactionEventIds.snapshot().any { (key, ids) ->
+                        key.startsWith(prefix) && synchronized(ids) { ids.isNotEmpty() }
+                    }
+                }
+                if (!hasOtherReaction) {
+                    val authors = countedMarketplaceReactionAuthors.get(targetKey)
+                    val removedAuthor = authors?.let { synchronized(it) { it.remove(userPubkey) } } ?: false
+                    val countedEmoji = synchronized(countedMarketplaceReactionEmoji) {
+                        countedMarketplaceReactionEmoji.remove(userKey)
+                    }
+                    if (removedAuthor && countedEmoji != null) {
+                        val counts = reactionCounts.get(targetKey)
+                        if (counts != null) {
+                            val current = counts[countedEmoji] ?: 0
+                            if (current > 1) counts[countedEmoji] = current - 1 else counts.remove(countedEmoji)
+                        }
+                    }
+                }
+            } else if (removedCount > 0) {
+                val counts = reactionCounts.get(targetKey)
+                if (counts != null) {
+                    val current = counts[emoji] ?: 0
+                    val next = (current - removedCount).coerceAtLeast(0)
+                    if (next > 0) counts[emoji] = next else counts.remove(emoji)
+                }
             }
 
             val details = reactionDetails.get(targetKey)
-            if (details != null) {
+            val remainingForEmoji = userReactionEventIds.get(idsKey)?.let { synchronized(it) { it.isNotEmpty() } } == true
+            if (details != null && !remainingForEmoji) {
                 val pubkeys = details[emoji]
                 if (pubkeys != null) {
                     synchronized(pubkeys) { pubkeys.remove(userPubkey) }
@@ -2143,6 +2255,9 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         userReposts.evictAll()
         userZaps.evictAll()
         countedReactionIds.evictAll()
+        countedMarketplaceReactionAuthors.evictAll()
+        countedMarketplaceReactionEmoji.evictAll()
+        userReactionEventIds.evictAll()
         countedZapIds.evictAll()
         countedReplyIds.evictAll()
         rootReplyIds.clear()
