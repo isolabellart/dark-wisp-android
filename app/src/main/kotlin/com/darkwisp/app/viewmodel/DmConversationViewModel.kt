@@ -327,6 +327,7 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
             if (valid) value.substring(0, match.range.first) + "nostr:" + value.substring(match.range.first)
             else value
         } ?: value
+        if (_messageText.value != prefixed) _sendError.value = null
         _messageText.value = prefixed
     }
 
@@ -721,13 +722,14 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
                             val dmRelays = fetchRelaysForParticipant(recipient, relayPool)
                             dmRelays.ifEmpty { resolveRelaysForParticipant(recipient, relayPool) }
                         }
-                        val sent = sendToDeliveryRelays(relayPool, recipientRelays, ClientMessage.event(wrap))
+                        val sent = sendGiftWrapToDeliveryRelays(relayPool, recipientRelays, wrap.id, ClientMessage.event(wrap))
                         if (recipient == peerPubkey) firstSentRelayUrls = sent
                     }
 
                     if (firstSentRelayUrls.isEmpty() && participants.size == 1) {
                         _messageText.value = text
-                        _sendError.value = "Failed to deliver — no relays accepted the message"
+                        _sendError.value = getApplication<Application>().getString(R.string.dm_delivery_unconfirmed)
+                        return@launch
                     }
 
                     val selfWrap = Nip17.createGiftWrapRemote(
@@ -779,7 +781,11 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
         }
 
         // Local signer mode
-        val keypair = keyRepo.getKeypair() ?: return
+        val keypair = keyRepo.getKeypair()
+        if (keypair == null) {
+            _sendError.value = "No active Nostr signer is available. Reconnect your account and try again."
+            return
+        }
 
         _messageText.value = ""
         _sendError.value = null
@@ -847,7 +853,8 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
 
                 if (firstSentRelayUrls.isEmpty() && participants.size == 1) {
                     _messageText.value = text
-                    _sendError.value = "Failed to deliver — no relays accepted the message"
+                    _sendError.value = getApplication<Application>().getString(R.string.dm_delivery_unconfirmed)
+                    return@launch
                 }
 
                 val selfWrap = Nip17.createGiftWrap(
@@ -977,6 +984,31 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         return emptyList()
+    }
+
+    /**
+     * Publish a gift wrap and wait for at least one relay OK before treating the DM as sent.
+     * A WebSocket enqueue (or an ephemeral relay's pending queue) is not proof of delivery.
+     */
+    private suspend fun sendGiftWrapToDeliveryRelays(
+        relayPool: RelayPool,
+        deliveryRelays: List<String>,
+        eventId: String,
+        message: String
+    ): Set<String> {
+        var sentRelayUrls = emptySet<String>()
+        val outcome = relayPool.publishWithConfirmation(eventId, timeoutMs = 12_000L) {
+            sentRelayUrls = sendToDeliveryRelays(relayPool, deliveryRelays, message)
+            sentRelayUrls.size
+        }
+        if (!outcome.confirmed) {
+            Log.w(
+                "DmConversation",
+                "Gift wrap ${eventId.take(12)} was not acknowledged by any recipient DM relay"
+            )
+            return emptySet()
+        }
+        return sentRelayUrls
     }
 
     /**
