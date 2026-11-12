@@ -950,40 +950,17 @@ class DmConversationViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Fetch kind 10050 DM relays for any participant.
-     * Always goes to the network (no cache short-circuit) and broadcasts to all connected
-     * relays in addition to indexers, matching the aggressiveness of fetchRecipientDmRelays.
+     * Fetch kind 10050 DM relays for any participant using the shared race-safe
+     * lookup and cache semantics.
      */
     private suspend fun fetchRelaysForParticipant(pubkey: String, relayPool: RelayPool): List<String> {
-        val subId = "dm_relay_${pubkey.take(8)}"
-        val filter = Filter(kinds = listOf(Nip51.KIND_DM_RELAYS), authors = listOf(pubkey), limit = 1)
-        val reqMsg = ClientMessage.req(subId, filter)
-        for (url in RelayConfig.DEFAULT_INDEXER_RELAYS) {
-            relayPool.sendToRelayOrEphemeral(url, reqMsg, skipBadCheck = true)
-        }
-        relayPool.sendToAll(reqMsg)
-
-        // Collect all responses within 4s; pick the freshest (highest created_at)
-        val results = mutableListOf<RelayEvent>()
-        withTimeoutOrNull(4000L) {
-            relayPool.relayEvents
-                .filter { it.subscriptionId == subId }
-                .collect { results.add(it) }
-        }
-
-        val closeMsg = ClientMessage.close(subId)
-        for (url in RelayConfig.DEFAULT_INDEXER_RELAYS) relayPool.sendToRelay(url, closeMsg)
-        relayPool.sendToAll(closeMsg)
-
-        val best = results.maxByOrNull { it.event.created_at }
-        if (best != null) {
-            val urls = Nip51.parseRelaySet(best.event)
-            if (urls.isNotEmpty()) {
-                dmRepo?.cacheDmRelays(pubkey, urls)
-                return urls
-            }
-        }
-        return emptyList()
+        val repo = dmRepo ?: return emptyList()
+        return com.darkwisp.app.repo.DmRelayLookup.fetch(
+            pubkey = pubkey,
+            relayPool = relayPool,
+            dmRepo = repo,
+            forceRefresh = true
+        )
     }
 
     /**
