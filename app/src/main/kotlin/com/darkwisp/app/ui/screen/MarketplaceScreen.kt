@@ -421,23 +421,6 @@ internal fun MarketplaceListingCard(
                         Icon(Icons.Outlined.Storefront, contentDescription = null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                if (bookmarkCount != null && bookmarkCount > 0) {
-                    Surface(
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(5.dp),
-                        color = Color.Black.copy(alpha = 0.72f),
-                        contentColor = Color.White,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Icon(Icons.Filled.Bookmark, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Text(bookmarkCount.toString(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
             }
             Spacer(Modifier.width(12.dp))
             Column(
@@ -456,14 +439,35 @@ internal fun MarketplaceListingCard(
                 }
                 val location = Nip99.location(event)
                 if (location.isNotBlank()) Text(location, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
                     ProfilePicture(url = sellerProfile?.picture, size = 24)
                     Text(
                         sellerProfile?.displayString ?: event.pubkey.take(8) + "…" + event.pubkey.takeLast(4),
+                        modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1
                     )
+                    if (bookmarkCount != null && bookmarkCount > 0) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Filled.Bookmark, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Text(bookmarkCount.toString(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
                 if (sold) {
                     Badge(containerColor = MaterialTheme.colorScheme.errorContainer) {
@@ -679,6 +683,15 @@ fun MarketplaceDetailScreen(
             isBookmarked = listingAddress in savedWatchlist.coordinates
             bookmarkReady = true
             bookmarkError = null
+            val updatedInterests = publicInterestByPubkey.toMutableMap()
+            val previousTimestamp = updatedInterests[savedWatchlist.pubkey]?.createdAt ?: 0L
+            if (savedWatchlist.createdAt > previousTimestamp || savedWatchlist.pubkey !in updatedInterests) {
+                updatedInterests[savedWatchlist.pubkey] = MarketplaceWatchlistSnapshot(
+                    savedWatchlist.createdAt,
+                    savedWatchlist.coordinates
+                )
+                publicInterestByPubkey = updatedInterests
+            }
         }
         val subscriptions = mutableListOf<String>()
         val collectors = mutableListOf<kotlinx.coroutines.Job>()
@@ -700,6 +713,18 @@ fun MarketplaceDetailScreen(
                                 dTag != MARKETPLACE_WATCHLIST_DTAG) return@collect
 
                             val set = Nip51.parseBookmarkSet(candidate) ?: return@collect
+                            // This personal subscription can receive the user's set before the
+                            // broad interest subscription. Count it here too; relay-wide event
+                            // deduplication may suppress a second delivery to the other collector.
+                            val previousInterestTimestamp = publicInterestByPubkey[userPubkey]?.createdAt ?: 0L
+                            if (candidate.created_at > previousInterestTimestamp) {
+                                val updatedInterests = publicInterestByPubkey.toMutableMap()
+                                updatedInterests[userPubkey] = MarketplaceWatchlistSnapshot(
+                                    candidate.created_at,
+                                    set.coordinates
+                                )
+                                publicInterestByPubkey = updatedInterests
+                            }
                             val localTimestamp = bookmarkSetRepository?.getSet(userPubkey, MARKETPLACE_WATCHLIST_DTAG)?.createdAt ?: 0L
                             val latestTimestamp = maxOf(localTimestamp, watchlistEvent?.created_at ?: 0L)
                             if (candidate.created_at > latestTimestamp) {
