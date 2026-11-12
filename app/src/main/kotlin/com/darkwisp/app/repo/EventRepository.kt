@@ -1530,14 +1530,22 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         for (targetKey in reactionTargetKeys(eventId)) {
             val userKey = "${targetKey}:${userPubkey}"
             val emojiMap = userReactions.get(userKey)
-            val latestId = emojiMap?.remove(emoji)
-            if (emojiMap?.isEmpty() == true) userReactions.remove(userKey)
+            val latestId = emojiMap?.get(emoji)
 
             val idsKey = "${targetKey}:${userPubkey}:${emoji}"
             val knownIds = userReactionEventIds.get(idsKey)
-            val idsToRemove = (eventIdsToRemove + listOfNotNull(latestId)).toSet()
+            // A remote NIP-09 may delete just one duplicate reaction. Never add the
+            // current/latest ID to that explicit deletion set: it may be a different,
+            // still-active event from the same author. Manual Unlike passes the full
+            // known ID set and therefore still removes every duplicate.
+            val idsToRemove = if (eventIdsToRemove.isNotEmpty()) {
+                eventIdsToRemove
+            } else {
+                setOfNotNull(latestId)
+            }
             idsToRemove.forEach { reactionRecordsById.remove(it) }
             var removedCount = 0
+            var remainingIds: Set<String> = emptySet()
             if (knownIds != null) {
                 synchronized(knownIds) {
                     val toRemove = if (idsToRemove.isNotEmpty()) idsToRemove else knownIds.toSet()
@@ -1549,8 +1557,11 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
                             }
                         }
                     }
+                    remainingIds = knownIds.toSet()
                 }
-                if (synchronized(knownIds) { knownIds.isEmpty() }) userReactionEventIds.remove(idsKey)
+                if (remainingIds.isEmpty()) {
+                    userReactionEventIds.remove(idsKey)
+                }
             } else if (idsToRemove.isNotEmpty()) {
                 val counted = countedReactionIds.get(targetKey)
                 if (counted != null) {
@@ -1558,6 +1569,18 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
                         idsToRemove.forEach { if (counted.remove(it)) removedCount++ }
                     }
                 }
+            }
+
+            // Keep the selected emoji active while any matching reaction ID remains.
+            // If the previous representative was deleted, point the UI at a surviving ID.
+            if (remainingIds.isNotEmpty()) {
+                val activeId = latestId?.takeIf { it in remainingIds } ?: remainingIds.first()
+                val activeMap = emojiMap
+                    ?: ConcurrentHashMap<String, String>().also { userReactions.put(userKey, it) }
+                activeMap[emoji] = activeId
+            } else {
+                emojiMap?.remove(emoji)
+                if (emojiMap?.isEmpty() == true) userReactions.remove(userKey)
             }
 
             val isMarketplaceAddress = targetKey.startsWith("${Nip99.KIND_LISTING}:")
