@@ -1092,9 +1092,10 @@ class StartupCoordinator(
                     limit = 1000
                 )
             )
+            val marketplaceRelayUrls = (MarketplaceRelays.READ + MarketplaceRelays.WRITE).distinct()
             val targets = (
                 relayPool.getReadRelayUrls() +
-                    MarketplaceRelays.READ +
+                    marketplaceRelayUrls +
                     RelayConfig.DEFAULT_INDEXER_RELAYS
                 ).distinct()
             targets.forEach { url ->
@@ -1102,7 +1103,7 @@ class StartupCoordinator(
                     url,
                     request,
                     skipBadCheck = true,
-                    autoReconnect = url in MarketplaceRelays.READ
+                    autoReconnect = url in marketplaceRelayUrls
                 )
             }
 
