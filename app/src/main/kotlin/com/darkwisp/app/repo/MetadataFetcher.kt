@@ -290,7 +290,11 @@ class MetadataFetcher(
         val msg = ClientMessage.req(subId, filter)
 
         val topRelays = quoteRelayProvider?.invoke() ?: emptyList()
-        val marketplaceRelays = if (kind == 30402) MarketplaceRelays.READ else emptyList()
+        val marketplaceRelays = if (kind == 30402) {
+            (MarketplaceRelays.READ + MarketplaceRelays.WRITE).distinct()
+        } else {
+            emptyList()
+        }
         val targetUrls = (topRelays + relayHints + marketplaceRelays).distinct()
         if (targetUrls.isNotEmpty()) {
             for (url in targetUrls) {
