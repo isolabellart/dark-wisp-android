@@ -527,11 +527,11 @@ fun MarketplaceDetailScreen(
         // Watchlists are written to both the curated Marketplace destinations and
         // the user's own relays. Read all public Marketplace write destinations too,
         // otherwise sellers miss interested buyers whose relays are not in READ.
+        val marketplaceRelayUrls = (MarketplaceRelays.READ + MarketplaceRelays.WRITE).distinct()
         val targets = (
             relayPool.getReadRelayUrls() +
                 RelayConfig.DEFAULT_INDEXER_RELAYS +
-                MarketplaceRelays.READ +
-                MarketplaceRelays.WRITE
+                marketplaceRelayUrls
             ).distinct()
         val savedWatchlist = userPubkey?.let { bookmarkSetRepository?.getSet(it, MARKETPLACE_WATCHLIST_DTAG) }
         if (savedWatchlist != null && !isOwnListing) {
