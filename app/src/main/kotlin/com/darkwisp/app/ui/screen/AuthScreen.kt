@@ -1,5 +1,8 @@
 package com.darkwisp.app.ui.screen
 
+import com.darkwisp.app.ui.component.PostillaBrandMark
+import com.darkwisp.app.ui.component.PostillaWordmark
+
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -128,35 +131,8 @@ fun AuthScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_wisp_logo),
-                contentDescription = stringResource(R.string.onboarding_wisp_logo),
-                tint = androidx.compose.ui.graphics.Color.Unspecified,
-                modifier = Modifier
-                    .size(108.dp)
-                    .drawBehind {
-                        drawCircle(
-                            brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                                colors = listOf(
-                                    androidx.compose.ui.graphics.Color.Black,
-                                    androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f),
-                                    androidx.compose.ui.graphics.Color.Transparent
-                                ),
-                                radius = size.minDimension * 0.65f
-                            ),
-                            radius = size.minDimension * 0.65f
-                        )
-                    }
-            )
-            Text(
-                text = stringResource(R.string.auth_wisp),
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = FontFamily.SansSerif,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.W500
-                ),
-                color = MaterialTheme.colorScheme.primary
-            )
+            PostillaBrandMark(size = 84.dp)
+            PostillaWordmark(fontSize = 36.sp)
             Spacer(Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.auth_tagline),

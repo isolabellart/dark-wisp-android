@@ -711,7 +711,7 @@ class ComposeViewModel(app: Application, private val savedStateHandle: SavedStat
         if (replyTo != null && _privateReply.value) {
             for (hashtag in _hashtags.value) tags.add(listOf("t", hashtag))
             tags.addAll(Nip30.buildEmojiTagsForContent(content, resolvedEmojis))
-            if (interfacePrefs.isClientTagEnabled()) tags.add(listOf("client", "Dark Wisp"))
+            if (interfacePrefs.isClientTagEnabled()) tags.add(listOf("client", "Postilla"))
             return publishPrivateReply(content, replyTo, tags, signer, relayPool, powPrefs)
         }
 
@@ -822,7 +822,7 @@ class ComposeViewModel(app: Application, private val savedStateHandle: SavedStat
         tags.addAll(Nip30.buildEmojiTagsForContent(content, resolvedEmojis))
 
         if (interfacePrefs.isClientTagEnabled()) {
-            tags.add(listOf("client", "Dark Wisp"))
+            tags.add(listOf("client", "Postilla"))
         }
 
         // Scheduled post — sign with future created_at and send to scheduler relays

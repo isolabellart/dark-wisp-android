@@ -1,9 +1,8 @@
 package com.darkwisp.app.ui.screen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,12 +11,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -27,32 +25,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
-import coil3.compose.AsyncImage
 import androidx.compose.foundation.layout.statusBarsPadding
 import com.darkwisp.app.R
+import com.darkwisp.app.ui.component.PostillaBrandMark
+import com.darkwisp.app.ui.component.PostillaWordmark
 import com.darkwisp.app.ui.component.TorCornerButton
 import com.darkwisp.app.viewmodel.LiveMetrics
 import com.darkwisp.app.viewmodel.SplashViewModel
-
-private val AVATAR_SIZE = 44.dp
-private val AVATAR_GAP = 4.dp
 
 @Composable
 fun SplashScreen(
@@ -62,150 +45,49 @@ fun SplashScreen(
     onToggleTor: (Boolean) -> Unit = {},
     onCancel: (() -> Unit)? = null
 ) {
-    val profilePictures by viewModel.profilePictures.collectAsState()
     val liveMetrics by viewModel.liveMetrics.collectAsState()
-    val backgroundColor = MaterialTheme.colorScheme.background
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
-        val cols = ((maxWidth + AVATAR_GAP) / (AVATAR_SIZE + AVATAR_GAP)).toInt().coerceAtLeast(1)
-        val screenHeightPx = constraints.maxHeight.toFloat()
-
-        // Use real pictures, or placeholder circles while loading
-        val pics = profilePictures.ifEmpty {
-            val placeholderRows = ((maxHeight + AVATAR_GAP) / (AVATAR_SIZE + AVATAR_GAP)).toInt() + 1
-            List(placeholderRows * cols) { "" }
-        }
-
-        val rows = (pics.size + cols - 1) / cols
-
-        // Background collage — each picture shown at most once, no cycling
-        Column(modifier = Modifier.align(Alignment.TopCenter)) {
-            for (row in 0 until rows) {
-                Row {
-                    for (col in 0 until cols) {
-                        val idx = row * cols + col
-                        if (idx >= pics.size) break
-                        val url = pics[idx]
-                        // Background circle always visible; image loads on top.
-                        // Slow or failed loads show the filled circle instead of a gap.
-                        Box(
-                            modifier = Modifier
-                                .size(AVATAR_SIZE)
-                                .clip(CircleShape)
-                                .background(surfaceVariant)
-                        ) {
-                            if (url.isNotEmpty()) {
-                                AsyncImage(
-                                    model = url,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.matchParentSize()
-                                )
-                            }
-                        }
-                        if (col < cols - 1) Spacer(Modifier.width(AVATAR_GAP))
-                    }
-                }
-                if (row < rows - 1) Spacer(Modifier.height(AVATAR_GAP))
-            }
-        }
-
-        // Gradient fades the collage into the background toward the bottom
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, backgroundColor),
-                        startY = 0.25f * screenHeightPx,
-                        endY = 0.72f * screenHeightPx
-                    )
-                )
-        )
-
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         if (onCancel != null) {
-            // Pinned to the top-start corner (mirroring TorCornerButton at
-            // top-end) so it's always reachable. Previously this sat at
-            // BottomCenter with bottom padding, where the logo/wordmark/action
-            // buttons column painted over it.
             Text(
                 text = stringResource(R.string.btn_cancel),
                 style = MaterialTheme.typography.labelLarge,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .statusBarsPadding()
                     .padding(start = 16.dp, top = 16.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.25f))
                     .clickable(onClick = onCancel)
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
             )
         }
 
-        // Logo, tagline, and action buttons pinned to bottom
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 48.dp, start = 32.dp, end = 32.dp)
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp, vertical = 36.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val wispTransition = rememberInfiniteTransition(label = "wisp")
-            val bob by wispTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = -8f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1200, easing = androidx.compose.animation.core.FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "bob"
-            )
-            val sway by wispTransition.animateFloat(
-                initialValue = -3f,
-                targetValue = 3f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(2400, easing = LinearEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "sway"
-            )
-            Icon(
-                painter = painterResource(R.drawable.ic_wisp_logo),
-                contentDescription = stringResource(R.string.cd_wisp_logo),
-                tint = Color.Unspecified,
-                modifier = Modifier
-                    .size(96.dp)
-                    .graphicsLayer {
-                        translationY = bob * density
-                        rotationZ = sway
-                    }
-                    .drawBehind {
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color.Black,
-                                    Color.Black.copy(alpha = 0.6f),
-                                    Color.Transparent
-                                ),
-                                radius = size.minDimension * 0.65f
-                            ),
-                            radius = size.minDimension * 0.65f
-                        )
-                    }
-            )
+            PostillaBrandMark(size = 92.dp)
+            Spacer(Modifier.height(18.dp))
+            PostillaWordmark(fontSize = 52.sp)
+            Spacer(Modifier.height(12.dp))
             Text(
-                text = "dark wisp",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = FontFamily.SansSerif,
-                    fontSize = 56.sp,
-                    fontWeight = FontWeight.W500
-                ),
-                color = Color.White
+                text = stringResource(R.string.auth_tagline),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
+
             liveMetrics?.let { OnlineCard(it) }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(40.dp))
 
             Button(
                 onClick = onSignUp,
@@ -214,7 +96,7 @@ fun SplashScreen(
                 Text(stringResource(R.string.splash_create_account))
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
 
             OutlinedButton(
                 onClick = onLogIn,
@@ -236,19 +118,25 @@ fun SplashScreen(
 
 @Composable
 private fun OnlineCard(metrics: LiveMetrics) {
-    Spacer(Modifier.height(16.dp))
-    Card(shape = RoundedCornerShape(24.dp)) {
+    Spacer(Modifier.height(18.dp))
+    Card(
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(8.dp)
+                    .size(7.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF4CAF50))
+                    .background(MaterialTheme.colorScheme.primary)
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.size(8.dp))
             Text(
                 text = stringResource(R.string.splash_people_online, metrics.online),
                 style = MaterialTheme.typography.labelLarge,
@@ -256,10 +144,4 @@ private fun OnlineCard(metrics: LiveMetrics) {
             )
         }
     }
-}
-
-private fun formatCount(n: Int): String = when {
-    n >= 1_000_000 -> "${"%.1f".format(n / 1_000_000f)}M"
-    n >= 1_000 -> "${"%.1f".format(n / 1_000f)}k"
-    else -> n.toString()
 }

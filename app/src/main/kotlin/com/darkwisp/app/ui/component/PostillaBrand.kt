@@ -42,6 +42,7 @@ fun PostillaWordmark(fontSize: TextUnit = 22.sp, modifier: Modifier = Modifier) 
         style = MaterialTheme.typography.titleLarge.copy(
             fontFamily = FontFamily.SansSerif,
             fontSize = fontSize,
+            lineHeight = fontSize * 1.2f,
             fontWeight = FontWeight.Medium,
             letterSpacing = (-0.45).sp
         ),
