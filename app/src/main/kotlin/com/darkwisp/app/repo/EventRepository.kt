@@ -860,7 +860,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         // listing revision by event ID. When that revision is cached, still index
         // the reaction against the stable NIP-99 coordinate so the product count
         // does not reset when the listing is edited.
-        val addressTarget = explicitAddressTarget ?: eventCache[eventTargetId]
+        val addressTarget = explicitAddressTarget ?: getEvent(eventTargetId)
             ?.takeIf { it.kind == Nip99.KIND_LISTING }
             ?.let { Nip99.addressTag(it) }
         val targetKeys = listOfNotNull(eventTargetId, addressTarget).distinct()
