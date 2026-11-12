@@ -97,7 +97,7 @@ class NotificationRepository(
     val notifReceived: SharedFlow<Int> = _notifReceived
 
     init {
-        loadMarketplaceBookmarkNotifications()
+        loadDurableNotificationItems()
         rebuildScope.launch {
             for (signal in rebuildSignals) {
                 // One frame is enough to coalesce bursts from a single relay
@@ -153,6 +153,7 @@ class NotificationRepository(
                     replyEventId = event.id,
                     groupChatId = groupId
                 ))
+                persistDurableNotificationItemsLocked()
             }
 
             if (event.created_at > lastReadTimestamp) {
@@ -371,10 +372,10 @@ class NotificationRepository(
             }
     }
 
-    /** Persist Marketplace save notifications independently of relay history. */
-    private fun persistMarketplaceBookmarkNotificationsLocked() {
+    /** Persist Marketplace bookmark and reply rows independently of relay history. */
+    private fun persistDurableNotificationItemsLocked() {
         val saved = flatItems.asSequence()
-            .filter { it.type == NotificationType.MARKETPLACE_BOOKMARK }
+            .filter { it.type == NotificationType.MARKETPLACE_BOOKMARK || it.type == NotificationType.REPLY }
             .sortedByDescending { it.timestamp }
             .take(500)
         val array = JSONArray()
@@ -382,16 +383,20 @@ class NotificationRepository(
             array.put(
                 JSONObject()
                     .put("id", item.id)
+                    .put("type", item.type.name)
                     .put("actorPubkey", item.actorPubkey)
                     .put("referencedEventId", item.referencedEventId)
                     .put("timestamp", item.timestamp)
+                    .put("replyEventId", item.replyEventId)
+                    .put("groupChatId", item.groupChatId)
+                    .put("isPrivateReply", item.isPrivateReply)
             )
         }
         prefs.edit().putString(KEY_MARKETPLACE_BOOKMARK_NOTIFICATIONS, array.toString()).apply()
     }
 
-    /** Restore the account-scoped Marketplace save notifications after startup/account reload. */
-    private fun loadMarketplaceBookmarkNotifications() = synchronized(lock) {
+    /** Restore the account-scoped Marketplace bookmark and reply rows after startup/account reload. */
+    private fun loadDurableNotificationItems() = synchronized(lock) {
         val raw = prefs.getString(KEY_MARKETPLACE_BOOKMARK_NOTIFICATIONS, null) ?: return@synchronized
         val array = try { JSONArray(raw) } catch (_: Exception) { return@synchronized }
         for (index in 0 until array.length()) {
@@ -399,20 +404,28 @@ class NotificationRepository(
             val id = item.optString("id").takeIf { it.isNotBlank() } ?: continue
             val actor = item.optString("actorPubkey").takeIf { it.isNotBlank() } ?: continue
             val reference = item.optString("referencedEventId").takeIf { it.isNotBlank() } ?: continue
+            // Older saved rows predate the "type" property and are Marketplace bookmarks.
+            val type = runCatching {
+                NotificationType.valueOf(item.optString("type", NotificationType.MARKETPLACE_BOOKMARK.name))
+            }.getOrNull() ?: continue
+            if (type != NotificationType.MARKETPLACE_BOOKMARK && type != NotificationType.REPLY) continue
             val timestamp = item.optLong("timestamp", 0L)
             if (timestamp <= 0L || !flatItemIds.add(id)) continue
             flatItems.add(
                 FlatNotificationItem(
                     id = id,
-                    type = NotificationType.MARKETPLACE_BOOKMARK,
+                    type = type,
                     actorPubkey = actor,
                     referencedEventId = reference,
-                    timestamp = timestamp
+                    timestamp = timestamp,
+                    replyEventId = item.optString("replyEventId").takeIf { it.isNotBlank() },
+                    groupChatId = item.optString("groupChatId").takeIf { it.isNotBlank() },
+                    isPrivateReply = item.optBoolean("isPrivateReply", false)
                 )
             )
         }
         _hasUnread.value = !isViewing && flatItems.any { it.timestamp > lastReadTimestamp }
-        if (flatItems.any { it.type == NotificationType.MARKETPLACE_BOOKMARK }) scheduleRebuildSortedList()
+        if (flatItems.any { it.type == NotificationType.MARKETPLACE_BOOKMARK || it.type == NotificationType.REPLY }) scheduleRebuildSortedList()
     }
 
     /**
@@ -440,7 +453,7 @@ class NotificationRepository(
                     timestamp = watchlistEvent.created_at
                 )
             )
-            persistMarketplaceBookmarkNotificationsLocked()
+            persistDurableNotificationItemsLocked()
             if (watchlistEvent.created_at > latestNotifTs) {
                 latestNotifTs = watchlistEvent.created_at
                 prefs.edit().putLong(KEY_LATEST_NOTIF_TS, watchlistEvent.created_at).apply()
@@ -508,7 +521,7 @@ class NotificationRepository(
             @Suppress("ktlint:standard:property-naming")
             latestNotifTs = prefs.getLong("latest_notif_ts", 0L)
         }
-        loadMarketplaceBookmarkNotifications()
+        loadDurableNotificationItems()
     }
 
     fun purgeUser(pubkey: String) = synchronized(lock) {
@@ -545,7 +558,7 @@ class NotificationRepository(
         val removedFlat = flatItems.removeAll { item ->
             if (item.actorPubkey == pubkey) { flatItemIds.remove(item.id); true } else false
         }
-        if (removedFlat) persistMarketplaceBookmarkNotificationsLocked()
+        if (removedFlat) persistDurableNotificationItemsLocked()
         if (removedFlat || toRemove.isNotEmpty() || toUpdate.isNotEmpty()) {
             scheduleRebuildSortedList()
         }
@@ -923,6 +936,7 @@ class NotificationRepository(
                 isPrivateReply = eventRepo?.isPrivate(event.id) == true,
                 groupChatId = groupChatId
             ))
+            persistDurableNotificationItemsLocked()
         }
 
         return true
