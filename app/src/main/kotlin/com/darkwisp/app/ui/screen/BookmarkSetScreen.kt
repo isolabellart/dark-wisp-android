@@ -3,6 +3,8 @@ package com.darkwisp.app.ui.screen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -183,7 +185,14 @@ fun BookmarkSetScreen(
                     if (event.kind == Nip99.KIND_LISTING) {
                         val address = Nip99.addressTag(event)
                         val priceChange = priceChanges[address]
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
                             if (priceChange != null) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.errorContainer,
@@ -220,8 +229,19 @@ fun BookmarkSetScreen(
                                     onMarketplaceListingClick?.invoke(event) ?: onNoteClick(event)
                                 }
                             )
+                            }
+                            if (isOwnList && onRemoveFromSet != null) {
+                                IconButton(onClick = { onRemoveFromSet(address) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Remove from list")
+                                }
+                            }
                         }
                     } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(modifier = Modifier.weight(1f)) {
                         PostCard(
                             event = event,
                             profile = profile,
@@ -240,6 +260,13 @@ fun BookmarkSetScreen(
                             translationState = translationState,
                             onTranslate = { translationRepo?.translate(event.id, event.content) }
                         )
+                            }
+                            if (isOwnList && onRemoveFromSet != null) {
+                                IconButton(onClick = { onRemoveFromSet(event.id) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Remove from list")
+                                }
+                            }
+                        }
                     }
                 }
             }

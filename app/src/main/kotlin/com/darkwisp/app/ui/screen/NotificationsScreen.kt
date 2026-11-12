@@ -1503,10 +1503,20 @@ private fun ReferencedNotePostCard(
     val eventRepo = params.eventRepo ?: return
 
     val version by eventRepo.quotedEventVersion.collectAsState()
-    val event = remember(eventId, version) { eventRepo.getEvent(eventId) }
+    val addressParts = remember(eventId) { eventId.split(":", limit = 3) }
+    val isListingCoordinate = addressParts.size == 3 && addressParts[0] == Nip99.KIND_LISTING.toString()
+    val event = remember(eventId, version) {
+        if (isListingCoordinate) {
+            eventRepo.findAddressableEvent(Nip99.KIND_LISTING, addressParts[1], addressParts[2])
+        } else {
+            eventRepo.getEvent(eventId)
+        }
+    }
 
-    LaunchedEffect(eventId) {
-        if (eventRepo.getEvent(eventId) == null) {
+    LaunchedEffect(eventId, relayHints) {
+        if (isListingCoordinate) {
+            eventRepo.requestAddressableEvent(Nip99.KIND_LISTING, addressParts[1], addressParts[2], relayHints)
+        } else if (eventRepo.getEvent(eventId) == null) {
             eventRepo.requestQuotedEvent(eventId, relayHints)
         }
     }
@@ -1515,6 +1525,15 @@ private fun ReferencedNotePostCard(
         Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
         }
+        return
+    }
+
+    if (event.kind == Nip99.KIND_LISTING) {
+        MarketplaceListingCard(
+            event = event,
+            eventRepository = eventRepo,
+            onClick = { params.onNoteClick(event.id) }
+        )
         return
     }
 

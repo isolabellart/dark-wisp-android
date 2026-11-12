@@ -198,13 +198,17 @@ class ListCrudManager(
         val s = getSigner() ?: return
         val myPubkey = s.pubkeyHex
         val existing = bookmarkSetRepo.getSet(myPubkey, dTag) ?: return
+        // Marketplace entries are stored as stable NIP-99 coordinates (a-tags),
+        // while ordinary notes are stored as event IDs (e-tags).
         val newIds = existing.eventIds - eventId
+        val newCoordinates = existing.coordinates - eventId
+        if (newIds == existing.eventIds && newCoordinates == existing.coordinates) return
         val title = existing.name.takeIf { it != existing.dTag }
         val hints = eventRepo.getRelayHintsForEvents(newIds)
         if (existing.isPrivate) {
-            val (tags, plaintext) = Nip51.buildBookmarkSetPrivate(dTag, newIds, existing.coordinates, existing.hashtags, title = title, relayHints = hints)
+            val (tags, plaintext) = Nip51.buildBookmarkSetPrivate(dTag, newIds, newCoordinates, existing.hashtags, title = title, relayHints = hints)
             scope.launch {
-                val hasContent = newIds.isNotEmpty() || existing.coordinates.isNotEmpty() || existing.hashtags.isNotEmpty() || title != null
+                val hasContent = newIds.isNotEmpty() || newCoordinates.isNotEmpty() || existing.hashtags.isNotEmpty() || title != null
                 val encrypted = if (hasContent) s.nip44Encrypt(plaintext, myPubkey) else ""
                 val event = s.signEvent(kind = Nip51.KIND_BOOKMARK_SET, content = encrypted, tags = tags)
                 eventRepo.cacheEvent(event)
@@ -212,7 +216,7 @@ class ListCrudManager(
                 bookmarkSetRepo.updateFromEvent(event, if (hasContent) plaintext else "[]")
             }
         } else {
-            val tags = Nip51.buildBookmarkSetTags(dTag, newIds, existing.coordinates, existing.hashtags, title = title, relayHints = hints)
+            val tags = Nip51.buildBookmarkSetTags(dTag, newIds, newCoordinates, existing.hashtags, title = title, relayHints = hints)
             scope.launch {
                 val event = s.signEvent(kind = Nip51.KIND_BOOKMARK_SET, content = "", tags = tags)
                 eventRepo.cacheEvent(event)

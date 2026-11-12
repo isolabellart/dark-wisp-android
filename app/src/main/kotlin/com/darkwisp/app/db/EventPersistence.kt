@@ -155,6 +155,21 @@ class EventPersistence(
      * Read a bounded history slice for one author across several event kinds.
      * Used to paint profile timelines from local storage before relay responses arrive.
      */
+    /** Query a bounded, newest-first slice for a single event kind. */
+    fun getRecentEventsByKind(kind: Int, limit: Int = 500): List<NostrEvent> {
+        if (limit <= 0) return emptyList()
+        return try {
+            val entities = box.query(EventEntity_.kind.equal(kind))
+                .order(EventEntity_.createdAt, io.objectbox.query.QueryBuilder.DESCENDING)
+                .build()
+                .use { it.find(0, limit.toLong()) }
+            entities.mapNotNull { it.toNostrEvent() }
+        } catch (e: Exception) {
+            Log.w("EventPersistence", "getRecentEventsByKind($kind) failed: ${e.message}")
+            emptyList()
+        }
+    }
+
     fun getEventsByAuthorAndKinds(pubkey: String, kinds: Set<Int>, limit: Int = 200): List<NostrEvent> {
         if (pubkey.isBlank() || kinds.isEmpty() || limit <= 0) return emptyList()
         return try {

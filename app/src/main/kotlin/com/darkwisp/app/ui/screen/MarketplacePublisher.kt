@@ -1,5 +1,8 @@
 package com.darkwisp.app.ui.screen
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+
 import android.content.Context
 import com.darkwisp.app.R
 import com.darkwisp.app.nostr.ClientMessage
@@ -17,23 +20,34 @@ internal suspend fun publishMarketplaceEvent(
     context: Context
 ) {
     val message = ClientMessage.event(event)
-    relayPool.ensureWriteRelaysConnected(timeoutMs = 8_000)
-    relayPool.ensureMarketplaceWriteRelaysConnected(
-        MarketplaceRelays.WRITE,
-        timeoutMs = 8_000
-    )
-    var outcome = relayPool.publishWithConfirmation(event.id) {
+
+    suspend fun prepareRelays(forceReconnect: Boolean) = coroutineScope {
+        // The Marketplace action should not wait 8 seconds for every configured relay.
+        // Prepare the personal and curated Marketplace write sets concurrently; any
+        // connected writable relay can then accept the event.
+        val personal = async {
+            if (forceReconnect) relayPool.cycleWriteRelays(timeoutMs = 2_000)
+            else relayPool.ensureWriteRelaysConnected(timeoutMs = 2_000)
+        }
+        val marketplace = async {
+            relayPool.ensureMarketplaceWriteRelaysConnected(
+                MarketplaceRelays.WRITE,
+                timeoutMs = 2_000,
+                forceReconnect = forceReconnect
+            )
+        }
+        personal.await()
+        marketplace.await()
+    }
+
+    prepareRelays(forceReconnect = false)
+    var outcome = relayPool.publishWithConfirmation(event.id, timeoutMs = 4_000) {
         relayPool.sendToWriteRelays(message) +
             relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
     }
     if (outcome.sentCount == 0 || !outcome.confirmed) {
-        relayPool.cycleWriteRelays(timeoutMs = 8_000)
-        relayPool.ensureMarketplaceWriteRelaysConnected(
-            MarketplaceRelays.WRITE,
-            timeoutMs = 8_000,
-            forceReconnect = true
-        )
-        outcome = relayPool.publishWithConfirmation(event.id) {
+        prepareRelays(forceReconnect = true)
+        outcome = relayPool.publishWithConfirmation(event.id, timeoutMs = 4_000) {
             relayPool.sendToWriteRelays(message) +
                 relayPool.sendToMarketplaceWriteRelays(message, MarketplaceRelays.WRITE)
         }

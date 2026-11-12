@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.layout.imePadding
@@ -109,6 +111,7 @@ import com.darkwisp.app.ui.component.ZapDialog
 import com.darkwisp.app.relay.RelayPool
 import com.darkwisp.app.relay.RelayConfig
 import com.darkwisp.app.repo.EventRepository
+import com.darkwisp.app.repo.BookmarkSetRepository
 import com.darkwisp.app.viewmodel.MarketplaceScope
 import com.darkwisp.app.viewmodel.MarketplaceViewModel
 
@@ -370,7 +373,8 @@ fun MarketplaceDetailScreen(
     profileLookup: (String) -> com.darkwisp.app.nostr.ProfileData?,
     fetchPaymentTargets: (suspend (String) -> List<com.darkwisp.app.nostr.NipA3.PaymentTarget>)?,
     onOpenProfile: (String) -> Unit = {},
-    onBookmarkSetChanged: (NostrEvent) -> Unit = {}
+    onBookmarkSetChanged: (NostrEvent) -> Unit = {},
+    bookmarkSetRepository: BookmarkSetRepository? = null
 ) {
     val profileVersion by eventRepository.profileVersionFor(event.pubkey).collectAsState(initial = 0)
     val sellerProfile = remember(eventRepository, event.pubkey, profileVersion) {
@@ -428,15 +432,28 @@ fun MarketplaceDetailScreen(
     }
 
     LaunchedEffect(event.id, commentAddress) {
+        // Hydrate the discussion from ObjectBox first; relay replies then merge into
+        // the same list instead of making locally persisted comments disappear.
+        val cachedComments = withContext(Dispatchers.IO) {
+            eventRepository.getRecentCommentsForAddressableRoot(commentAddress, limit = 100)
+        }
+        cachedComments.forEach { comment ->
+            if (eventRepository.isEventVisibleToUser(comment) && comments.none { it.id == comment.id }) {
+                comments.add(comment)
+                eventRepository.requestProfileIfMissing(comment.pubkey)
+            }
+        }
+        comments.sortBy { it.created_at }
+
         val subId = "marketplace-comments-${event.id.take(12)}"
         val collector = launch(start = CoroutineStart.UNDISPATCHED) {
             relayPool.relayEvents.filter { it.subscriptionId == subId }.collect { frame ->
                 val comment = frame.event
                 if (Nip22.referencesAddressableRoot(comment, commentAddress) &&
                     eventRepository.isEventVisibleToUser(comment) && comments.none { it.id == comment.id }) {
+                    eventRepository.addEvent(comment)
                     comments.add(comment)
                     comments.sortBy { it.created_at }
-                    eventRepository.addEvent(comment)
                     eventRepository.requestProfileIfMissing(comment.pubkey)
                 }
             }
@@ -495,7 +512,13 @@ fun MarketplaceDetailScreen(
     }
 
     LaunchedEffect(event.id, listingAddress, userPubkey) {
-        val targets = (relayPool.getRelayUrls() + RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ).distinct()
+        val targets = (relayPool.getReadRelayUrls() + RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ).distinct()
+        val savedWatchlist = userPubkey?.let { bookmarkSetRepository?.getSet(it, MARKETPLACE_WATCHLIST_DTAG) }
+        if (savedWatchlist != null && !isOwnListing) {
+            isBookmarked = listingAddress in savedWatchlist.coordinates
+            bookmarkReady = true
+            bookmarkError = null
+        }
         val subscriptions = mutableListOf<String>()
         val collectors = mutableListOf<kotlinx.coroutines.Job>()
 
@@ -516,10 +539,17 @@ fun MarketplaceDetailScreen(
                                 dTag != MARKETPLACE_WATCHLIST_DTAG) return@collect
 
                             val set = Nip51.parseBookmarkSet(candidate) ?: return@collect
-                            if (candidate.created_at >= (watchlistEvent?.created_at ?: 0L)) {
+                            val localTimestamp = bookmarkSetRepository?.getSet(userPubkey, MARKETPLACE_WATCHLIST_DTAG)?.createdAt ?: 0L
+                            val latestTimestamp = maxOf(localTimestamp, watchlistEvent?.created_at ?: 0L)
+                            if (candidate.created_at > latestTimestamp) {
                                 watchlistEvent = candidate
                                 isBookmarked = listingAddress in set.coordinates
+                                bookmarkReady = true
+                                bookmarkError = null
                                 eventRepository.addEvent(candidate)
+                                bookmarkSetRepository?.setOwner(userPubkey)
+                                bookmarkSetRepository?.updateFromEvent(candidate)
+                                onBookmarkSetChanged(candidate)
                             }
                         }
                 })
@@ -546,7 +576,11 @@ fun MarketplaceDetailScreen(
                     relayPool.sendToRelayOrEphemeral(relay, request, skipBadCheck = true)
                 }
                 eoseWaiter.join()
-                bookmarkReady = eoseCount > 0
+                val localSetAfterFetch = bookmarkSetRepository?.getSet(userPubkey, MARKETPLACE_WATCHLIST_DTAG)
+                bookmarkReady = eoseCount > 0 || localSetAfterFetch != null
+                if (localSetAfterFetch != null) {
+                    isBookmarked = listingAddress in localSetAfterFetch.coordinates
+                }
                 if (!bookmarkReady) {
                     bookmarkError = context.getString(R.string.marketplace_watchlist_load_failed)
                 }
@@ -566,15 +600,22 @@ fun MarketplaceDetailScreen(
 
                         val set = Nip51.parseBookmarkSet(candidate) ?: return@collect
                         val previous = publicInterestByPubkey[candidate.pubkey]?.createdAt ?: 0L
-                        if (candidate.created_at >= previous) {
+                        if (candidate.created_at > previous) {
                             val interested = candidate.pubkey != event.pubkey && listingAddress in set.coordinates
                             val updated = publicInterestByPubkey.toMutableMap()
                             updated[candidate.pubkey] = MarketplaceWatchlistSnapshot(candidate.created_at, interested)
                             if (interested) eventRepository.requestProfileIfMissing(candidate.pubkey)
                             publicInterestByPubkey = updated
                             if (candidate.pubkey == userPubkey && !isOwnListing) {
-                                watchlistEvent = candidate
-                                isBookmarked = listingAddress in set.coordinates
+                                val localTimestamp = bookmarkSetRepository?.getSet(userPubkey, MARKETPLACE_WATCHLIST_DTAG)?.createdAt ?: 0L
+                                if (candidate.created_at > maxOf(localTimestamp, watchlistEvent?.created_at ?: 0L)) {
+                                    watchlistEvent = candidate
+                                    isBookmarked = listingAddress in set.coordinates
+                                    bookmarkReady = true
+                                    bookmarkSetRepository?.setOwner(userPubkey)
+                                    bookmarkSetRepository?.updateFromEvent(candidate)
+                                    onBookmarkSetChanged(candidate)
+                                }
                             }
                             eventRepository.addEvent(candidate)
                         }
@@ -745,7 +786,12 @@ fun MarketplaceDetailScreen(
                                         bookmarkBusy = true
                                         bookmarkError = null
                                         try {
-                                            val currentSet = watchlistEvent?.let { Nip51.parseBookmarkSet(it) }
+                                            // Prefer the locally persisted snapshot over any relay copy that
+                                            // may still be one revision behind the previous bookmark action.
+                                            val currentSet = bookmarkSetRepository?.getSet(
+                                                activeSigner.pubkeyHex,
+                                                MARKETPLACE_WATCHLIST_DTAG
+                                            ) ?: watchlistEvent?.let { Nip51.parseBookmarkSet(it) }
                                             val coordinates = currentSet?.coordinates?.toMutableSet() ?: mutableSetOf()
                                             if (listingAddress in coordinates) coordinates.remove(listingAddress)
                                             else coordinates.add(listingAddress)
@@ -763,14 +809,19 @@ fun MarketplaceDetailScreen(
                                                 tags = tags,
                                                 createdAt = maxOf(
                                                     System.currentTimeMillis() / 1000,
+                                                    (currentSet?.createdAt ?: 0L) + 1L,
                                                     (watchlistEvent?.created_at ?: 0L) + 1L
                                                 )
                                             )
-                                            publishMarketplaceEvent(relayPool, updatedEvent, context)
+                                            // Persist and update the visible state optimistically. A slow or
+                                            // unavailable relay must not make the selected item vanish.
                                             eventRepository.addEvent(updatedEvent)
+                                            bookmarkSetRepository?.setOwner(activeSigner.pubkeyHex)
+                                            bookmarkSetRepository?.updateFromEvent(updatedEvent)
                                             onBookmarkSetChanged(updatedEvent)
                                             watchlistEvent = updatedEvent
                                             isBookmarked = listingAddress in coordinates
+                                            bookmarkReady = true
 
                                             val updatedInterests = publicInterestByPubkey.toMutableMap()
                                             val activePubkey = userPubkey
@@ -781,6 +832,7 @@ fun MarketplaceDetailScreen(
                                                 )
                                             }
                                             publicInterestByPubkey = updatedInterests
+                                            publishMarketplaceEvent(relayPool, updatedEvent, context)
                                         } catch (error: Exception) {
                                             bookmarkError = error.localizedMessage
                                                 ?: context.getString(R.string.marketplace_watchlist_update_failed)
@@ -852,10 +904,12 @@ fun MarketplaceDetailScreen(
                             commentError = null
                             try {
                                 val comment = activeSigner.signEvent(Nip22.KIND_COMMENT, body, Nip22.buildAddressableRootCommentTags(event))
-                                publishMarketplaceEvent(relayPool, comment, context)
+                                // Add the signed comment to the local persistent repository before
+                                // waiting for a relay ACK, so the discussion never flickers away.
                                 eventRepository.addEvent(comment)
                                 if (comments.none { it.id == comment.id }) { comments.add(comment); comments.sortBy { it.created_at } }
                                 commentText = ""
+                                publishMarketplaceEvent(relayPool, comment, context)
                             } catch (e: Exception) {
                                 commentError = e.localizedMessage ?: e.message ?: "Unable to publish comment"
                             } finally { commentSending = false }

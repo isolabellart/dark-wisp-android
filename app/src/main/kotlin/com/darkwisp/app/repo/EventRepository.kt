@@ -1225,6 +1225,27 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     }
 
     /**
+     * Resolve Marketplace NIP-22 comments from memory and ObjectBox so a listing
+     * discussion is immediately available after navigating away or restarting.
+     */
+    fun getRecentCommentsForAddressableRoot(address: String, limit: Int = 100): List<NostrEvent> {
+        if (address.isBlank() || limit <= 0) return emptyList()
+        val cached = eventCache.values.filter { event ->
+            event.kind == Nip22.KIND_COMMENT && Nip22.referencesAddressableRoot(event, address) && isVisible(event)
+        }
+        val persisted = eventPersistence
+            ?.getRecentEventsByKind(Nip22.KIND_COMMENT, limit = maxOf(limit * 10, 500))
+            .orEmpty()
+        return (cached + persisted)
+            .asSequence()
+            .filter { it.kind == Nip22.KIND_COMMENT && Nip22.referencesAddressableRoot(it, address) && isVisible(it) }
+            .distinctBy { it.id }
+            .sortedByDescending { it.created_at }
+            .take(limit)
+            .toList()
+    }
+
+    /**
      * Resolve the real sender + message of a kind 9735 zap receipt:
      * 1. DIP-03 recipient path — decrypt the anon tag with our privkey.
      * 2. DIP-03 self-attribution — match the outer ephemeral against one

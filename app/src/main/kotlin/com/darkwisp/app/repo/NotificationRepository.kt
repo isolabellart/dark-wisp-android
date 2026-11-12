@@ -97,6 +97,7 @@ class NotificationRepository(
     val notifReceived: SharedFlow<Int> = _notifReceived
 
     init {
+        loadMarketplaceBookmarkNotifications()
         rebuildScope.launch {
             for (signal in rebuildSignals) {
                 // One frame is enough to coalesce bursts from a single relay
@@ -370,6 +371,50 @@ class NotificationRepository(
             }
     }
 
+    /** Persist Marketplace save notifications independently of relay history. */
+    private fun persistMarketplaceBookmarkNotificationsLocked() {
+        val saved = flatItems.asSequence()
+            .filter { it.type == NotificationType.MARKETPLACE_BOOKMARK }
+            .sortedByDescending { it.timestamp }
+            .take(500)
+        val array = JSONArray()
+        saved.forEach { item ->
+            array.put(
+                JSONObject()
+                    .put("id", item.id)
+                    .put("actorPubkey", item.actorPubkey)
+                    .put("referencedEventId", item.referencedEventId)
+                    .put("timestamp", item.timestamp)
+            )
+        }
+        prefs.edit().putString(KEY_MARKETPLACE_BOOKMARK_NOTIFICATIONS, array.toString()).apply()
+    }
+
+    /** Restore the account-scoped Marketplace save notifications after startup/account reload. */
+    private fun loadMarketplaceBookmarkNotifications() = synchronized(lock) {
+        val raw = prefs.getString(KEY_MARKETPLACE_BOOKMARK_NOTIFICATIONS, null) ?: return@synchronized
+        val array = try { JSONArray(raw) } catch (_: Exception) { return@synchronized }
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            val id = item.optString("id").takeIf { it.isNotBlank() } ?: continue
+            val actor = item.optString("actorPubkey").takeIf { it.isNotBlank() } ?: continue
+            val reference = item.optString("referencedEventId").takeIf { it.isNotBlank() } ?: continue
+            val timestamp = item.optLong("timestamp", 0L)
+            if (timestamp <= 0L || !flatItemIds.add(id)) continue
+            flatItems.add(
+                FlatNotificationItem(
+                    id = id,
+                    type = NotificationType.MARKETPLACE_BOOKMARK,
+                    actorPubkey = actor,
+                    referencedEventId = reference,
+                    timestamp = timestamp
+                )
+            )
+        }
+        _hasUnread.value = !isViewing && flatItems.any { it.timestamp > lastReadTimestamp }
+        if (flatItems.any { it.type == NotificationType.MARKETPLACE_BOOKMARK }) scheduleRebuildSortedList()
+    }
+
     /**
      * Add a notification when someone adds one of the current user's NIP-99
      * listings to their public Marketplace watchlist (NIP-51 kind 30003).
@@ -395,6 +440,7 @@ class NotificationRepository(
                     timestamp = watchlistEvent.created_at
                 )
             )
+            persistMarketplaceBookmarkNotificationsLocked()
             if (watchlistEvent.created_at > latestNotifTs) {
                 latestNotifTs = watchlistEvent.created_at
                 prefs.edit().putLong(KEY_LATEST_NOTIF_TS, watchlistEvent.created_at).apply()
@@ -462,6 +508,7 @@ class NotificationRepository(
             @Suppress("ktlint:standard:property-naming")
             latestNotifTs = prefs.getLong("latest_notif_ts", 0L)
         }
+        loadMarketplaceBookmarkNotifications()
     }
 
     fun purgeUser(pubkey: String) = synchronized(lock) {
@@ -495,10 +542,11 @@ class NotificationRepository(
 
         toRemove.forEach { groupMap.remove(it) }
         toUpdate.forEach { (k, v) -> groupMap[k] = v }
-        flatItems.removeAll { item ->
+        val removedFlat = flatItems.removeAll { item ->
             if (item.actorPubkey == pubkey) { flatItemIds.remove(item.id); true } else false
         }
-        if (toRemove.isNotEmpty() || toUpdate.isNotEmpty()) {
+        if (removedFlat) persistMarketplaceBookmarkNotificationsLocked()
+        if (removedFlat || toRemove.isNotEmpty() || toUpdate.isNotEmpty()) {
             scheduleRebuildSortedList()
         }
     }
@@ -1077,6 +1125,7 @@ class NotificationRepository(
     companion object {
         private const val KEY_LAST_READ = "last_read_timestamp"
         private const val KEY_LATEST_NOTIF_TS = "latest_notif_ts"
+        private const val KEY_MARKETPLACE_BOOKMARK_NOTIFICATIONS = "marketplace_bookmark_notifications"
         private const val RECENT_WINDOW_SECONDS = 600L // 10 minutes
         private const val SUMMARY_WINDOW_SECONDS = 86400L // 24 hours
     }
