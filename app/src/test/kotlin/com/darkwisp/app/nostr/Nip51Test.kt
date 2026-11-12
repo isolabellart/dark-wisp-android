@@ -8,7 +8,11 @@ class Nip51Test {
     @Test
     fun marketplaceWatchlistRoundTripsPublicListingCoordinates() {
         val dTag = "dark-wisp-marketplace-watchlist"
-        val coordinates = setOf("30402:" + "ab".repeat(32) + ":painting-01")
+        val coordinates = setOf(
+            "30402:" + "ab".repeat(32) + ":painting-01",
+            "30402:" + "ef".repeat(32) + ":painting-02",
+            "30402:" + "12".repeat(32) + ":painting-03"
+        )
         val tags = Nip51.buildBookmarkSetTags(
             dTag = dTag,
             eventIds = emptySet(),

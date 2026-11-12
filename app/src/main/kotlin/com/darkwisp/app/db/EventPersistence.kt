@@ -151,10 +151,6 @@ class EventPersistence(
         }
     }
 
-    /**
-     * Read a bounded history slice for one author across several event kinds.
-     * Used to paint profile timelines from local storage before relay responses arrive.
-     */
     /** Query a bounded, newest-first slice for a single event kind. */
     fun getRecentEventsByKind(kind: Int, limit: Int = 500): List<NostrEvent> {
         if (limit <= 0) return emptyList()
@@ -170,6 +166,10 @@ class EventPersistence(
         }
     }
 
+    /**
+     * Read a bounded history slice for one author across several event kinds.
+     * Used to paint profile timelines from local storage before relay responses arrive.
+     */
     fun getEventsByAuthorAndKinds(pubkey: String, kinds: Set<Int>, limit: Int = 200): List<NostrEvent> {
         if (pubkey.isBlank() || kinds.isEmpty() || limit <= 0) return emptyList()
         return try {
