@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.CurrencyBitcoin
@@ -2265,7 +2266,7 @@ private fun NotificationTypeIcon(item: FlatNotificationItem, showSats: Boolean =
         NotificationType.PROFILE_ZAP -> {} // handled by early-return above
         NotificationType.MARKETPLACE_BOOKMARK -> {
             Icon(
-                Icons.Outlined.FavoriteBorder,
+                Icons.Outlined.BookmarkBorder,
                 contentDescription = "Saved to Marketplace watchlist",
                 modifier = Modifier.size(iconSize),
                 tint = MaterialTheme.colorScheme.primary
