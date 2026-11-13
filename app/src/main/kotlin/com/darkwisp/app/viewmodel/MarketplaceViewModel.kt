@@ -165,7 +165,12 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                     // Use cached relays first; discover kind 10002 if no usable outbox is known.
                     var knownSellerRelays = relayListRepository.getWriteRelays(sellerPubkey).orEmpty()
                     if (knownSellerRelays.isEmpty()) {
-                        PeerRelayListLookup.fetch(sellerPubkey, relayPool, relayListRepository)
+                        PeerRelayListLookup.fetch(
+                            sellerPubkey,
+                            relayPool,
+                            relayListRepository,
+                            requireMarketplaceRelayEose = true
+                        )
                         knownSellerRelays = relayListRepository.getWriteRelays(sellerPubkey).orEmpty()
                     }
                     sellerRelayTargets = knownSellerRelays.distinct()

@@ -31,7 +31,8 @@ object PeerRelayListLookup {
         pubkey: String,
         relayPool: RelayPool,
         relayListRepo: RelayListRepository,
-        extraRelayUrls: List<String> = emptyList()
+        extraRelayUrls: List<String> = emptyList(),
+        requireMarketplaceRelayEose: Boolean = false
     ) {
         val subId = "peer-relays-${pubkey.take(8)}-${requestSequence.incrementAndGet()}"
         val filter = Filter(
@@ -49,9 +50,10 @@ object PeerRelayListLookup {
                 MarketplaceRelays.READ +
                 extraRelayUrls.filter { RelayConfig.isValidUrl(it) }
             ).filter { RelayConfig.isValidUrl(it) }.distinct()
-        val requiredRelayUrls = extraRelayUrls
-            .filter { RelayConfig.isValidUrl(it) }
-            .distinct()
+        val requiredRelayUrls = buildPeerRelayListRequiredResponses(
+            extraRelayUrls = extraRelayUrls,
+            requireMarketplaceRelayEose = requireMarketplaceRelayEose
+        )
         val results = Collections.synchronizedList(mutableListOf<RelayEvent>())
         val eoseTracker = AddressableRelayEoseTracker(discoveryRelayUrls)
 
@@ -117,4 +119,18 @@ object PeerRelayListLookup {
             relayListRepo.updateFromEvent(best.event)
         }
     }
+}
+
+/**
+ * On seller storefronts the entry point is an npub, which carries no NIP-19 relay hints.
+ * Require the public Marketplace read relays to finish their NIP-65 lookup before closing;
+ * otherwise three fast unrelated EOSE frames can hide the seller's write-relay list.
+ * Explicit naddr lookups keep their narrower, caller-supplied relay-hint requirement.
+ */
+internal fun buildPeerRelayListRequiredResponses(
+    extraRelayUrls: List<String>,
+    requireMarketplaceRelayEose: Boolean
+): List<String> = (
+    extraRelayUrls + if (requireMarketplaceRelayEose) MarketplaceRelays.READ else emptyList()
+    ).filter { RelayConfig.isValidUrl(it) }.distinct()
 }
