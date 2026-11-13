@@ -10,6 +10,7 @@ on:
       - "fix/marketplace-1.0.10-feedback"
       - "feature/postilla-visual-identity"
       - "rebrand/postilla-public-identity"
+      - "feature/postilla-commerce-on-rebrand"
     paths:
       - "app/**"
       - "gradle/**"
