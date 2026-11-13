@@ -10,6 +10,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import com.darkwisp.app.ui.component.ProfilePicture
+import com.darkwisp.app.ui.component.MarketplaceAvailabilityBadge
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.channels.Channel
@@ -389,25 +390,28 @@ internal fun MarketplaceListingCard(
     onClick: () -> Unit
 ) {
     val image = Nip99.images(event).firstOrNull()
-    val sold = Nip99.isSold(event)
+    val availability = Nip99.availability(event)
     val profileVersion by eventRepository.profileVersionFor(event.pubkey).collectAsState(initial = 0)
     val sellerProfile = remember(eventRepository, event.pubkey, profileVersion) {
         eventRepository.getProfileData(event.pubkey)
     }
     LaunchedEffect(event.pubkey) { eventRepository.requestProfileIfMissing(event.pubkey) }
+
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(112.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(width = 116.dp, height = 148.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (image != null) {
@@ -419,27 +423,56 @@ internal fun MarketplaceListingCard(
                     )
                 } else {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Outlined.Storefront, contentDescription = null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.Outlined.Storefront,
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
-            Spacer(Modifier.width(12.dp))
+
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(7.dp)
             ) {
-                Text(Nip99.title(event), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2)
+                Text(
+                    Nip99.title(event),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2
+                )
+                val summary = Nip99.summary(event)
+                if (summary.isNotBlank()) {
+                    Text(
+                        summary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2
+                    )
+                }
                 Nip99.price(event)?.let { price ->
                     Text(
                         Nip99.priceLabel(event).orEmpty(),
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
                     )
                     MarketplaceLightningEstimate(amount = price.amount, currency = price.currency)
                 }
+                MarketplaceAvailabilityBadge(availability)
+
                 val location = Nip99.location(event)
-                if (location.isNotBlank()) Text(location, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                if (location.isNotBlank()) {
+                    Text(
+                        location,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -447,7 +480,8 @@ internal fun MarketplaceListingCard(
                 ) {
                     ProfilePicture(url = sellerProfile?.picture, size = 24)
                     Text(
-                        sellerProfile?.displayString ?: event.pubkey.take(8) + "…" + event.pubkey.takeLast(4),
+                        sellerProfile?.displayString
+                            ?: event.pubkey.take(8) + "…" + event.pubkey.takeLast(4),
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -457,22 +491,25 @@ internal fun MarketplaceListingCard(
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceVariant,
                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(50)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(Icons.Filled.Bookmark, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Text(bookmarkCount.toString(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Icon(
+                                    Icons.Filled.Bookmark,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    bookmarkCount.toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
-                    }
-                }
-                if (sold) {
-                    Badge(containerColor = MaterialTheme.colorScheme.errorContainer) {
-                        Text(stringResource(R.string.marketplace_sold), color = MaterialTheme.colorScheme.onErrorContainer)
                     }
                 }
             }
@@ -513,7 +550,8 @@ fun MarketplaceDetailScreen(
     val title = Nip99.title(event)
     val images = Nip99.images(event)
     val summary = Nip99.summary(event)
-    val sold = Nip99.isSold(event)
+    val availability = Nip99.availability(event)
+    val sold = availability.state == Nip99.AvailabilityState.SOLD_OUT
     var message by remember(event.id) {
         mutableStateOf("")
     }
@@ -986,15 +1024,7 @@ fun MarketplaceDetailScreen(
                     )
                     MarketplaceLightningEstimate(amount = price.amount, currency = price.currency)
                 }
-                if (sold) {
-                    Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(8.dp)) {
-                        Text(stringResource(R.string.marketplace_sold), modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), color = MaterialTheme.colorScheme.onErrorContainer)
-                    }
-                } else {
-                    Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(8.dp)) {
-                        Text(stringResource(R.string.marketplace_active), modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    }
-                }
+                MarketplaceAvailabilityBadge(availability)
                 if (summary.isNotBlank()) Text(summary, style = MaterialTheme.typography.titleMedium)
                 val location = Nip99.location(event)
                 if (location.isNotBlank()) {

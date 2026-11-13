@@ -30,6 +30,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,6 +67,7 @@ import com.darkwisp.app.nostr.Nip01EventOrder
 import com.darkwisp.app.nostr.MarketplaceRelays
 import com.darkwisp.app.nostr.MarketplaceCurrencies
 import com.darkwisp.app.ui.screen.MarketplaceLightningEstimate
+import com.darkwisp.app.ui.component.MarketplaceAvailabilityBadge
 
 import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.nostr.NostrSigner
@@ -105,6 +108,7 @@ fun MarketplaceEditorScreen(
     var category by remember(existingEvent?.id) { mutableStateOf(existingEvent?.let { Nip99.categories(it).joinToString(", ") } ?: "") }
     var images by remember(existingEvent?.id) { mutableStateOf(existingEvent?.let { Nip99.images(it) } ?: emptyList()) }
     var status by remember(existingEvent?.id) { mutableStateOf(existingEvent?.let { Nip99.status(it) } ?: "active") }
+    var stock by remember(existingEvent?.id) { mutableStateOf(existingEvent?.let { Nip99.stock(it)?.toString() }.orEmpty()) }
     val dTag = remember(existingEvent?.id) {
         existingEvent?.let { Nip99.dTag(it) }?.takeIf { it.isNotBlank() }
             ?: ("listing-" + UUID.randomUUID().toString())
@@ -275,6 +279,17 @@ fun MarketplaceEditorScreen(
                         )
                     }
                     item {
+                        OutlinedTextField(
+                            value = stock,
+                            onValueChange = { stock = it.filter { character -> character.isDigit() }.take(10) },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text(stringResource(R.string.marketplace_stock_field)) },
+                            supportingText = { Text(stringResource(R.string.marketplace_stock_hint)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
+                    item {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(stringResource(R.string.marketplace_status_label), style = MaterialTheme.typography.titleSmall)
                             FilterChip(
@@ -353,6 +368,18 @@ fun MarketplaceEditorScreen(
                             }
                         }
                     }
+                    item {
+                        MarketplaceDraftPreview(
+                            title = title,
+                            summary = summary,
+                            amount = amount,
+                            currency = currency,
+                            location = location,
+                            images = images,
+                            status = status,
+                            stock = stock.toIntOrNull()
+                        )
+                    }
                     if (error != null) {
                         item {
                             Text(error ?: "", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -375,6 +402,11 @@ fun MarketplaceEditorScreen(
                             error = context.getString(R.string.marketplace_login_required)
                             return@Button
                         }
+                        val declaredStock = stock.trim().takeIf { it.isNotEmpty() }?.toIntOrNull()
+                        if (stock.isNotBlank() && (declaredStock == null || declaredStock < 0)) {
+                            error = context.getString(R.string.marketplace_stock_invalid)
+                            return@Button
+                        }
                         scope.launch {
                             saving = true
                             error = null
@@ -389,7 +421,8 @@ fun MarketplaceEditorScreen(
                                     location = location,
                                     category = category,
                                     images = images,
-                                    status = status
+                                    status = status,
+                                    stock = declaredStock
                                 )
                                 val latestKnownCreatedAt = eventRepository.findAddressableEvent(
                                     kind = Nip99.KIND_LISTING,
@@ -514,5 +547,103 @@ fun MarketplaceEditorScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun MarketplaceDraftPreview(
+    title: String,
+    summary: String,
+    amount: String,
+    currency: String,
+    location: String,
+    images: List<String>,
+    status: String,
+    stock: Int?
+) {
+    val availability = Nip99.availability(status, stock)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    stringResource(R.string.marketplace_preview_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                )
+                Text(
+                    stringResource(R.string.marketplace_preview_live),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(190.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                val firstImage = images.firstOrNull()
+                if (firstImage != null) {
+                    AsyncImage(
+                        model = firstImage,
+                        contentDescription = title.ifBlank { null },
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Text(
+                        stringResource(R.string.marketplace_preview_no_image),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                Text(
+                    title.ifBlank { stringResource(R.string.marketplace_preview_untitled) },
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    maxLines = 2
+                )
+                if (summary.isNotBlank()) {
+                    Text(
+                        summary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2
+                    )
+                }
+                if (amount.isNotBlank()) {
+                    Text(
+                        "$amount $currency",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                }
+                MarketplaceAvailabilityBadge(availability)
+                if (location.isNotBlank()) {
+                    Text(
+                        location,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+        }
     }
 }

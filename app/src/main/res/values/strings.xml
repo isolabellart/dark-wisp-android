@@ -1008,6 +1008,16 @@
     <string name="marketplace_location_field">Location</string>
     <string name="marketplace_category_field">Categories</string>
     <string name="marketplace_category_hint">Separate categories with commas</string>
+    <string name="marketplace_stock_field">Available quantity (optional)</string>
+    <string name="marketplace_stock_hint">Leave empty when availability is not declared. Enter 0 when sold out.</string>
+    <string name="marketplace_stock_invalid">Enter a valid whole-number quantity or leave the field empty.</string>
+    <string name="marketplace_availability_available_count">Available · %1$d</string>
+    <string name="marketplace_availability_sold_out">Sold out</string>
+    <string name="marketplace_availability_unknown">Availability to be confirmed</string>
+    <string name="marketplace_preview_title">Listing preview</string>
+    <string name="marketplace_preview_live">Live preview</string>
+    <string name="marketplace_preview_no_image">No image selected</string>
+    <string name="marketplace_preview_untitled">Listing title</string>
     <string name="marketplace_status_label">Listing status</string>
     <string name="marketplace_active">Active</string>
     <string name="marketplace_sold">Sold</string>
@@ -1041,7 +1051,7 @@
     <string name="marketplace_contact_title">Ask the seller</string>
     <string name="marketplace_contact_explainer">Ask about availability, condition, payment or delivery.</string>
     <string name="marketplace_message_label">Your private message</string>
-    <string name="marketplace_message_intro">Hello! I’m interested in “%1$s”. Is it still available?</string>
+    <string name="marketplace_message_intro">Hello! I’d like to know a little more about “%1$s”.</string>
     <string name="marketplace_contact_button">Continue in private chat</string>
     <string name="marketplace_dm_privacy">A private NIP-17 chat will open. Review your message and send it from there.</string>
     <string name="marketplace_dm_relay_required">This seller has not published a NIP-17 DM relay list (kind 10050). Dark Wisp will not use fallback relays, to protect your privacy.</string>
