@@ -4,8 +4,9 @@ package com.darkwisp.app.nostr
  * Public relay destinations used to discover and publish NIP-99 classified listings.
  *
  * Barattolo's relay is deliberately read-only here: its operator restricts writes to
- * approved accounts. Public marketplace relays are kept separate from each user's NIP-65
- * relay preferences, so read-only personal relays are never silently promoted to writers.
+ * approved accounts. Plebeian Market is added as an extra read-only discovery source; it is
+ * not assumed to be a network-wide aggregator. Public marketplace relays are kept separate
+ * from each user's NIP-65 relay preferences, so read-only sources are never promoted to writers.
  */
 object MarketplaceRelays {
     val READ = listOf(
@@ -17,6 +18,7 @@ object MarketplaceRelays {
         "wss://purplepag.es",
         "wss://relay.barattolo.store",
         "wss://relay.conduit.market",
+        "wss://relay.plebeian.market",
         "wss://relay.nostr.band",
     )
 
