@@ -5,8 +5,14 @@ import com.darkwisp.app.nostr.Filter
 import com.darkwisp.app.relay.RelayConfig
 import com.darkwisp.app.relay.RelayEvent
 import com.darkwisp.app.relay.RelayPool
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.launch
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Fetch a peer's kind 10002 relay list (NIP-65) from indexer relays + the connected pool,
@@ -14,37 +20,49 @@ import kotlinx.coroutines.withTimeoutOrNull
  * repository for the peer's read/inbox or write/outbox relays.
  */
 object PeerRelayListLookup {
+    private val requestSequence = AtomicLong()
+
     suspend fun fetch(
         pubkey: String,
         relayPool: RelayPool,
         relayListRepo: RelayListRepository
     ) {
-        val subId = "rl_${pubkey.take(8)}"
+        val subId = "peer-relays-${pubkey.take(8)}-${requestSequence.incrementAndGet()}"
         val filter = Filter(
             kinds = listOf(10002),
             authors = listOf(pubkey),
             limit = 1
         )
         val reqMsg = ClientMessage.req(subId, filter)
-        for (url in RelayConfig.DEFAULT_INDEXER_RELAYS) {
-            relayPool.sendToRelayOrEphemeral(url, reqMsg, skipBadCheck = true)
-        }
-        relayPool.sendToAll(reqMsg)
-
-        val results = mutableListOf<RelayEvent>()
-        withTimeoutOrNull(4000L) {
-            relayPool.relayEvents
-                .filter { it.subscriptionId == subId }
-                .collect { results.add(it) }
-        }
-
         val closeMsg = ClientMessage.close(subId)
-        for (url in RelayConfig.DEFAULT_INDEXER_RELAYS) {
-            relayPool.sendToRelay(url, closeMsg)
-        }
-        relayPool.sendToAll(closeMsg)
+        val results = Collections.synchronizedList(mutableListOf<RelayEvent>())
 
-        val best = results.maxByOrNull { it.event.created_at }
+        coroutineScope {
+            // Subscribe before sending REQ: relay replies can arrive immediately.
+            val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+                relayPool.relayEvents
+                    .filter { it.subscriptionId == subId }
+                    .collect { results.add(it) }
+            }
+
+            try {
+                for (url in RelayConfig.DEFAULT_INDEXER_RELAYS) {
+                    relayPool.sendToRelayOrEphemeral(url, reqMsg, skipBadCheck = true)
+                }
+                relayPool.sendToAll(reqMsg)
+
+                // Allow indexers and connected relays to return the latest kind 10002.
+                delay(4000L)
+            } finally {
+                collector.cancelAndJoin()
+                for (url in RelayConfig.DEFAULT_INDEXER_RELAYS) {
+                    relayPool.sendToRelayOrEphemeral(url, closeMsg, skipBadCheck = true)
+                }
+                relayPool.sendToAll(closeMsg)
+            }
+        }
+
+        val best = synchronized(results) { results.maxByOrNull { it.event.created_at } }
         if (best != null) {
             relayListRepo.updateFromEvent(best.event)
         }

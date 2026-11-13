@@ -626,7 +626,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     @Volatile private var relaySourceDirtyFlag = false
     @Volatile private var pollVoteDirty = false
 
-    private val WOT_EXEMPT_KINDS = intArrayOf(0, 3, 4, 10002, 10050, 1059, 13, 14)
+    private val WOT_EXEMPT_KINDS = intArrayOf(0, 3, 4, 10002, 10050, 1059, 13, 14, Nip99.KIND_LISTING)
 
     private fun isWotFiltered(pubkey: String, kind: Int): Boolean {
         if (safetyPrefs?.wotFilterEnabled?.value != true) return false

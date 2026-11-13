@@ -18,6 +18,8 @@ internal class MarketplaceRelayEoseTracker(targetRelayUrls: Collection<String>) 
 
     fun completedCount(): Int = completed.size
 
+    fun hasCompleted(relayUrl: String): Boolean = relayUrl in completed
+
     fun minimumResponseCount(): Int = minOf(6, targets.size)
 
     fun allTargetsCompleted(): Boolean = completed.containsAll(targets)

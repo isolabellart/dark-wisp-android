@@ -26,6 +26,16 @@ class MarketplaceRelayEoseTrackerTest {
     }
 
     @Test
+    fun `seller relay completion can be checked independently`() {
+        val tracker = MarketplaceRelayEoseTracker(listOf("wss://indexer.example", "wss://seller.example"))
+        tracker.markCompleted("wss://indexer.example")
+
+        assertFalse(tracker.hasCompleted("wss://seller.example"))
+        tracker.markCompleted("wss://seller.example")
+        assertTrue(tracker.hasCompleted("wss://seller.example"))
+    }
+
+    @Test
     fun `all distinct targets complete the request`() {
         val tracker = MarketplaceRelayEoseTracker(listOf("wss://one.example", "wss://two.example"))
         tracker.markCompleted("wss://one.example")

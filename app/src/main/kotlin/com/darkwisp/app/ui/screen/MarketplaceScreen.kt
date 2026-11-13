@@ -114,6 +114,7 @@ import com.darkwisp.app.ui.component.ZapDialog
 import com.darkwisp.app.relay.RelayPool
 import com.darkwisp.app.relay.RelayConfig
 import com.darkwisp.app.repo.EventRepository
+import com.darkwisp.app.repo.RelayListRepository
 import com.darkwisp.app.repo.BookmarkSetRepository
 import com.darkwisp.app.viewmodel.MarketplaceScope
 import com.darkwisp.app.viewmodel.MarketplaceViewModel
@@ -131,6 +132,7 @@ fun MarketplaceScreen(
     viewModel: MarketplaceViewModel,
     relayPool: RelayPool,
     eventRepository: EventRepository,
+    relayListRepository: RelayListRepository,
     followedPubkeys: List<String>,
     userPubkey: String?,
     onBack: () -> Unit,
@@ -148,8 +150,8 @@ fun MarketplaceScreen(
     val loading by viewModel.loading.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    LaunchedEffect(selectedScope, followedPubkeys, userPubkey, sellerPubkey) {
-        viewModel.load(selectedScope, relayPool, eventRepository, followedPubkeys, userPubkey, sellerPubkey)
+    LaunchedEffect(selectedScope, followedPubkeys, userPubkey, sellerPubkey, relayListRepository) {
+        viewModel.load(selectedScope, relayPool, eventRepository, followedPubkeys, userPubkey, relayListRepository, sellerPubkey)
     }
 
     var storefrontWatchlists by remember(sellerPubkey, userPubkey) {

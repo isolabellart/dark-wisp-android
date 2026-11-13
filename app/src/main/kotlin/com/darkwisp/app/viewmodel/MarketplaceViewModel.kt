@@ -13,6 +13,8 @@ import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.relay.RelayConfig
 import com.darkwisp.app.relay.RelayPool
 import com.darkwisp.app.repo.EventRepository
+import com.darkwisp.app.repo.PeerRelayListLookup
+import com.darkwisp.app.repo.RelayListRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +55,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
     private val cacheLock = Any()
     private var loadJob: Job? = null
     private var activeSubscriptionId: String? = null
+    @Volatile private var activeSellerRelayUrls: List<String> = emptyList()
     private var currentAuthors: Set<String> = emptySet()
     private var currentUserPubkey: String? = null
     private var currentSellerPubkey: String? = null
@@ -115,6 +118,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
         eventRepository: EventRepository,
         followedPubkeys: List<String>,
         userPubkey: String?,
+        relayListRepository: RelayListRepository,
         sellerPubkey: String? = null
     ) {
         _scope.value = selectedScope
@@ -132,9 +136,11 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
         // Detach the previous request before cancelling it. Its finally block
         // must not reset the next request's loading indicator or error state.
         val oldSubId = activeSubscriptionId
+        val oldSellerRelayUrls = activeSellerRelayUrls
         activeSubscriptionId = null
+        activeSellerRelayUrls = emptyList()
         loadJob?.cancel()
-        oldSubId?.let { closeSubscription(relayPool, it) }
+        oldSubId?.let { closeSubscription(relayPool, it, oldSellerRelayUrls) }
 
         if (selectedScope != MarketplaceScope.ALL && authors.isEmpty()) {
             _listings.value = emptyList()
@@ -152,7 +158,20 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
         activeSubscriptionId = subId
 
         loadJob = viewModelScope.launch(Dispatchers.IO) {
+            var sellerRelayTargets = emptyList<String>()
             try {
+                if (sellerPubkey != null) {
+                    // Product listings are published to the seller's NIP-65 write/outbox relays.
+                    // Use cached relays first; discover kind 10002 if no usable outbox is known.
+                    var knownSellerRelays = relayListRepository.getWriteRelays(sellerPubkey).orEmpty()
+                    if (knownSellerRelays.isEmpty()) {
+                        PeerRelayListLookup.fetch(sellerPubkey, relayPool, relayListRepository)
+                        knownSellerRelays = relayListRepository.getWriteRelays(sellerPubkey).orEmpty()
+                    }
+                    sellerRelayTargets = knownSellerRelays.distinct()
+                    if (activeSubscriptionId == subId) activeSellerRelayUrls = sellerRelayTargets
+                }
+
                 val filter = Filter(
                     kinds = listOf(Nip99.KIND_LISTING),
                     authors = authors.takeIf { it.isNotEmpty() }?.toList(),
@@ -204,7 +223,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                         }
                 }
 
-                val targets = (relayPool.getRelayUrls() + RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ).distinct()
+                val targets = (relayPool.getRelayUrls() + RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ + sellerRelayTargets).distinct()
                 val eoseTracker = MarketplaceRelayEoseTracker(targets)
                 val eoseCollector = launch(start = CoroutineStart.UNDISPATCHED) {
                     relayPool.relayEoseSignals
@@ -222,7 +241,8 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                 val completedWithinWindow = withTimeoutOrNull(LOAD_TIMEOUT_MS) {
                     while (true) {
                         val completedCount = eoseTracker.completedCount()
-                        if (completedCount >= eoseTracker.minimumResponseCount()) {
+                        val sellerRelaysCompleted = sellerRelayTargets.all(eoseTracker::hasCompleted)
+                        if (completedCount >= eoseTracker.minimumResponseCount() && sellerRelaysCompleted) {
                             if (drainStartedAt == 0L) {
                                 drainStartedAt = System.currentTimeMillis()
                             }
@@ -239,7 +259,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                     "MarketplaceVM",
                     "Listing fetch finished sub=$subId seller=${sellerPubkey?.take(12) ?: "all"} " +
                         "relays=${eoseTracker.completedCount()}/${eoseTracker.targetCount()} " +
-                        "remoteUpdates=${remoteListingCount.get()} timeout=${!completedWithinWindow}"
+                        "sellerRelays=${sellerRelayTargets.size} remoteUpdates=${remoteListingCount.get()} timeout=${!completedWithinWindow}"
                 )
                 eoseCollector.cancel()
                 eventCollector.cancel()
@@ -251,19 +271,24 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                     _error.value = error.localizedMessage ?: error.message
                 }
             } finally {
-                closeSubscription(relayPool, subId)
+                closeSubscription(relayPool, subId, sellerRelayTargets)
                 if (activeSubscriptionId == subId) {
                     activeSubscriptionId = null
+                    activeSellerRelayUrls = emptyList()
                     _loading.value = false
                 }
             }
         }
     }
 
-    private fun closeSubscription(relayPool: RelayPool, subId: String) {
+    private fun closeSubscription(
+        relayPool: RelayPool,
+        subId: String,
+        extraRelayUrls: List<String> = emptyList()
+    ) {
         val close = ClientMessage.close(subId)
         relayPool.sendToAll(close)
-        (RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ).distinct().forEach {
+        (RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ + extraRelayUrls).distinct().forEach {
             relayPool.sendToRelayOrEphemeral(it, close, skipBadCheck = true)
         }
     }
