@@ -172,12 +172,7 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
 
     /** Subscription prefixes that bypass event deduplication. */
     private val dedupBypassPrefixes = java.util.concurrent.CopyOnWriteArrayList(
-        listOf(
-            "thread-", "user", "quote-", "editprofile", "notif", "dms", "search-", "hashtag-",
-            // Explicit address resolution and peer NIP-65 discovery must receive an event
-            // even when another subscription has already delivered the same event ID.
-            "addr-", "peer-relays-"
-        )
+        RelayEventDedupPolicy.defaultBypassPrefixes
     )
 
     private val authLock = Any()
@@ -471,7 +466,7 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
                         }
                         // Some subscriptions bypass dedup since events may already
                         // have been seen during feed loading
-                        val bypassDedup = shouldBypassRelayEventDedup(msg.subscriptionId, dedupBypassPrefixes)
+                        val bypassDedup = RelayEventDedupPolicy.shouldBypass(msg.subscriptionId, dedupBypassPrefixes)
                         val shouldEmit = if (bypassDedup) {
                             true
                         } else {
@@ -1652,17 +1647,4 @@ class RelayPool(private var prefs: SharedPreferences? = null) {
         unsupportedCounts.clear()
         _connectedCount.value = 0
     }
-}
-
-/**
- * Return whether a subscription is allowed to receive event IDs already seen through
- * another subscription. Address/NIP-65 lookups use this so the active resolver can
- * observe the response and update its own state even when the event is globally cached.
- */
-internal fun shouldBypassRelayEventDedup(
-    subscriptionId: String,
-    prefixes: Collection<String>
-): Boolean = prefixes.any { prefix ->
-    if (prefix.endsWith("-")) subscriptionId.startsWith(prefix)
-    else subscriptionId == prefix || subscriptionId.startsWith(prefix)
 }
