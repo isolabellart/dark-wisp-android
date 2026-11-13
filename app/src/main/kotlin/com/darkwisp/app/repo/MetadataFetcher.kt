@@ -350,10 +350,14 @@ class MetadataFetcher(
                 // The query still fans out to account, indexer and marketplace relays,
                 // but we do not close it until every explicit NIP-19 / NIP-65 target
                 // has answered EOSE (or the overall timeout expires).
-                val priorityRelays = (safeHints + sellerWriteRelays).distinct()
-                val targetUrls = (
-                    priorityRelays + topRelays + accountReadRelays + marketplaceRelays
-                ).filter { RelayConfig.isValidUrl(it) }.distinct()
+                val relayPlan = buildAddressableRelayPlan(
+                    priorityRelays = safeHints + sellerWriteRelays,
+                    topRelays = topRelays,
+                    accountReadRelays = accountReadRelays,
+                    marketplaceRelays = marketplaceRelays
+                )
+                val targetUrls = relayPlan.targetUrls.filter { RelayConfig.isValidUrl(it) }
+                val priorityRelays = relayPlan.priorityRelayUrls.filter { it in targetUrls }
                 val eoseTracker = AddressableRelayEoseTracker(targetUrls)
 
                 eoseCollector = if (targetUrls.isNotEmpty()) {
