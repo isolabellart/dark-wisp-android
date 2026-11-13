@@ -29,6 +29,29 @@ object Nip99 {
     fun addressTag(event: NostrEvent): String = "${event.kind}:${event.pubkey}:${dTag(event)}"
 
     fun title(event: NostrEvent): String = tag(event, "title")?.getOrNull(1).orEmpty()
+
+    /**
+     * Render a usable heading for interoperable NIP-99 listings.
+     * The title tag is recommended by NIP-99 but may be absent on external events;
+     * in that case use the summary, then the first non-empty description line.
+     * This is presentation-only and never changes the signed event.
+     */
+    fun displayTitle(event: NostrEvent, fallback: String): String {
+        title(event).trim().takeIf(String::isNotBlank)?.let { return it }
+        summary(event).trim().takeIf(String::isNotBlank)?.let { return it }
+        val firstDescriptionLine = event.content.lineSequence()
+            .map { line ->
+                line.trim()
+                    .removePrefix(">").trim()
+                    .removePrefix("#").trim()
+                    .removePrefix("-").trim()
+                    .removePrefix("*").trim()
+            }
+            .firstOrNull(String::isNotBlank)
+            ?.take(120)
+        return firstDescriptionLine ?: fallback
+    }
+
     fun summary(event: NostrEvent): String = tag(event, "summary")?.getOrNull(1).orEmpty()
     fun location(event: NostrEvent): String = tag(event, "location")?.getOrNull(1).orEmpty()
     fun status(event: NostrEvent): String = tag(event, "status")?.getOrNull(1)?.lowercase() ?: "active"

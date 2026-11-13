@@ -197,7 +197,9 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                             if (!eventRepository.isEventVisibleToUser(event)) return@collect
 
                             val dTag = Nip99.dTag(event)
-                            if (dTag.isBlank() || Nip99.title(event).isBlank()) return@collect
+                            // NIP-99 recommends a title tag, but it is not a hard
+                            // validity requirement. Do not hide otherwise valid listings.
+                            if (dTag.isBlank()) return@collect
 
                             eventRepository.addEvent(event)
                             eventRepository.requestProfileIfMissing(event.pubkey)

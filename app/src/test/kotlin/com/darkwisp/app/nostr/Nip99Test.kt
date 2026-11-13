@@ -113,6 +113,34 @@ class Nip99Test {
         assertTrue(withStock.contains(listOf("stock", "2")))
         assertFalse(withoutStock.any { it.firstOrNull() == "stock" })
     }
+
+    @Test
+    fun `listing without title remains renderable using summary and description fallback`() {
+        val withoutTitle = event(
+            listOf(
+                listOf("d", "external-listing"),
+                listOf("summary", "An external NIP-99 listing")
+            )
+        )
+
+        assertEquals("", Nip99.title(withoutTitle))
+        assertEquals("An external NIP-99 listing", Nip99.displayTitle(withoutTitle, "Listing title"))
+    }
+
+    @Test
+    fun `listing without title or summary uses first description line`() {
+        val withoutTitle = event(listOf(listOf("d", "external-listing")))
+
+        assertEquals("A detailed description", Nip99.displayTitle(withoutTitle, "Listing title"))
+    }
+
+    @Test
+    fun `listing with no heading data uses localized caller fallback`() {
+        val empty = event(listOf(listOf("d", "empty-heading"))).copy(content = "   \n  ")
+
+        assertEquals("Listing title", Nip99.displayTitle(empty, "Listing title"))
+    }
+
     @Test
     fun `missing price is represented as null`() {
         assertNull(Nip99.price(event(listOf(listOf("d", "no-price"), listOf("title", "Free")))))

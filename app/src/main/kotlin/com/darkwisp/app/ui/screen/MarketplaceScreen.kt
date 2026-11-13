@@ -409,7 +409,10 @@ internal fun MarketplaceListingCard(event: NostrEvent, eventRepository: EventRep
                 if (image != null) {
                     ZoomableMarketplaceImage(
                         imageUrl = image,
-                        contentDescription = Nip99.title(event),
+                        contentDescription = Nip99.displayTitle(
+                            event,
+                            stringResource(R.string.marketplace_preview_untitled)
+                        ),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit
                     )
@@ -420,7 +423,12 @@ internal fun MarketplaceListingCard(event: NostrEvent, eventRepository: EventRep
                 }
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(Nip99.title(event), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2)
+                Text(
+                    Nip99.displayTitle(event, stringResource(R.string.marketplace_preview_untitled)),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2
+                )
                 Nip99.summary(event).takeIf { it.isNotBlank() }?.let { summary ->
                     Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
                 }
@@ -487,7 +495,7 @@ fun MarketplaceDetailScreen(
     LaunchedEffect(event.pubkey) { eventRepository.requestProfileIfMissing(event.pubkey) }
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val detailScope = rememberCoroutineScope()
-    val title = Nip99.title(event)
+    val title = Nip99.displayTitle(event, stringResource(R.string.marketplace_preview_untitled))
     val images = Nip99.images(event)
     val summary = Nip99.summary(event)
     val availability = Nip99.availability(event)
