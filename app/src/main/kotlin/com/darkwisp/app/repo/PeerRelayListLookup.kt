@@ -2,6 +2,7 @@ package com.darkwisp.app.repo
 
 import com.darkwisp.app.nostr.ClientMessage
 import com.darkwisp.app.nostr.Filter
+import com.darkwisp.app.nostr.MarketplaceRelays
 import com.darkwisp.app.relay.RelayConfig
 import com.darkwisp.app.relay.RelayEvent
 import com.darkwisp.app.relay.RelayPool
@@ -35,6 +36,8 @@ object PeerRelayListLookup {
         )
         val reqMsg = ClientMessage.req(subId, filter)
         val closeMsg = ClientMessage.close(subId)
+        // The peer's kind 10002 may be stored on marketplace-specific relays too.
+        val discoveryRelayUrls = (RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ).distinct()
         val results = Collections.synchronizedList(mutableListOf<RelayEvent>())
 
         coroutineScope {
@@ -46,7 +49,7 @@ object PeerRelayListLookup {
             }
 
             try {
-                for (url in RelayConfig.DEFAULT_INDEXER_RELAYS) {
+                for (url in discoveryRelayUrls) {
                     relayPool.sendToRelayOrEphemeral(url, reqMsg, skipBadCheck = true)
                 }
                 relayPool.sendToAll(reqMsg)
@@ -55,7 +58,7 @@ object PeerRelayListLookup {
                 delay(4000L)
             } finally {
                 collector.cancelAndJoin()
-                for (url in RelayConfig.DEFAULT_INDEXER_RELAYS) {
+                for (url in discoveryRelayUrls) {
                     relayPool.sendToRelayOrEphemeral(url, closeMsg, skipBadCheck = true)
                 }
                 relayPool.sendToAll(closeMsg)
