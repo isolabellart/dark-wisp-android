@@ -61,10 +61,15 @@ class AddressableEventQueryPlanTest {
             id = "wrong-kind",
             kind = 30023
         )
+        val duplicateDTag = wanted.copy(
+            id = "duplicate-d",
+            tags = listOf(listOf("d", dTag), listOf("d", "different-final-coordinate"))
+        )
 
         assertTrue(matchesAddressableEventCoordinate(wanted, Nip99.KIND_LISTING, author, dTag))
         assertFalse(matchesAddressableEventCoordinate(otherDTag, Nip99.KIND_LISTING, author, dTag))
         assertFalse(matchesAddressableEventCoordinate(otherAuthor, Nip99.KIND_LISTING, author, dTag))
         assertFalse(matchesAddressableEventCoordinate(wrongKind, Nip99.KIND_LISTING, author, dTag))
+        assertFalse(matchesAddressableEventCoordinate(duplicateDTag, Nip99.KIND_LISTING, author, dTag))
     }
 }
