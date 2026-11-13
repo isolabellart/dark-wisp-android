@@ -310,7 +310,7 @@ class MetadataFetcher(
             try {
                 val isMarketplaceListing = kind == Nip99.KIND_LISTING
                 val safeHints = relayHints
-                    .map(String::trim)
+                    .map { it.trim() }
                     .filter { RelayConfig.isValidUrl(it) }
                     .distinct()
 
@@ -319,7 +319,7 @@ class MetadataFetcher(
                     sellerWriteRelays = relayListRepo.getWriteRelays(author).orEmpty()
                     if (sellerWriteRelays.isEmpty()) {
                         try {
-                            PeerRelayListLookup.fetch(author, relayPool, relayListRepo)
+                            PeerRelayListLookup.fetch(author, relayPool, relayListRepo, safeHints)
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (error: Exception) {

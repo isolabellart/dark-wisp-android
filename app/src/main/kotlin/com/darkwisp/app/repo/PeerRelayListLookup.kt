@@ -26,7 +26,8 @@ object PeerRelayListLookup {
     suspend fun fetch(
         pubkey: String,
         relayPool: RelayPool,
-        relayListRepo: RelayListRepository
+        relayListRepo: RelayListRepository,
+        extraRelayUrls: List<String> = emptyList()
     ) {
         val subId = "peer-relays-${pubkey.take(8)}-${requestSequence.incrementAndGet()}"
         val filter = Filter(
@@ -36,8 +37,13 @@ object PeerRelayListLookup {
         )
         val reqMsg = ClientMessage.req(subId, filter)
         val closeMsg = ClientMessage.close(subId)
-        // The peer's kind 10002 may be stored on marketplace-specific relays too.
-        val discoveryRelayUrls = (RelayConfig.DEFAULT_INDEXER_RELAYS + MarketplaceRelays.READ).distinct()
+        // The peer's kind 10002 may be stored on marketplace-specific relays or
+        // on relays explicitly supplied by an NIP-19 reference.
+        val discoveryRelayUrls = (
+            RelayConfig.DEFAULT_INDEXER_RELAYS +
+                MarketplaceRelays.READ +
+                extraRelayUrls.filter { RelayConfig.isValidUrl(it) }
+            ).distinct()
         val results = Collections.synchronizedList(mutableListOf<RelayEvent>())
 
         coroutineScope {
