@@ -10,7 +10,7 @@ package com.darkwisp.app.relay
 internal object RelayEventDedupPolicy {
     val defaultBypassPrefixes = listOf(
         "thread-", "user", "quote-", "editprofile", "notif", "dms", "search-", "hashtag-",
-        "addr-", "peer-relays-"
+        "addr-", "peer-relays-", "marketplace-"
     )
 
     fun shouldBypass(

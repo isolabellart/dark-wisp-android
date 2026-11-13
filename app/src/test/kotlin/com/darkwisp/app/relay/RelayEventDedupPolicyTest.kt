@@ -17,8 +17,13 @@ class RelayEventDedupPolicyTest {
     }
 
     @Test
-    fun `ordinary marketplace and feed subscriptions keep normal event deduplication`() {
-        assertFalse(RelayEventDedupPolicy.shouldBypass("marketplace-3"))
+    fun `marketplace listing searches receive events even when another subscription saw them`() {
+        assertTrue(RelayEventDedupPolicy.shouldBypass("marketplace-3"))
+        assertTrue(RelayEventDedupPolicy.shouldBypass("marketplace-124"))
+    }
+
+    @Test
+    fun `ordinary feed subscriptions keep normal event deduplication`() {
         assertFalse(RelayEventDedupPolicy.shouldBypass("feed-main"))
     }
 }
