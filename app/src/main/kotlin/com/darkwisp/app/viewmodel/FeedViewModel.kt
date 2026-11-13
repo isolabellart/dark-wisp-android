@@ -311,7 +311,7 @@ class FeedViewModel(app: Application) : AndroidViewModel(app) {
     private val processingDispatcher = Dispatchers.Default
 
     val metadataFetcher = MetadataFetcher(
-        relayPool, outboxRouter, subManager, profileRepo, eventRepo,
+        relayPool, outboxRouter, subManager, profileRepo, eventRepo, relayListRepo,
         accountScope, processingDispatcher
     ).also {
         eventRepo.metadataFetcher = it

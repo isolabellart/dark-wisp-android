@@ -5,10 +5,13 @@ import com.darkwisp.app.nostr.Filter
 import com.darkwisp.app.nostr.Nip19
 import com.darkwisp.app.nostr.MarketplaceRelays
 import com.darkwisp.app.nostr.Nip22
+import com.darkwisp.app.nostr.Nip99
+import com.darkwisp.app.relay.RelayConfig
 import com.darkwisp.app.nostr.NostrUriData
 import com.darkwisp.app.relay.OutboxRouter
 import com.darkwisp.app.relay.RelayPool
 import com.darkwisp.app.relay.SubscriptionManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -18,6 +21,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.CoroutineContext
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Handles batched fetching of profiles, reply counts, zap counts, and quoted events.
@@ -29,6 +33,7 @@ class MetadataFetcher(
     private val subManager: SubscriptionManager,
     private val profileRepo: ProfileRepository,
     private val eventRepo: EventRepository,
+    private val relayListRepo: RelayListRepository,
     private val scope: CoroutineScope,
     private val processingContext: CoroutineContext
 ) {
@@ -76,7 +81,7 @@ class MetadataFetcher(
 
     // Addressable event fetching
     private val inFlightAddressables = mutableSetOf<String>()
-    private var addressableBatchCounter = 0
+    private val addressableBatchCounter = AtomicLong()
 
     // Poll vote fetching for quoted polls
     private val fetchedPollVotes = mutableSetOf<String>()
@@ -105,6 +110,7 @@ class MetadataFetcher(
             pendingOnDemandQuotes.clear()
             inFlightQuotes.clear()
             pendingRelayHints.clear()
+            inFlightAddressables.clear()
         }
         profileAttempts.clear()
         exhaustedProfiles.clear()
@@ -291,47 +297,92 @@ class MetadataFetcher(
             if (coordKey in inFlightAddressables) return
             inFlightAddressables.add(coordKey)
         }
-        val subId = "addr-${addressableBatchCounter++}"
+
+        val subId = "addr-${addressableBatchCounter.incrementAndGet()}"
         val filter = Filter(kinds = listOf(kind), authors = listOf(author), dTags = listOf(dTag), limit = 1)
         val msg = ClientMessage.req(subId, filter)
 
-        val topRelays = quoteRelayProvider?.invoke() ?: emptyList()
-        val marketplaceRelays = if (kind == 30402) {
-            (MarketplaceRelays.READ + MarketplaceRelays.WRITE).distinct()
-        } else {
-            emptyList()
-        }
-        val targetUrls = (topRelays + relayHints + marketplaceRelays).distinct()
-        val eoseTracker = AddressableRelayEoseTracker(targetUrls)
+        // Run relay discovery and the actual lookup in one cancellable job. For NIP-99
+        // addresses, relay hints alone are not enough: the author's NIP-65 outbox may
+        // point to the relay that actually stores the listing.
+        scope.launch(processingContext) {
+            var eoseCollector: Job? = null
+            try {
+                val isMarketplaceListing = kind == Nip99.KIND_LISTING
+                val safeHints = relayHints
+                    .map(String::trim)
+                    .filter { RelayConfig.isValidUrl(it) }
+                    .distinct()
 
-        // Collect per-relay EOSE before sending REQ. Waiting for the first EOSE
-        // can close the other subscriptions while they still hold a newer revision.
-        val eoseCollector = if (targetUrls.isNotEmpty()) {
-            scope.launch(processingContext, start = CoroutineStart.UNDISPATCHED) {
-                relayPool.relayEoseSignals.collect { signal ->
-                    if (signal.subscriptionId == subId) {
-                        eoseTracker.markCompleted(signal.relayUrl)
+                var sellerWriteRelays = emptyList<String>()
+                if (isMarketplaceListing) {
+                    sellerWriteRelays = relayListRepo.getWriteRelays(author).orEmpty()
+                    if (sellerWriteRelays.isEmpty()) {
+                        try {
+                            PeerRelayListLookup.fetch(author, relayPool, relayListRepo)
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (error: Exception) {
+                            android.util.Log.w(
+                                "MetadataFetcher",
+                                "NIP-65 lookup failed for NIP-99 author ${author.take(12)}",
+                                error
+                            )
+                        }
+                        sellerWriteRelays = relayListRepo.getWriteRelays(author).orEmpty()
                     }
                 }
-            }
-        } else {
-            null
-        }
+                sellerWriteRelays = sellerWriteRelays.filter { RelayConfig.isValidUrl(it) }.distinct()
 
-        if (targetUrls.isNotEmpty()) {
-            for (url in targetUrls) {
-                relayPool.sendToRelayOrEphemeral(
-                    url,
-                    msg,
-                    autoReconnect = url in marketplaceRelays
-                )
-            }
-        } else {
-            relayPool.sendToTopRelays(msg, maxRelays = 10)
-        }
+                val topRelays = quoteRelayProvider?.invoke().orEmpty()
+                val marketplaceRelays = if (isMarketplaceListing) {
+                    (MarketplaceRelays.READ + MarketplaceRelays.WRITE).distinct()
+                } else {
+                    emptyList()
+                }
+                val accountReadRelays = if (isMarketplaceListing) {
+                    (relayPool.getReadRelayUrls() + RelayConfig.DEFAULT_INDEXER_RELAYS).distinct()
+                } else {
+                    emptyList()
+                }
 
-        scope.launch(processingContext) {
-            try {
+                // Hints and the seller's advertised outbox are priority destinations.
+                // The query still fans out to account, indexer and marketplace relays,
+                // but we do not close it until every explicit NIP-19 / NIP-65 target
+                // has answered EOSE (or the overall timeout expires).
+                val priorityRelays = (safeHints + sellerWriteRelays).distinct()
+                val targetUrls = (
+                    priorityRelays + topRelays + accountReadRelays + marketplaceRelays
+                ).filter { RelayConfig.isValidUrl(it) }.distinct()
+                val eoseTracker = AddressableRelayEoseTracker(targetUrls)
+
+                eoseCollector = if (targetUrls.isNotEmpty()) {
+                    scope.launch(processingContext, start = CoroutineStart.UNDISPATCHED) {
+                        relayPool.relayEoseSignals.collect { signal ->
+                            if (signal.subscriptionId == subId) {
+                                eoseTracker.markCompleted(signal.relayUrl)
+                            }
+                        }
+                    }
+                } else {
+                    null
+                }
+
+                if (targetUrls.isNotEmpty()) {
+                    for (url in targetUrls) {
+                        val isPriority = url in priorityRelays
+                        if (isPriority) relayPool.clearCooldown(url)
+                        relayPool.sendToRelayOrEphemeral(
+                            url,
+                            msg,
+                            skipBadCheck = isPriority,
+                            autoReconnect = isPriority || url in marketplaceRelays
+                        )
+                    }
+                } else {
+                    relayPool.sendToTopRelays(msg, maxRelays = 10)
+                }
+
                 if (targetUrls.isEmpty()) {
                     subManager.awaitEoseWithTimeout(subId)
                 } else {
@@ -339,7 +390,8 @@ class MetadataFetcher(
                     val completedWithinWindow = withTimeoutOrNull(ADDRESSABLE_EOSE_TIMEOUT_MS) {
                         while (true) {
                             val completedCount = eoseTracker.completedCount()
-                            if (completedCount >= eoseTracker.minimumResponseCount()) {
+                            val priorityRelaysCompleted = priorityRelays.all(eoseTracker::hasCompleted)
+                            if (completedCount >= eoseTracker.minimumResponseCount() && priorityRelaysCompleted) {
                                 if (drainStartedAt == 0L) {
                                     drainStartedAt = System.currentTimeMillis()
                                 }
@@ -354,11 +406,19 @@ class MetadataFetcher(
 
                     android.util.Log.i(
                         "MetadataFetcher",
-                        "Addressable fetch finished sub=$subId kind=$kind relays=" +
-                            "${eoseTracker.completedCount()}/${eoseTracker.targetCount()} " +
-                            "timeout=${!completedWithinWindow}"
+                        "Addressable fetch finished sub=$subId kind=$kind " +
+                            "relays=${eoseTracker.completedCount()}/${eoseTracker.targetCount()} " +
+                            "priority=${priorityRelays.size} timeout=${!completedWithinWindow}"
                     )
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                android.util.Log.w(
+                    "MetadataFetcher",
+                    "Addressable fetch failed kind=$kind author=${author.take(12)} dTag=$dTag",
+                    error
+                )
             } finally {
                 eoseCollector?.cancelAndJoin()
                 subManager.closeSubscription(subId)

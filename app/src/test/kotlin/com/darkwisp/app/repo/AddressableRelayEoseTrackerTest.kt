@@ -17,6 +17,8 @@ class AddressableRelayEoseTrackerTest {
         tracker.markCompleted("wss://unknown.example")
 
         assertEquals(1, tracker.completedCount())
+        assertTrue(tracker.hasCompleted("wss://one.example"))
+        assertFalse(tracker.hasCompleted("wss://two.example"))
         assertFalse(tracker.allTargetsCompleted())
     }
 
