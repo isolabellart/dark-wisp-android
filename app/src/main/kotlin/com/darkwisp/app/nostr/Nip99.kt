@@ -13,6 +13,11 @@ object Nip99 {
 
     data class Price(val amount: String, val currency: String, val frequency: String? = null)
 
+    enum class AvailabilityState { AVAILABLE, SOLD_OUT, UNKNOWN }
+
+    /** Missing, malformed or ambiguous stock is unknown, never zero. */
+    data class Availability(val state: AvailabilityState, val stock: Int? = null)
+
     fun tag(event: NostrEvent, name: String): List<String>? =
         event.tags.lastOrNull { it.size >= 2 && it[0] == name }
 
@@ -28,6 +33,26 @@ object Nip99 {
     fun location(event: NostrEvent): String = tag(event, "location")?.getOrNull(1).orEmpty()
     fun status(event: NostrEvent): String = tag(event, "status")?.getOrNull(1)?.lowercase() ?: "active"
     fun isSold(event: NostrEvent): Boolean = status(event) == "sold"
+
+    fun stock(event: NostrEvent): Int? {
+        val stockTags = event.tags.filter { it.firstOrNull() == "stock" }
+        if (stockTags.size != 1) return null
+        val tag = stockTags.single()
+        if (tag.size != 2) return null
+        return tag[1].trim().toLongOrNull()
+            ?.takeIf { it in 0..Int.MAX_VALUE.toLong() }
+            ?.toInt()
+    }
+
+    fun availability(event: NostrEvent): Availability =
+        availability(status = status(event), stock = stock(event))
+
+    fun availability(status: String, stock: Int?): Availability = when {
+        status.equals("sold", ignoreCase = true) -> Availability(AvailabilityState.SOLD_OUT, stock)
+        stock == null || stock < 0 -> Availability(AvailabilityState.UNKNOWN)
+        stock == 0 -> Availability(AvailabilityState.SOLD_OUT, 0)
+        else -> Availability(AvailabilityState.AVAILABLE, stock)
+    }
     fun publishedAt(event: NostrEvent): String =
         tag(event, "published_at")?.getOrNull(1) ?: event.created_at.toString()
 
@@ -60,8 +85,10 @@ object Nip99 {
         location: String,
         category: String,
         images: List<String>,
-        status: String
+        status: String,
+        stock: Int? = null
     ): List<List<String>> {
+        require(stock == null || stock >= 0) { "Stock cannot be negative" }
         val result = mutableListOf(
             listOf("d", dTag.trim()),
             listOf("title", title.trim()),
@@ -69,6 +96,7 @@ object Nip99 {
             listOf("published_at", publishedAt),
             listOf("status", if (status.equals("sold", true)) "sold" else "active")
         )
+        if (stock != null) result.add(listOf("stock", stock.toString()))
         if (location.isNotBlank()) result.add(listOf("location", location.trim()))
         if (amount.isNotBlank() && currency.isNotBlank()) {
             result.add(listOf("price", amount.trim(), currency.trim().uppercase()))
@@ -80,7 +108,7 @@ object Nip99 {
             .forEach { result.add(listOf("t", it)) }
         images.map(String::trim).filter(String::isNotBlank).distinct()
             .forEach { result.add(listOf("image", it)) }
-        result.add(listOf("client", "Dark Wisp"))
+        result.add(listOf("client", "Postilla"))
         return result
     }
 }

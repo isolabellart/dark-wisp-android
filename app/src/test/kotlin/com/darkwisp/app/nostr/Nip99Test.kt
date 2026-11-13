@@ -68,6 +68,52 @@ class Nip99Test {
     }
 
     @Test
+    fun `stock distinguishes available sold out and unknown listings`() {
+        val available = event(listOf(listOf("d", "available"), listOf("stock", "3")))
+        val soldOut = event(listOf(listOf("d", "empty"), listOf("stock", "0")))
+        val unknown = event(listOf(listOf("d", "unknown")))
+
+        assertEquals(3, Nip99.stock(available))
+        assertEquals(Nip99.AvailabilityState.AVAILABLE, Nip99.availability(available).state)
+        assertEquals(Nip99.AvailabilityState.SOLD_OUT, Nip99.availability(soldOut).state)
+        assertEquals(Nip99.AvailabilityState.UNKNOWN, Nip99.availability(unknown).state)
+    }
+
+    @Test
+    fun `malformed duplicate negative and overflowing stock are unknown`() {
+        val duplicate = event(listOf(listOf("d", "duplicate"), listOf("stock", "4"), listOf("stock", "2")))
+        val malformed = event(listOf(listOf("d", "malformed"), listOf("stock", "many")))
+        val extraField = event(listOf(listOf("d", "extra"), listOf("stock", "2", "unexpected")))
+        val negative = event(listOf(listOf("d", "negative"), listOf("stock", "-1")))
+        val overflow = event(listOf(listOf("d", "overflow"), listOf("stock", "2147483648")))
+
+        listOf(duplicate, malformed, extraField, negative, overflow).forEach { listing ->
+            assertNull(Nip99.stock(listing))
+            assertEquals(Nip99.AvailabilityState.UNKNOWN, Nip99.availability(listing).state)
+        }
+    }
+
+    @Test
+    fun `explicit sold status takes precedence over positive stock`() {
+        val listing = event(listOf(listOf("d", "sold"), listOf("status", "sold"), listOf("stock", "5")))
+        assertEquals(Nip99.AvailabilityState.SOLD_OUT, Nip99.availability(listing).state)
+    }
+
+    @Test
+    fun `buildTags publishes stock only when explicitly supplied`() {
+        val withStock = Nip99.buildTags(
+            dTag = "painting-stock", title = "Painting", summary = "", publishedAt = "1800000000",
+            amount = "1", currency = "BTC", location = "", category = "", images = emptyList(),
+            status = "active", stock = 2
+        )
+        val withoutStock = Nip99.buildTags(
+            dTag = "painting-unknown", title = "Painting", summary = "", publishedAt = "1800000000",
+            amount = "", currency = "", location = "", category = "", images = emptyList(), status = "active"
+        )
+        assertTrue(withStock.contains(listOf("stock", "2")))
+        assertFalse(withoutStock.any { it.firstOrNull() == "stock" })
+    }
+    @Test
     fun `missing price is represented as null`() {
         assertNull(Nip99.price(event(listOf(listOf("d", "no-price"), listOf("title", "Free")))))
     }
