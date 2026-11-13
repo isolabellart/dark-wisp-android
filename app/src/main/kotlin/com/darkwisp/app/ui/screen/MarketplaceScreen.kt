@@ -267,7 +267,7 @@ fun MarketplaceScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            viewModel.load(selectedScope, relayPool, eventRepository, followedPubkeys, userPubkey, sellerPubkey)
+                            viewModel.load(selectedScope, relayPool, eventRepository, followedPubkeys, userPubkey, relayListRepository, sellerPubkey)
                         },
                         enabled = !loading
                     ) {

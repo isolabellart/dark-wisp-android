@@ -509,7 +509,8 @@ fun WispNavHost(
                 relayPool = feedViewModel.relayPool,
                 eventRepository = feedViewModel.eventRepo,
                 followedPubkeys = emptyList(),
-                userPubkey = feedViewModel.getUserPubkey()
+                userPubkey = feedViewModel.getUserPubkey(),
+                relayListRepository = feedViewModel.relayListRepo
             )
         }
     }
