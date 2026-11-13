@@ -380,7 +380,7 @@ class MetadataFetcher(
                             url,
                             msg,
                             skipBadCheck = isPriority,
-                            autoReconnect = isPriority || url in marketplaceRelays
+                            autoReconnect = true
                         )
                     }
                 } else {

@@ -56,7 +56,12 @@ object PeerRelayListLookup {
 
             try {
                 for (url in discoveryRelayUrls) {
-                    relayPool.sendToRelayOrEphemeral(url, reqMsg, skipBadCheck = true)
+                    relayPool.sendToRelayOrEphemeral(
+                        url,
+                        reqMsg,
+                        skipBadCheck = true,
+                        autoReconnect = true
+                    )
                 }
                 relayPool.sendToAll(reqMsg)
 

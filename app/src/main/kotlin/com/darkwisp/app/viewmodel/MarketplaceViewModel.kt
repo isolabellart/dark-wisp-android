@@ -233,8 +233,18 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
 
                 // Keep collecting after the first six distinct relays finish. A slower
                 // indexer can hold listings that are absent from the faster relays.
+                val reconnectableTargets = (
+                    RelayConfig.DEFAULT_INDEXER_RELAYS +
+                        MarketplaceRelays.READ +
+                        sellerRelayTargets
+                    ).toSet()
                 targets.forEach { relay ->
-                    relayPool.sendToRelayOrEphemeral(relay, request, skipBadCheck = true)
+                    relayPool.sendToRelayOrEphemeral(
+                        relay,
+                        request,
+                        skipBadCheck = true,
+                        autoReconnect = relay in reconnectableTargets
+                    )
                 }
 
                 var drainStartedAt = 0L
