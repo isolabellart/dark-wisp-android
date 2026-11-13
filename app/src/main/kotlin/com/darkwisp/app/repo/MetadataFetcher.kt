@@ -394,8 +394,7 @@ class MetadataFetcher(
                     val completedWithinWindow = withTimeoutOrNull(ADDRESSABLE_EOSE_TIMEOUT_MS) {
                         while (true) {
                             val completedCount = eoseTracker.completedCount()
-                            val priorityRelaysCompleted = priorityRelays.all(eoseTracker::hasCompleted)
-                            if (completedCount >= eoseTracker.minimumResponseCount() && priorityRelaysCompleted) {
+                            if (eoseTracker.hasSatisfiedRequiredResponses(priorityRelays)) {
                                 if (drainStartedAt == 0L) {
                                     drainStartedAt = System.currentTimeMillis()
                                 }

@@ -43,6 +43,34 @@ class AddressableRelayEoseTrackerTest {
     }
 
     @Test
+    fun `minimum response count does not finish while a required NIP19 relay is pending`() {
+        val required = listOf("wss://hint-one.example", "wss://hint-two.example")
+        val tracker = AddressableRelayEoseTracker(
+            listOf("wss://hint-one.example", "wss://hint-two.example", "wss://indexer.example")
+        )
+
+        tracker.markCompleted("wss://hint-one.example")
+        tracker.markCompleted("wss://indexer.example")
+        tracker.markCompleted("wss://hint-two.example")
+
+        assertTrue(tracker.hasSatisfiedRequiredResponses(required))
+    }
+
+    @Test
+    fun `minimum response count still waits for every required NIP19 relay`() {
+        val required = listOf("wss://hint-one.example", "wss://hint-two.example")
+        val tracker = AddressableRelayEoseTracker(
+            listOf("wss://hint-one.example", "wss://hint-two.example", "wss://indexer.example")
+        )
+
+        tracker.markCompleted("wss://hint-one.example")
+        tracker.markCompleted("wss://indexer.example")
+
+        assertEquals(2, tracker.completedCount())
+        assertFalse(tracker.hasSatisfiedRequiredResponses(required))
+    }
+
+    @Test
     fun `all targets are complete when every expected relay responds`() {
         val tracker = AddressableRelayEoseTracker(
             listOf("wss://one.example", "wss://two.example")

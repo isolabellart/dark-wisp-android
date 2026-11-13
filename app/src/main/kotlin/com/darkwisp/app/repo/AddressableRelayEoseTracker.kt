@@ -21,6 +21,9 @@ internal class AddressableRelayEoseTracker(targetRelayUrls: Collection<String>) 
 
     fun hasCompleted(relayUrl: String): Boolean = relayUrl in completed
 
+    fun hasSatisfiedRequiredResponses(requiredRelayUrls: Collection<String>): Boolean =
+        completedCount() >= minimumResponseCount() && requiredRelayUrls.all(::hasCompleted)
+
     fun minimumResponseCount(): Int = minOf(MINIMUM_RESPONSES, targets.size)
 
     fun allTargetsCompleted(): Boolean = completed.containsAll(targets)
