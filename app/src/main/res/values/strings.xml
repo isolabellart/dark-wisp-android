@@ -1049,7 +1049,7 @@
     <string name="marketplace_seller">Seller · %1$s</string>
     <string name="marketplace_location_value">Location · %1$s</string>
     <string name="marketplace_contact_title">Ask the seller</string>
-    <string name="marketplace_contact_explainer">Ask about availability, condition, payment or delivery.</string>
+    <string name="marketplace_contact_explainer">Ask about product details, condition, payment or delivery.</string>
     <string name="marketplace_message_label">Your private message</string>
     <string name="marketplace_message_intro">Hello! I’d like to know a little more about “%1$s”.</string>
     <string name="marketplace_contact_button">Continue in private chat</string>

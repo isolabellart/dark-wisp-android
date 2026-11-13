@@ -8,6 +8,7 @@ on:
       - "feature/marketplace-1.0.7"
       - "fix/marketplace-1.0.8-feedback"
       - "fix/marketplace-1.0.10-feedback"
+      - "feature/postilla-commerce-experience"
     paths:
       - "app/**"
       - "gradle/**"

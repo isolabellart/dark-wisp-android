@@ -809,7 +809,7 @@
     <string name="marketplace_seller">Venditore · %1$s</string>
     <string name="marketplace_location_value">Località · %1$s</string>
     <string name="marketplace_contact_title">Contatta il venditore</string>
-    <string name="marketplace_contact_explainer">Chiedi informazioni sulla disponibilità, le condizioni, il pagamento o la spedizione.</string>
+    <string name="marketplace_contact_explainer">Chiedi informazioni sulle caratteristiche, le condizioni, il pagamento o la spedizione.</string>
     <string name="marketplace_message_label">Il tuo messaggio privato</string>
     <string name="marketplace_message_intro">Ciao! Vorrei avere qualche informazione in più su “%1$s”.</string>
     <string name="marketplace_contact_button">Continua nella chat privata</string>

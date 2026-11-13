@@ -419,7 +419,7 @@ internal fun MarketplaceListingCard(
                         imageUrl = image,
                         contentDescription = Nip99.title(event),
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Fit
                     )
                 } else {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -1009,7 +1009,7 @@ fun MarketplaceDetailScreen(
                                 imageUrl = image,
                                 contentDescription = title,
                                 modifier = Modifier.width(280.dp).height(280.dp).clip(RoundedCornerShape(16.dp)),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Fit
                             )
                         }
                     }
