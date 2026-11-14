@@ -1,386 +1,353 @@
 # Postilla
 
-![Postilla — official rebrand board](docs/brand/postilla-rebrand-board.webp)
+<p align="center">
+  <img src="docs/brand/postilla-rebrand-board.webp" alt="Postilla visual identity" width="680">
+</p>
 
-**A place for things worth sharing.**
+<p align="center"><strong>A place for things worth sharing.</strong></p>
 
+<p align="center">
+  An independent, open-source Android Nostr client for social conversations, private messaging, Lightning and a community-powered marketplace.
+</p>
 
-Postilla is an independent, open-source Android Nostr client built with Kotlin and Jetpack Compose. It brings social conversations, private messaging, Lightning and a NIP-99 marketplace into one native mobile application.
+<p align="center">
+  <a href="https://github.com/isolabellart/postilla-android">Source code</a> ·
+  <a href="https://github.com/isolabellart/postilla-android/releases">Releases</a> ·
+  <a href="https://github.com/barrydeen/dark-wisp-android">Original Dark Wisp project</a>
+</p>
 
-Postilla continues the work of the original [Dark Wisp Android project](https://github.com/barrydeen/dark-wisp-android) as an independently maintained downstream fork. It is not an official upstream release.
+> **Project status — 14 November 2026:** Postilla is the new public identity of the independently maintained Dark Wisp Enhanced codebase. The latest verified staging build is **#184**. The current source configuration is still version **1.0.10 (version code 11)**; the planned public Postilla release is **v1.0.15**. It has not been published yet. The existing stable release remains the previous Dark Wisp Enhanced v1.0.10 release until the new signed release is explicitly prepared and published.
 
-The rebrand deliberately preserves the existing Android application ID and signing certificate, so current Dark Wisp Enhanced installations can receive future Postilla updates without becoming a separate app.
+Postilla is a downstream project built on the foundations of the original [Dark Wisp Android client](https://github.com/barrydeen/dark-wisp-android). It is independently maintained and is **not an official release of the upstream project**.
 
-> **Transition status:** The Postilla rebrand is being prepared in an isolated branch. The current stable release remains **v1.0.10**, still published under the Dark Wisp Enhanced name. No Postilla release or Zapstore metadata update has been published yet. [View the current stable release](https://github.com/isolabellart/dark-wisp-android/releases/latest).
+The project aims to bring together the human side of Nostr — publishing, conversation, discovery and exchange — in one native Android application, while keeping users in control of their identity, keys, relays and funds.
 
 ---
 
-## Table of Contents
+## Postilla in screenshots
 
-- [Why Postilla](#why-postilla)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Supported NIPs](#supported-nips)
-- [Getting Started](#getting-started)
-- [Building from Source](#building-from-source)
-- [Contributing](#contributing)
-- [Tech Stack](#tech-stack)
-- [License](#license)
+These are the current Postilla phone screenshots already maintained in the repository's Fastlane metadata. The same source images are intended for the final GitHub and Zapstore presentation.
+
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.jpg" alt="Postilla Android screenshot 1" width="22%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.jpg" alt="Postilla Android screenshot 2" width="22%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.jpg" alt="Postilla Android screenshot 3" width="22%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/04.jpg" alt="Postilla Android screenshot 4" width="22%">
+</p>
 
 ---
 
 ## Why Postilla
 
-Most Nostr clients treat relays as interchangeable dumb pipes and lean on a small handful of "mega-relays." Postilla takes a different approach — it implements the full outbox/inbox relay model with reliability scoring, routes messages based on where users actually publish and read, and is built so that decentralization is the default path, not an opt-in.
+Nostr is more than a social feed. It is a network of people, independent relays, communities, media, private conversations and open protocols.
 
-The result is faster event delivery, less wasted bandwidth, and a client that actively reinforces the architecture Nostr was designed for. Postilla is designed to be lightweight, lightweight, and respectful of both your device and the relay network.
+Postilla is being developed around five goals:
+
+1. **Make Nostr approachable.** Present powerful protocol features through a coherent, native and accessible mobile experience.
+2. **Keep the network decentralized.** Respect users' relay choices and use outbox/inbox routing instead of depending on a single central service.
+3. **Protect identity and privacy.** Give users control over signing, encryption, account data and private conversations.
+4. **Make exchange native to Nostr.** Bring discovery, seller storefronts, NIP-99 listings and Lightning interactions into the same application.
+5. **Build for everyday reliability.** Handle slow or unavailable relays, duplicate events, historical addressable content and interrupted network connections carefully.
+
+The Postilla visual identity follows the same intention: a calm editorial space, with warm ivory, deep charcoal and a restrained orange accent.
 
 ---
 
-## Key Features
+## Features
 
-### Intelligent Outbox/Inbox Relay Routing
+### Social publishing and discovery
 
-Postilla implements a full NIP-65 outbox/inbox model with relay scoring:
+- Nostr home feeds and profile timelines.
+- Short-form notes (NIP-01) and long-form articles (NIP-23).
+- Picture-first posts (NIP-68) and video posts (NIP-71), including media metadata and previews.
+- Reposts (NIP-18), emoji reactions (NIP-25) and custom emoji (NIP-30).
+- Reply threads with root/reply resolution (NIP-10).
+- Poll creation and voting (NIP-88), plus zap-poll support (NIP-69).
+- Hashtag feeds, hashtag following, profile and content search.
+- Bookmarks, pins, mute lists and custom follow sets (NIP-51).
+- Notifications for relevant social activity.
+- Drafts saved as Nostr events (NIP-37).
+- Profile editing, NIP-05 verification and QR sharing for profiles and keys.
 
-- **Outbox reads** — fetches a user's posts from their *write relays* (where they actually publish), not from a hardcoded list
-- **Inbox writes** — delivers replies, reactions, and mentions to the recipient's *read relays* so they actually see them
-- **Relay scoring** — `RelayScoreBoard` tracks reliability and author coverage per relay to pick the smallest useful set for each query
-- **Smart relay hints** — when tagging events, chooses hints that overlap the author's outbox with the target's inbox for best discoverability
-- **Persistent + ephemeral pool** — `RelayPool` maintains up to 30 persistent connections plus up to 50 short-lived ephemeral ones, with idle cleanup and per-relay cooldowns after failures
-- **NIP-42 authentication** — signs AUTH challenges only for relays the user has explicitly approved, with persisted approvals, and waits for AUTH before sending sensitive publishes (DMs, group events)
-- **NIP-11 relay info** — fetches and respects relay metadata, capabilities, and limitations
+### Private messaging
 
-### Privacy & Private Messaging
+- **NIP-17 private direct messages** using the gift-wrap model (rumor, seal and gift wrap).
+- **NIP-44 encryption** for modern private messaging.
+- Legacy NIP-04 message reading for backward compatibility.
+- Dedicated private-message relay preferences using NIP-17/NIP-51 kind 10050, separate from public posting relays.
+- Optional encrypted media attachments.
+- Optional **Amber / NIP-55 remote signing**, so private keys can remain in a dedicated signer application.
+- Conversation translation with DeepL, available on request; the original Nostr message remains unchanged.
+- Marketplace-related conversations can retain a reference to the listing being discussed.
 
-- **NIP-17 gift-wrap DMs** — three-layer privacy model (rumor → seal → gift wrap) with timestamp randomization
-- **NIP-44 modern encryption** — ECDH + HKDF + XChaCha20 + HMAC-SHA256, with aggressive conversation-key caching (ECDH is expensive; cache it per peer)
-- **NIP-04 fallback** — legacy encrypted DMs still read for backward compatibility
-- **Dedicated DM relays** — publish DMs to a separate relay set (NIP-51 kind 10050) from your public posts
-- **Encrypted media** — optional encrypted image attachments in DMs
-- **Optional Amber / NIP-55 remote signer** — keep your `nsec` in a dedicated signer app and never hand it to Postilla at all
+### NIP-99 Marketplace
 
-### Lightning & Zaps
+Postilla includes a native Marketplace built around NIP-99 addressable product listings (kind 30402).
 
-A built-in non-custodial Lightning wallet powered by [Breez SDK (Spark)](https://github.com/breez/breez-sdk-spark), plus NWC as an alternative:
+- Browse marketplace listings and discover seller storefronts from profiles.
+- Search listings and filter by category.
+- Explore all listings, listings from followed accounts, or the current user's own listings.
+- Open product details using stable NIP-99 coordinates (kind, author and `d` identifier).
+- Resolve addressable listings and their revisions without treating every revision as a different product.
+- Publish NIP-99 listings from the Android app.
+- Display seller identity and listing availability information.
+- Add listings to a personal watchlist/bookmark set and show available interest information.
+- React to listings and send Lightning Zaps.
+- Open referenced listings from relevant Marketplace conversations.
 
-- **Embedded Spark wallet** — self-custodial Lightning node that runs on-device
-- **12-word seed backup** — standard BIP-39 mnemonic recovery
-- **Encrypted relay backup** — wallet credentials encrypted to your own pubkey (NIP-44) and published as a NIP-78 app-data event (kind 30078) so you can restore from any session; format-compatible with other Spark wallets
-- **NWC (NIP-47)** — connect any `nostr+walletconnect://` compatible wallet as an alternative
-- **Lightning address** — configure a reusable LN address for receiving
-- **Transaction history** — paginated, with counterparty resolution from zap receipts
-- **Zaps** — send (NIP-57), display zap receipts on the feed, and vote in **zap polls** (NIP-69)
-- **QR scanning** — scan or import to pay invoices
+**Marketplace development objective:** Postilla aims to evolve this into a complete merchant workspace. Planned improvements include a more comprehensive personal listing inventory, clearer active/withdrawn/sold states, safer editing and reactivation of historical listings, and more tools for sellers to maintain their catalogue. These management improvements must be considered roadmap items until they are implemented and verified in a release.
 
-### Safety & Content Filtering
+### Lightning and payments
 
-- **nspam ML classifier** — on-device LightGBM spam model with MurmurHash3 feature hashing; filters out low-quality content without sending anything off-device
-- **Social graph filtering** — optional "follows + follows-of-follows" scope built from an on-device social graph database
-- **Mute lists** (NIP-51 kind 10000) for blocking pubkeys, synced via Nostr
-- **Keyword muting** for content filtering
-- **Blocked relays** (NIP-51 kind 10006) to opt out of specific relays entirely
-- All safety lists sync across clients via published Nostr events
+- Embedded, self-custodial Lightning wallet powered by Breez SDK Spark.
+- NWC (NIP-47) as an alternative connection to compatible external wallets.
+- Lightning address support where configured.
+- Send and receive Lightning payments, scan or import invoices and view transaction history.
+- Nostr Zaps (NIP-57), zap receipts and zap-enabled social interactions.
+- Wallet backup and restore flows; supported wallet backup data is encrypted before being published to the user's Nostr relays.
 
-### Rich Content Types
+Wallet recovery material is sensitive. Never share a recovery phrase, private key, wallet secret or NWC connection string with anyone.
 
-- **Notes & long-form articles** — NIP-01 short notes and NIP-23 articles (kind 30023), with full reader view
-- **Picture posts** (NIP-68, kind 20) and **video posts** (NIP-71, kinds 21/22) with imeta parsing, blurhash, thumbnails, and fallback mirrors
-- **Live streams** (NIP-53, kind 30311) — watch and chat on live activities
-- **Polls** (NIP-88, kinds 1068/1018) — create and vote on single- or multiple-choice polls
-- **Reposts** (NIP-18) with tracking
-- **Emoji reactions** (NIP-25) with **custom emoji packs** (NIP-30)
-- **Reply threading** (NIP-10) with root resolution and marked e-tags
-- **Drafts** (NIP-37, kind 31234) — save unfinished posts to your relays so they follow you across devices
-- **Proof-of-work** (NIP-13) — optional PoW mining with configurable difficulty, coroutine-cancellable
+### Relay intelligence and network reliability
 
-### Groups & Communities
+Postilla is designed to use Nostr's decentralized relay model rather than assuming that every user publishes everything to the same servers.
 
-- **NIP-29 relay-based groups** — join, browse, chat (kind 9), manage membership, with metadata and admin/member addressable events
-- **Group persistence** — joined groups and recent messages are cached locally (ObjectBox) so rooms open instantly
-- Group event AUTH gating — group joins, creates, and invites (9021/9007/9009) wait for NIP-42 AUTH before sending, and surface admin failures
+- **NIP-65 outbox/inbox relay lists** for author-aware reads and recipient-aware delivery.
+- Relay scoring and author-coverage information to select useful relays for queries.
+- Persistent and temporary relay connections, with lifecycle management and idle cleanup.
+- Relay health information, failure cooldowns and reconnect handling.
+- NIP-11 relay information and capability discovery.
+- NIP-42 relay authentication, with explicit user-approved relay access.
+- Relay hints and addressable-event lookup to improve event discovery.
+- Separate relay preferences for private messages and Blossom media services.
 
-### Media & Storage
+Relay availability and event retention remain properties of the decentralized network. No client can guarantee that an event will be retrievable if every relay that stored it has removed it and the device has no local copy.
 
-- **Blossom** — upload images and media to decentralized [Blossom](https://github.com/hzrd149/blossom) servers
-- Per-account Blossom server list (kind 10063)
-- Nostr-event-based upload auth (kind 24242)
-- Multi-server fallback — tries each configured server until one succeeds
+### Media and Blossom
 
-### Performance
+- Upload and retrieve media through decentralized Blossom servers.
+- Per-account Blossom server configuration (NIP-51 kind 10063).
+- Nostr-based upload authentication (kind 24242).
+- Multiple configured servers can be used as alternatives when an upload fails.
+- Image and video rendering through Coil and Android Media3.
 
-- **LRU caches** across events (5,000), profiles, reactions, reposts, and zaps — data is fetched once and reused
-- **Selective on-device persistence** — ObjectBox stores only the kinds worth keeping warm (notes, articles, media posts, zap receipts, polls, reactions, reposts, profiles) for fast cold-start; everything else stays in RAM
-- **Off-main-thread processing** — event parsing, crypto, and relay I/O all run on background dispatchers
-- **Frame-debounced UI updates** — feed emissions are coalesced to one per ~16 ms frame, preventing recomposition storms from bursty relay traffic
-- **Atomic dedup** — check-then-put guards so the same event never gets processed twice across relays
-- **Lazy metadata fetching** — profiles are batched and swept periodically rather than fetched per-event
-- **Relay cooldowns** — failed relays get a 5-minute cooldown before retry, preventing connection storms
-- **Cancellable PoW mining** — honors coroutine cancellation so cancelled mines release the CPU immediately
+### Groups and live activity
 
-### Identity, Keys & Accounts
+- Relay-based NIP-29 groups, including discovery, membership and group messaging.
+- Live activities and streams (NIP-53).
+- Group data and recent messages are cached locally to improve responsiveness.
 
-- **Multiple accounts** with per-account encrypted storage
-- **EncryptedSharedPreferences** (AES256-GCM) for private keys — `nsec` never touches plain SharedPreferences
-- **Biometric authentication** for key access
-- **NIP-55 remote signing** — delegate all signing/encryption to Amber (or another signer app) via Android intents, so Postilla never holds the key
-- **NIP-19 bech32** — npub, nsec, note, nevent, nprofile encode/decode, with `nostr:` URI rendering in post content
-- **NIP-05 DNS verification** with result caching
-- **QR code display** for sharing keys and profiles
+### Privacy, safety and account control
 
-### Additional Features
+- Multiple Nostr accounts.
+- Local private-key storage protected by Android encrypted storage.
+- Biometric protection for sensitive key access where supported by the device.
+- NIP-55 remote signing through Amber or another compatible signer.
+- NIP-51 mute lists, blocked pubkeys, keyword muting and blocked-relay lists.
+- Optional social-graph filtering.
+- On-device spam classification, designed to evaluate content without sending it to a remote classifier.
+- NIP-19 Bech32 identifiers and `nostr:` URI handling.
+- NIP-05 DNS identity verification.
 
-- **Thread view** with full NIP-10 root/reply resolution
-- **Notifications** aggregating mentions, reactions, zaps, and reposts
-- **Hashtag feeds** and hashtag following
-- **Search** for profiles, content, and hashtags
-- **Bookmarks** and **pins** (NIP-51), plus custom **follow sets** (kind 30000) as alternative feed sources
-- **Relay console and health view** for debugging relay communication
-- **Profile editing** with metadata publishing
-- **Onboarding flow** — key creation, topic/interest selection, and follow suggestions for new users
-- **Translation** of foreign-language posts
-- **Fiat conversion** of sats for zaps and balances
+### Translation and accessibility
+
+- DeepL translation integration with configurable language preferences.
+- On-demand translation in conversations, with the ability to return to the original text.
+- Ongoing work on readable layouts, touch targets, localization and a consistent light/dark appearance.
+
+---
+
+## Supported Nostr protocols
+
+The following table reflects protocol implementations and integrations present in the current codebase. Support may vary by event type and by the capabilities of connected relays and other clients.
+
+| NIP / protocol | Purpose |
+|---|---|
+| NIP-01 | Basic protocol and event model |
+| NIP-02 | Follow lists |
+| NIP-04 | Legacy encrypted DMs (compatibility reading) |
+| NIP-05 | DNS-based identity verification |
+| NIP-09 | Event deletion |
+| NIP-10 | Reply threading |
+| NIP-11 | Relay information document |
+| NIP-13 | Proof of Work |
+| NIP-17 | Private direct messages (gift wrap) |
+| NIP-18 | Reposts |
+| NIP-19 | Bech32 identifiers |
+| NIP-23 | Long-form content |
+| NIP-25 | Reactions |
+| NIP-29 | Relay-based groups |
+| NIP-30 | Custom emoji |
+| NIP-37 | Draft events |
+| NIP-42 | Relay authentication |
+| NIP-44 | Versioned encryption |
+| NIP-47 | Nostr Wallet Connect |
+| NIP-51 | Lists, bookmarks, mute lists and relay sets |
+| NIP-53 | Live activities |
+| NIP-55 | Android remote signer |
+| NIP-57 | Lightning Zaps |
+| NIP-65 | Relay list metadata / outbox model |
+| NIP-68 | Picture-first posts |
+| NIP-69 | Zap polls |
+| NIP-71 | Video events |
+| NIP-78 | Application-specific data |
+| NIP-88 | Polls |
+| NIP-99 | Classified listings / Marketplace |
+
+Additional integrations include Blossom media servers, Lightning invoices (BOLT-11), Breez SDK Spark and Nostr Wallet Connect.
 
 ---
 
 ## Architecture
 
-Postilla follows an MVVM architecture with clear layer separation:
+Postilla is a native Android application written in Kotlin and built with Jetpack Compose. Its architecture separates the presentation layer, state holders, repositories, protocol implementations and relay transport.
 
-```
-┌──────────────────────────────────────────────────────┐
-│                      UI Layer                         │
-│              Jetpack Compose Screens                  │
-│   FeedScreen, ThreadScreen, DmScreen, GroupRoom,      │
-│   LiveStream, Article, Wallet, Notifications, ...     │
-├──────────────────────────────────────────────────────┤
-│                   ViewModel Layer                     │
-│  FeedVM, ThreadVM, DmConversationVM, WalletVM,        │
-│  GroupRoomVM, LiveStreamVM, SocialGraphVM, ...        │
-├──────────────────────────────────────────────────────┤
-│                   Repository Layer                    │
-│   EventRepo, ContactRepo, DmRepo, NwcRepo, Spark,     │
-│   RelayListRepo, BlossomRepo, MuteRepo, GroupRepo,    │
-│   MetadataFetcher, SocialGraphDb, SpamAuthorCache...  │
-├──────────────────────────────────────────────────────┤
-│                    Protocol Layer                     │
-│   Nip01 Nip02 Nip04 Nip05 Nip09 Nip10 Nip11 Nip13     │
-│   Nip17 Nip18 Nip19 Nip25 Nip29 Nip30 Nip37 Nip42     │
-│   Nip44 Nip47 Nip51 Nip53 Nip57 Nip65 Nip68 Nip69     │
-│   Nip71 Nip78 Nip88 + Blossom, Bolt11, NostrSigner    │
-├──────────────────────────────────────────────────────┤
-│                     Relay Layer                       │
-│   RelayPool, OutboxRouter, RelayScoreBoard,           │
-│   SubscriptionManager, RelayHealthTracker,            │
-│   Relay (OkHttp WebSocket)                            │
-└──────────────────────────────────────────────────────┘
+```text
+Jetpack Compose UI
+        |
+ViewModels and coordinators
+        |
+Repositories, caches and local persistence
+        |
+Nostr protocol implementations and signer abstraction
+        |
+Relay pool, outbox router and WebSocket connections
 ```
 
-### Key Design Decisions
+### Main engineering principles
 
-- **Mostly in-memory, selectively persistent** — the bulk of state lives in LRU caches; ObjectBox persists a narrow set of kinds (notes, articles, media posts, reactions, reposts, zap receipts, polls, profiles) plus joined groups, so cold starts are fast without the complexity of a full event store. Preferences live in SharedPreferences; private keys live in EncryptedSharedPreferences.
-- **NIP objects** — each NIP is implemented as a Kotlin `object` with pure helper functions (e.g., `Nip17.createGiftWrap()`, `Nip44.encrypt()`), making the protocol layer modular and easy to test.
-- **Flow-based reactivity** — SharedFlow for relay events, StateFlow for UI state. No RxJava, no LiveData — pure coroutines.
-- **Signer abstraction** — `NostrSigner` is an interface. `LocalSigner` holds the key; `RemoteSigner` delegates every sign/encrypt/decrypt to an external NIP-55 app. UI code never sees the difference.
-- **Off-main-thread crypto** — all signing, NIP-44 encryption, and PoW mining run on `Dispatchers.Default` with proper cancellation support.
-- **Encrypted key storage** — private keys use AES256-GCM via Android's Security Crypto library, never plain SharedPreferences.
+- **MVVM and Kotlin coroutines:** ViewModels expose reactive state through StateFlow and SharedFlow.
+- **Protocol-focused code:** NIP implementations are separated into small Kotlin components.
+- **Signer abstraction:** local signing and NIP-55 remote signing use the same application-facing interface.
+- **Background work:** network requests, event processing and cryptographic work avoid blocking the main thread.
+- **Selective local persistence:** ObjectBox is used for selected event types and application data; sensitive key material is kept in protected storage.
+- **Relay-aware event handling:** deduplication, relay scoring, event-address resolution and reconnect handling are treated as core infrastructure.
+- **Testable protocol logic:** pure helpers and repository behaviour are covered by unit tests where practical.
 
-### Project Structure
+### Technology stack
 
-```
-app/src/main/kotlin/com/darkwisp/app/
-├── nostr/          # Protocol implementations (NipXX.kt objects)
-├── relay/          # WebSocket relay, pool, outbox router, scoring
-├── repo/           # Data repositories, caches, and persistence wrappers
-├── db/             # ObjectBox entities (EventEntity, GroupMessageEntity...)
-├── ml/             # On-device nspam LightGBM classifier
-├── viewmodel/      # Screen ViewModels and coordinators
-├── ui/
-│   ├── screen/         # Full screens (Feed, Thread, DM, Group, Wallet...)
-│   └── component/      # Reusable UI components
-└── util/           # Shared utilities
-```
+| Area | Technology |
+|---|---|
+| Language | Kotlin |
+| UI | Jetpack Compose / Material 3 |
+| Async and state | Kotlin Coroutines / Flow |
+| Networking | OkHttp WebSockets |
+| Serialization | kotlinx.serialization |
+| Images | Coil |
+| Video and audio playback | Android Media3 |
+| Local event persistence | ObjectBox |
+| Key protection | Android Security Crypto |
+| Cryptography | secp256k1, Bouncy Castle and JCA |
+| Lightning | Breez SDK Spark and NWC |
+| Translation | DeepL integration |
+| QR codes | ZXing |
+| Build | Gradle / Android Gradle Plugin |
 
 ---
 
-## Supported NIPs
+## Installation and upgrade continuity
 
-| NIP | Description | Status |
-|-----|-------------|--------|
-| [01](https://github.com/nostr-protocol/nips/blob/master/01.md) | Basic protocol flow | ✅ |
-| [02](https://github.com/nostr-protocol/nips/blob/master/02.md) | Follow lists | ✅ |
-| [04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted DMs (legacy) | ✅ (fallback) |
-| [05](https://github.com/nostr-protocol/nips/blob/master/05.md) | DNS-based verification | ✅ |
-| [09](https://github.com/nostr-protocol/nips/blob/master/09.md) | Event deletion | ✅ |
-| [10](https://github.com/nostr-protocol/nips/blob/master/10.md) | Reply threading | ✅ |
-| [11](https://github.com/nostr-protocol/nips/blob/master/11.md) | Relay information | ✅ |
-| [13](https://github.com/nostr-protocol/nips/blob/master/13.md) | Proof of Work | ✅ |
-| [17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Private DMs (gift wrap) | ✅ |
-| [18](https://github.com/nostr-protocol/nips/blob/master/18.md) | Reposts | ✅ |
-| [19](https://github.com/nostr-protocol/nips/blob/master/19.md) | Bech32 encoding | ✅ |
-| [23](https://github.com/nostr-protocol/nips/blob/master/23.md) | Long-form articles | ✅ |
-| [25](https://github.com/nostr-protocol/nips/blob/master/25.md) | Reactions | ✅ |
-| [29](https://github.com/nostr-protocol/nips/blob/master/29.md) | Relay-based groups | ✅ |
-| [30](https://github.com/nostr-protocol/nips/blob/master/30.md) | Custom emoji | ✅ |
-| [37](https://github.com/nostr-protocol/nips/blob/master/37.md) | Draft events | ✅ |
-| [42](https://github.com/nostr-protocol/nips/blob/master/42.md) | Relay AUTH | ✅ |
-| [44](https://github.com/nostr-protocol/nips/blob/master/44.md) | Versioned encryption | ✅ |
-| [47](https://github.com/nostr-protocol/nips/blob/master/47.md) | Wallet Connect (NWC) | ✅ |
-| [51](https://github.com/nostr-protocol/nips/blob/master/51.md) | Lists (mute, bookmark, pin, follow sets, relay sets) | ✅ |
-| [53](https://github.com/nostr-protocol/nips/blob/master/53.md) | Live activities | ✅ |
-| [55](https://github.com/nostr-protocol/nips/blob/master/55.md) | Android signer (Amber) | ✅ |
-| [57](https://github.com/nostr-protocol/nips/blob/master/57.md) | Lightning zaps | ✅ |
-| [65](https://github.com/nostr-protocol/nips/blob/master/65.md) | Relay list metadata | ✅ |
-| [68](https://github.com/nostr-protocol/nips/blob/master/68.md) | Picture-first posts | ✅ |
-| 69 | Zap polls (kind 6969) | ✅ |
-| [71](https://github.com/nostr-protocol/nips/blob/master/71.md) | Video posts | ✅ |
-| [78](https://github.com/nostr-protocol/nips/blob/master/78.md) | App-specific data (wallet backup) | ✅ |
-| [88](https://github.com/nostr-protocol/nips/blob/master/88.md) | Polls | ✅ |
+Postilla continues the existing Dark Wisp Enhanced Android installation line. This is intentional.
 
-Also: **Blossom** media servers (BUDs 01–03), **NWC** transport, and **bolt11** invoice parsing.
+| Setting | Value |
+|---|---|
+| Android application ID | `com.isolabellart.darkwispenhanced` |
+| Staging application ID | `com.isolabellart.darkwispenhanced.staging` |
+| Minimum Android version | Android 8.0 (API 26) |
+| Target Android SDK | 35 |
+| Current source version | 1.0.10 (version code 11) |
+| Planned public Postilla release | 1.0.15 |
+| Current verified staging build | #184 |
+
+The application ID and permanent signing certificate are deliberately preserved. This allows a properly signed Postilla APK to update an existing Dark Wisp Enhanced installation, rather than creating a second Android app. Android will accept the update only when the package identity, version progression and signing certificate are compatible.
+
+The staging workflow verifies the application ID and the permanent signing certificate. The latest verified build at the time of writing is [staging #184](https://github.com/isolabellart/postilla-android/actions/runs/43578605677).
+
+**Important:** the planned v1.0.15 release is not yet available. Until the final signed APK has passed validation and has been published, the current stable release remains the previous Dark Wisp Enhanced v1.0.10. Do not uninstall the existing application to install a test build unless you have independently verified your account and wallet recovery procedures.
+
+### Wallet and account safety
+
+- Keep Nostr recovery phrases and wallet recovery material offline.
+- Never share an `nsec`, wallet seed, password or NWC connection string.
+- Consider using Amber or another NIP-55 signer to keep your Nostr private key outside Postilla.
+- A new installation or a device replacement may require the normal account and wallet restore process. Do not assume that a Nostr identity automatically restores local application data.
 
 ---
 
-## Getting Started
+## Build from source
 
 ### Requirements
 
-- Android 8.0 (API 26) or higher
-- A Nostr keypair (generate one in-app, import an existing `nsec`, or pair Amber for NIP-55 remote signing)
+- Android Studio with a recent Android Gradle Plugin-compatible toolchain.
+- JDK 17.
+- Android SDK 35.
+- Git.
 
-### Installation
-
-Download the current stable APK from the [latest GitHub Release](https://github.com/isolabellart/dark-wisp-android/releases/latest). The latest published release is **v1.0.10**, still carrying the previous Dark Wisp Enhanced branding.
-
-Postilla keeps the established Android application ID `com.isolabellart.darkwispenhanced` and the permanent signing certificate. This is intentional: a future Postilla release will update existing installations rather than create a second app. The package remains separate from the original upstream Dark Wisp application, so its local data is not overwritten. Postilla targets Android 8.0 (API 26) or later and currently packages the `arm64-v8a` architecture.
-
-### First Launch
-
-1. **Create, import, or pair a signer** — generate a fresh keypair, paste your `nsec`, or connect Amber for remote signing
-2. **Set up your profile** — the onboarding flow walks you through name, picture, and bio
-3. **Pick some interests** — topic/interest selection seeds your first follow suggestions
-4. **Follow some people** — Postilla suggests popular accounts to get your feed started
-5. **Configure relays** — your relay list is published as a NIP-65 event so other outbox-aware clients can find you
-
----
-
-## Building from Source
-
-### Prerequisites
-
-- [Android Studio](https://developer.android.com/studio) Ladybug or later
-- JDK 17
-- Android SDK 35
-
-### Build
+### Clone
 
 ```bash
-# Clone the Enhanced fork
-git clone https://github.com/isolabellart/dark-wisp-android.git
-cd dark-wisp-android
+git clone https://github.com/isolabellart/postilla-android.git
+cd postilla-android
+```
 
-# Build debug APK
+### Build and test
+
+```bash
+# Run unit tests for the staging variant
+./gradlew testStagingUnitTest
+
+# Build a debug APK
 ./gradlew assembleDebug
 
-# Install on a connected device
-./gradlew installDebug
+# Build the staging APK
+./gradlew assembleStaging
 
-# Build release APK (R8-minified)
+# Build the release APK (a local signing configuration is required
+# for a signed release APK)
 ./gradlew assembleRelease
 ```
 
-Release builds use R8 minification; keep rules live in `app/proguard-rules.pro` and cover kotlinx.serialization, secp256k1 JNI, Bouncy Castle, OkHttp, Coil, Security Crypto, Media3, and ZXing. A local release build is signed only when the permanent release-signing properties are configured; otherwise Gradle produces an unsigned release APK. For the signing identity, GitHub Actions secrets, and publishing procedure, see [RELEASE_SIGNING.md](RELEASE_SIGNING.md).
+Release signing material is never stored in the repository. See [RELEASE_SIGNING.md](RELEASE_SIGNING.md) for the permanent signing identity, GitHub Actions configuration and release procedure. Do not generate a replacement keystore for the existing application line.
+
+---
+
+## Roadmap
+
+Postilla is an evolving project. The following goals guide future development and must not be mistaken for features already shipped.
+
+- **Marketplace management:** a complete personal inventory of the user's NIP-99 listings, including historical listings, revisions and clear publication status.
+- **Safer listing lifecycle:** predictable edit, withdraw, archive and reactivation flows that respect NIP-99 addressable-event identity and NIP-09 deletion semantics.
+- **Better commerce workflows:** clearer buyer/seller conversations, order context and payment status, while keeping the Nostr protocol interoperable.
+- **Relay resilience:** broader relay coverage, smarter fallback strategies, better diagnostics and reliable recovery from interrupted connections.
+- **Social experience:** continued refinement of threads, reactions, bookmarks, notifications and media handling.
+- **Privacy and user control:** expand remote-signer support, minimize unnecessary data collection and keep sensitive operations transparent.
+- **Quality and accessibility:** more automated tests, manual device testing, improved localization and accessible interaction patterns.
+
+The long-term objective is a dependable Nostr client in which social publishing and real-world exchange can coexist without giving up decentralization or user control.
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Postilla is open source, and community help makes it better.
+Contributions, bug reports and focused improvements are welcome.
 
-### How to Contribute
+1. Fork the repository or create a feature branch.
+2. Keep changes scoped and describe the motivation.
+3. Add or update tests for protocol and state-management changes.
+4. Run the relevant Gradle tests and build tasks.
+5. Test user-facing changes on a real Android device when possible.
+6. Open a pull request with a concise summary and validation notes.
 
-1. **Fork** the repository
-2. **Create a branch** for your feature or fix (`feat/…`, `fix/…`, `refactor/…`, `docs/…`, `chore/…`, `perf/…`)
-3. **Make your changes** — follow the existing code patterns and conventions
-4. **Test** on a real device or emulator
-5. **Commit** with a clear, descriptive message (`<type>: <summary>`)
-6. **Open a pull request** against `main` — one concern per PR, small and focused
-
-### Code Conventions
-
-- **Kotlin** with Jetpack Compose — no XML layouts
-- **NIP implementations** go in `NipXX.kt` as Kotlin `object` with static helper functions
-- **Events** are created via `NostrEvent.create(privkey, pubkey, kind, content, tags)` — or, for remote-signer accounts, through the `NostrSigner` abstraction
-- **Hex encoding** uses `ByteArray.toHex()` / `String.hexToByteArray()` extensions
-- **Coroutines** for all async work — `Dispatchers.Default` for CPU-bound (crypto, PoW), `Dispatchers.IO` for network
-- **StateFlow** for UI state, **SharedFlow** for relay events
-- Keep functions small and focused. Prefer clarity over cleverness.
-
-### Areas Where Help is Needed
-
-- UI/UX polish and accessibility improvements
-- Additional NIP implementations
-- Unit and integration tests
-- Performance profiling and optimization
-- Translations and localization
-- Documentation improvements
-
-### Bug reports
-
-GitHub Issues are currently disabled for this repository, so the `/issues` page is not an active bug-reporting channel. Please do not rely on it for support or issue tracking.
+Suggested branch prefixes: `feat/`, `fix/`, `refactor/`, `docs/`, `test/` and `chore/`.
 
 ---
 
-## Tech Stack
+## Project lineage and license
 
-| Component | Technology |
-|-----------|-----------|
-| Language | Kotlin 2.0 |
-| UI Framework | Jetpack Compose (Material 3) |
-| Networking | OkHttp 4 (WebSocket) |
-| Image Loading | Coil 3 |
-| Serialization | kotlinx.serialization |
-| Persistence | ObjectBox (selective event store), EncryptedSharedPreferences, SharedPreferences |
-| Cryptography | secp256k1-kmp (Schnorr / ECDH), Bouncy Castle (XChaCha20), Android Security Crypto (AES-GCM), javax.crypto (HKDF/HMAC) |
-| ML | LightGBM (on-device nspam classifier) with MurmurHash3 feature hashing |
-| Navigation | Jetpack Navigation Compose |
-| Lightning | Breez SDK Spark + NWC (NIP-47) |
-| Media | Media3 / ExoPlayer |
-| QR Codes | ZXing |
-| Build | Gradle 8.x / AGP 8.x |
-| Min SDK | Android 8.0 (API 26) |
-| Target SDK | Android 15 (API 35) |
+Postilla is an independent downstream fork of [Dark Wisp for Android](https://github.com/barrydeen/dark-wisp-android). It is not affiliated with, endorsed by or an official release of the upstream project.
+
+The project retains the upstream [MIT License](LICENSE) and its original copyright notice. See the license file for the complete terms.
 
 ---
 
-## License
-
-Postilla is an independent downstream fork of Dark Wisp and retains the upstream project's [MIT License](LICENSE) and original copyright notice.
-
-```
-MIT License
-
-Copyright (c) 2025 Barry Deen
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
----
-
-Built with care for the Nostr ecosystem.
+<p align="center"><strong>Built with care for the Nostr ecosystem.</strong></p>
