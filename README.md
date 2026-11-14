@@ -1,9 +1,5 @@
 # Postilla
 
-<p align="center">
-  <img src="docs/brand/postilla-rebrand-board.webp" alt="Postilla visual identity" width="680">
-</p>
-
 <p align="center"><strong>A place for things worth sharing.</strong></p>
 
 <p align="center">
