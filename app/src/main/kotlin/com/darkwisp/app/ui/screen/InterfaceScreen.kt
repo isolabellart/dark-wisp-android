@@ -24,6 +24,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CurrencyBitcoin
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -80,7 +82,9 @@ fun InterfaceScreen(
     application: Application,
     interfacePrefs: InterfacePreferences,
     onBack: () -> Unit,
-    onChanged: () -> Unit
+    onChanged: () -> Unit,
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit
 ) {
     var isLargeText by remember { mutableStateOf(interfacePrefs.isLargeText()) }
     var newNotesHidden by remember { mutableStateOf(interfacePrefs.isNewNotesButtonHidden()) }
@@ -118,6 +122,59 @@ fun InterfaceScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
+            // Postilla identity and direct light/dark theme controls.
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    PostillaBrandMark(size = 40.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.postilla_appearance_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.postilla_appearance_body),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(
+                        onClick = { if (!isDarkTheme) onToggleTheme() }
+                    ) {
+                        Icon(
+                            Icons.Outlined.LightMode,
+                            contentDescription = "Light theme",
+                            tint = if (!isDarkTheme) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(
+                        onClick = { if (isDarkTheme) onToggleTheme() }
+                    ) {
+                        Icon(
+                            Icons.Outlined.DarkMode,
+                            contentDescription = "Dark theme",
+                            tint = if (isDarkTheme) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
             // Language section
             Row(
                 modifier = Modifier
@@ -263,31 +320,6 @@ fun InterfaceScreen(
             }
 
             Spacer(Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                PostillaBrandMark(size = 40.dp)
-                Spacer(Modifier.width(14.dp))
-                Column {
-                    Text(
-                        text = stringResource(R.string.postilla_appearance_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.postilla_appearance_body),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(20.dp))
 
             // New Notes Button section
             Text(
