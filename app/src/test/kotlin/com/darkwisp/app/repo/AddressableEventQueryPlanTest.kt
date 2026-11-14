@@ -26,7 +26,26 @@ class AddressableEventQueryPlanTest {
         assertEquals(listOf(Nip99.KIND_LISTING), stages[1].filter.kinds)
         assertEquals(listOf(author), stages[1].filter.authors)
         assertNull(stages[1].filter.dTags)
-        assertEquals(600, stages[1].filter.limit)
+        assertEquals(NIP99_STOREFRONT_PAGE_SIZE, stages[1].filter.limit)
+    }
+
+
+    @Test
+    fun `storefront pagination filters by author and moves to the previous timestamp page`() {
+        val firstPage = buildAddressableStorefrontPageFilter(author, null)
+        assertEquals(listOf(Nip99.KIND_LISTING), firstPage.kinds)
+        assertEquals(listOf(author), firstPage.authors)
+        assertEquals(null, firstPage.until)
+        assertEquals(NIP99_STOREFRONT_PAGE_SIZE, firstPage.limit)
+
+        val olderPage = buildAddressableStorefrontPageFilter(author, 1_799_999_999L)
+        assertEquals(1_799_999_999L, olderPage.until)
+
+        assertEquals(
+            1_799_999_999L,
+            nextAddressableStorefrontPageUntil(listOf(1_800_000_000L, 1_800_000_000L), 2)
+        )
+        assertEquals(null, nextAddressableStorefrontPageUntil(listOf(1_800_000_000L), 2))
     }
 
     @Test

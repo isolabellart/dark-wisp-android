@@ -2,6 +2,7 @@ package com.darkwisp.app.db
 
 import android.util.Log
 import com.darkwisp.app.nostr.Nip22
+import com.darkwisp.app.nostr.Nip99
 import com.darkwisp.app.nostr.NostrEvent
 import io.objectbox.Box
 import io.objectbox.query.QueryBuilder.StringOrder
@@ -276,6 +277,6 @@ class EventPersistence(
     companion object {
         private val DISPLAY_KINDS = intArrayOf(1, 6, 20, 21, 22, 1068, 6969, Nip22.KIND_COMMENT, 30023)
         // 1111 = NIP-22 comments — persisted so thread replies and notifications survive restarts
-        private val PERSISTED_KINDS = setOf(0, 1, 6, 7, 9735, 20, 21, 22, 1068, 6969, Nip22.KIND_COMMENT, 30023)
+        private val PERSISTED_KINDS = setOf(0, 1, 6, 7, 9735, 20, 21, 22, 1068, 6969, Nip22.KIND_COMMENT, 30023, Nip99.KIND_LISTING)
     }
 }

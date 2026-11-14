@@ -133,4 +133,3 @@ internal fun buildPeerRelayListRequiredResponses(
 ): List<String> = (
     extraRelayUrls + if (requireMarketplaceRelayEose) MarketplaceRelays.READ else emptyList()
     ).filter { RelayConfig.isValidUrl(it) }.distinct()
-}

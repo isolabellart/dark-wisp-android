@@ -21,8 +21,33 @@ internal data class AddressableFetchOutcome(
     val matchingEventCount: Int,
     val respondingRelays: Int,
     val targetRelayCount: Int,
-    val timedOut: Boolean
+    val timedOut: Boolean,
+    val pagesFetched: Int = 0
 )
+
+internal const val NIP99_STOREFRONT_PAGE_SIZE = 250
+internal const val NIP99_STOREFRONT_MAX_PAGES = 8
+
+internal fun buildAddressableStorefrontPageFilter(author: String, until: Long?): Filter =
+    Filter(
+        kinds = listOf(Nip99.KIND_LISTING),
+        authors = listOf(author),
+        until = until,
+        limit = NIP99_STOREFRONT_PAGE_SIZE
+    )
+
+/**
+ * NIP-01 pagination cursor for a newest-first relay page.
+ * A cursor is returned only when the relay filled the requested page.
+ */
+internal fun nextAddressableStorefrontPageUntil(
+    receivedCreatedAt: List<Long>,
+    requestedLimit: Int = NIP99_STOREFRONT_PAGE_SIZE
+): Long? {
+    if (receivedCreatedAt.size < requestedLimit) return null
+    val oldest = receivedCreatedAt.minOrNull() ?: return null
+    return (oldest - 1).takeIf { it >= 0 }
+}
 
 internal fun buildAddressableEventQueryStages(
     kind: Int,
@@ -47,7 +72,7 @@ internal fun buildAddressableEventQueryStages(
             filter = Filter(
                 kinds = listOf(Nip99.KIND_LISTING),
                 authors = listOf(author),
-                limit = 600
+                limit = NIP99_STOREFRONT_PAGE_SIZE
             )
         )
     )

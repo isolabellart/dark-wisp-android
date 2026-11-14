@@ -1307,14 +1307,33 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         if (muteRepo?.isBlocked(author) == true) return null
         var best: NostrEvent? = null
         for (event in eventCache.values) {
-            if (event.kind != kind || event.pubkey != author) continue
-            if (event.tags.none { it.size >= 2 && it[0] == "d" && it[1] == dTag }) continue
+            if (kind == Nip99.KIND_LISTING) {
+                if (!matchesAddressableEventCoordinate(event, kind, author, dTag)) continue
+            } else {
+                if (event.kind != kind || event.pubkey != author) continue
+                if (event.tags.none { it.size >= 2 && it[0] == "d" && it[1] == dTag }) continue
+            }
             val current = best
             if (current == null || Nip01EventOrder.isNewer(event, current)) {
                 best = event
             }
         }
         return best
+    }
+
+    /**
+     * Store-first NIP-99 lookup. Marketplace events are persisted by coordinate owner and
+     * kind, then matched against the canonical single d-tag before being hydrated into memory.
+     * Call from an IO/worker coroutine, not from composition.
+     */
+    fun findPersistedNip99Listing(author: String, dTag: String, limit: Int = 2_000): NostrEvent? {
+        if (author.isBlank() || dTag.isBlank() || muteRepo?.isBlocked(author) == true) return null
+        return eventPersistence
+            ?.getEventsByAuthorAndKind(author, Nip99.KIND_LISTING, limit)
+            .orEmpty()
+            .asSequence()
+            .filter { matchesAddressableEventCoordinate(it, Nip99.KIND_LISTING, author, dTag) }
+            .maxWithOrNull(compareBy<NostrEvent> { it.created_at }.thenBy { it.id })
     }
 
     fun getEvent(id: String): NostrEvent? {
