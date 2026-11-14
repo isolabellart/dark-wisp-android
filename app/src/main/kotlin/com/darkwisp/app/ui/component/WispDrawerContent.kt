@@ -863,15 +863,10 @@ fun WispDrawerContent(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_wisp_logo),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                modifier = Modifier.size(16.dp)
-            )
+            PostillaBrandMark(size = 18.dp)
             Spacer(Modifier.width(6.dp))
             Text(
-                text = "wisp v$versionName",
+                text = "Postilla v$versionName",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
             )
