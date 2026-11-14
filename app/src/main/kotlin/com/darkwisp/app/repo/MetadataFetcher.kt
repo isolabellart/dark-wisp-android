@@ -6,6 +6,7 @@ import com.darkwisp.app.nostr.Nip19
 import com.darkwisp.app.nostr.MarketplaceRelays
 import com.darkwisp.app.nostr.Nip22
 import com.darkwisp.app.nostr.Nip99
+import com.darkwisp.app.nostr.NostrEvent
 import com.darkwisp.app.relay.RelayConfig
 import com.darkwisp.app.nostr.NostrUriData
 import com.darkwisp.app.relay.OutboxRouter
