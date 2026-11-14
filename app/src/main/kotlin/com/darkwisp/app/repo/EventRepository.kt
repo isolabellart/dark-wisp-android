@@ -1558,7 +1558,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         if (eventId.substringBefore(':').toIntOrNull()?.let(Nip99::isMarketplaceKind) == true) return listOf(eventId)
         val target = getEvent(eventId)
         val address = target
-            ?.takeIf { it.kind == Nip99.KIND_LISTING }
+            ?.takeIf { Nip99.isMarketplaceKind(it.kind) }
             ?.let { Nip99.addressTag(it) }
         return listOfNotNull(eventId, address).distinct()
     }

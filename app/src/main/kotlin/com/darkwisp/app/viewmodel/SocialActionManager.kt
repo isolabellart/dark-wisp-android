@@ -363,7 +363,7 @@ class SocialActionManager(
         // NIP-25 represents a standard like with content "+", while addReaction
         // indexes it under the canonical heart emoji. Use the same key for Undo.
         val reactionEmoji = if (emoji.isBlank() || emoji == "+") "❤️" else emoji
-        val actionTarget = event.takeIf { it.kind == Nip99.KIND_LISTING }
+        val actionTarget = event.takeIf { Nip99.isMarketplaceKind(it.kind) }
             ?.let { Nip99.addressTag(it) }
             ?: event.id
         val actionKey = "$actionTarget:$myPubkey"

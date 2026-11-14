@@ -370,7 +370,7 @@ fun MarketplaceScreen(
                     contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(listings, key = { it.pubkey + ":" + Nip99.dTag(it) }) { event ->
+                    items(listings, key = { Nip99.addressTag(it) }) { event ->
                         val bookmarkCount = storefrontBookmarkCounts[Nip99.addressTag(event)]
                         MarketplaceListingCard(
                             event = event,
@@ -540,7 +540,7 @@ fun MarketplaceDetailScreen(
         Nip19.naddrEncode(
             dTag = Nip99.dTag(event),
             authorHex = event.pubkey,
-            kind = Nip99.KIND_LISTING,
+            kind = event.kind,
             relays = MarketplaceRelays.READ.take(3)
         )
     }
@@ -978,7 +978,7 @@ fun MarketplaceDetailScreen(
                 if (location.isNotBlank()) {
                     Text(stringResource(R.string.marketplace_location_value, location), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text(event.content, style = MaterialTheme.typography.bodyLarge)
+                Text(Nip99.description(event), style = MaterialTheme.typography.bodyLarge)
                 if (event.kind == Nip99.KIND_LISTING && event.pubkey == userPubkey) {
                     Button(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.marketplace_edit)) }
                 }
