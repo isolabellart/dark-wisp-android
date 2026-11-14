@@ -884,7 +884,7 @@ fun MarketplaceDetailScreen(
                     }
                 },
                 actions = {
-                    if (event.pubkey == userPubkey) {
+                    if (event.kind == Nip99.KIND_LISTING && event.pubkey == userPubkey) {
                         Text(
                             text = stringResource(R.string.marketplace_edit),
                             modifier = Modifier.clickable(onClick = onEdit).padding(horizontal = 16.dp),
@@ -979,7 +979,7 @@ fun MarketplaceDetailScreen(
                     Text(stringResource(R.string.marketplace_location_value, location), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text(event.content, style = MaterialTheme.typography.bodyLarge)
-                if (event.pubkey == userPubkey) {
+                if (event.kind == Nip99.KIND_LISTING && event.pubkey == userPubkey) {
                     Button(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.marketplace_edit)) }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {

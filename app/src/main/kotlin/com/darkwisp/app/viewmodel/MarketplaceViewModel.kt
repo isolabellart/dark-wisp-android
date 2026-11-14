@@ -94,7 +94,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
             .filter { event ->
                 if (query.isBlank()) true else {
                     val maker = currentEventRepository?.getProfileData(event.pubkey)?.displayString.orEmpty()
-                    listOf(Nip99.title(event), Nip99.summary(event), event.content, Nip99.location(event),
+                    listOf(Nip99.title(event), Nip99.summary(event), Nip99.description(event), Nip99.location(event),
                         event.pubkey, maker, Nip99.categories(event).joinToString(" "))
                         .any { it.contains(query, ignoreCase = true) }
                 }
@@ -161,6 +161,30 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
             var sellerRelayTargets = emptyList<String>()
             try {
                 if (sellerPubkey != null) {
+                    // Paint the seller storefront from ObjectBox before network discovery;
+                    // a previously seen catalogue must not appear empty while relays connect.
+                    val storedListings = eventRepository.getCachedEventsByAuthorAndKinds(
+                        sellerPubkey,
+                        Nip99.MARKETPLACE_KINDS.toSet(),
+                        limit = 2_000
+                    ).filter {
+                        Nip99.dTag(it).isNotBlank() &&
+                            Nip99.status(it) != "hidden" &&
+                            eventRepository.isEventVisibleToUser(it)
+                    }
+                    synchronized(cacheLock) {
+                        storedListings.forEach { event ->
+                            val key = Nip99.addressTag(event)
+                            val current = cachedByAddress[key]
+                            if (current == null || Nip01EventOrder.isNewer(event, current)) {
+                                cachedByAddress[key] = event
+                            }
+                        }
+                    }
+                    if (activeSubscriptionId == subId) {
+                        publishVisibleCache(selectedScope, authors, userPubkey, sellerPubkey)
+                    }
+
                     // Product listings are published to the seller's NIP-65 write/outbox relays.
                     // Use cached relays first; discover kind 10002 if no usable outbox is known.
                     var knownSellerRelays = relayListRepository.getWriteRelays(sellerPubkey).orEmpty()
@@ -178,7 +202,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                 }
 
                 val filter = Filter(
-                    kinds = listOf(Nip99.KIND_LISTING),
+                    kinds = Nip99.MARKETPLACE_KINDS,
                     authors = authors.takeIf { it.isNotEmpty() }?.toList(),
                     limit = 1000
                 )
@@ -195,7 +219,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                         .filter { it.subscriptionId == subId }
                         .collect { relayEvent ->
                             val event = relayEvent.event
-                            if (event.kind != Nip99.KIND_LISTING) return@collect
+                            if (!Nip99.isMarketplaceKind(event.kind)) return@collect
                             if (sellerPubkey != null && event.pubkey != sellerPubkey) return@collect
                             if (sellerPubkey == null && selectedScope == MarketplaceScope.FOLLOWING && event.pubkey !in authors) return@collect
                             if (sellerPubkey == null && selectedScope == MarketplaceScope.MINE && event.pubkey != userPubkey) return@collect
@@ -204,12 +228,12 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
                             val dTag = Nip99.dTag(event)
                             // NIP-99 recommends a title tag, but it is not a hard
                             // validity requirement. Do not hide otherwise valid listings.
-                            if (dTag.isBlank()) return@collect
+                            if (dTag.isBlank() || Nip99.status(event) == "hidden") return@collect
 
                             eventRepository.addEvent(event)
                             eventRepository.requestProfileIfMissing(event.pubkey)
 
-                            val address = event.pubkey + ":" + dTag
+                            val address = Nip99.addressTag(event)
                             val updated = synchronized(cacheLock) {
                                 val previous = cachedByAddress[address]
                                 if (previous == null || Nip01EventOrder.isNewer(event, previous)) {
@@ -311,8 +335,8 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun addOrUpdate(event: NostrEvent) {
-        if (event.kind != Nip99.KIND_LISTING || Nip99.dTag(event).isBlank()) return
-        val key = event.pubkey + ":" + Nip99.dTag(event)
+        if (!Nip99.isMarketplaceKind(event.kind) || Nip99.dTag(event).isBlank()) return
+        val key = Nip99.addressTag(event)
         synchronized(cacheLock) {
             val previous = cachedByAddress[key]
             if (previous == null || Nip01EventOrder.isNewer(event, previous)) {
@@ -325,7 +349,7 @@ class MarketplaceViewModel(app: Application) : AndroidViewModel(app) {
     fun removeByAddress(pubkey: String, dTag: String) {
         if (dTag.isBlank()) return
         synchronized(cacheLock) {
-            cachedByAddress.remove("$pubkey:$dTag")
+            cachedByAddress.entries.removeAll { (_, event) -> event.pubkey == pubkey && Nip99.dTag(event) == dTag }
         }
         publishVisibleCache(_scope.value, currentAuthors, currentUserPubkey)
     }

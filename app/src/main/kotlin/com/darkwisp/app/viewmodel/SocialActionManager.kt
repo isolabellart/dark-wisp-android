@@ -414,7 +414,7 @@ class SocialActionManager(
                     // Reactions are routed to both our write relays and the target author's
                     // inbox relays. Publish the NIP-09 deletion through the same route so
                     // relays that stored the original Marketplace like also receive its removal.
-                    if (event.kind == Nip99.KIND_LISTING) {
+                    if (Nip99.isMarketplaceKind(event.kind)) {
                         publishMarketplaceReaction(deletionEvent, event.pubkey)
                     } else {
                         outboxRouter.publishToInbox(ClientMessage.event(deletionEvent), event.pubkey)
@@ -470,7 +470,7 @@ class SocialActionManager(
                 }
 
                 val reactionEvent = s.signEvent(kind = 7, content = emoji, tags = tags, createdAt = createdAt)
-                if (event.kind == Nip99.KIND_LISTING) {
+                if (Nip99.isMarketplaceKind(event.kind)) {
                     // Keep the local card responsive; revert the optimistic state if no
                     // Marketplace or inbox relay confirms the public reaction.
                     eventRepo.addEvent(reactionEvent)

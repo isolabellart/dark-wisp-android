@@ -43,6 +43,47 @@ class Nip99Test {
     }
 
     @Test
+    fun `reads legacy NIP15 product JSON fields without exposing raw JSON`() {
+        val legacy = event(listOf(listOf("d", "legacy-product"), listOf("t", "art"))).copy(
+            kind = Nip99.KIND_LEGACY_PRODUCT,
+            content = """{"name":"Vintage camera","description":"A working film camera","images":["https://example.com/camera.jpg"],"price":120,"currency":"EUR","quantity":2}"""
+        )
+        assertTrue(Nip99.isMarketplaceKind(legacy.kind))
+        assertEquals("Vintage camera", Nip99.title(legacy))
+        assertEquals("Vintage camera", Nip99.displayTitle(legacy, "Untitled"))
+        assertEquals("A working film camera", Nip99.description(legacy))
+        assertEquals(listOf("https://example.com/camera.jpg"), Nip99.images(legacy))
+        assertEquals("120 EUR", Nip99.priceLabel(legacy))
+        assertEquals(2, Nip99.stock(legacy))
+        assertEquals(Nip99.AvailabilityState.AVAILABLE, Nip99.availability(legacy).state)
+        assertEquals(listOf("art"), Nip99.categories(legacy))
+    }
+
+    @Test
+    fun `reads JSON product payloads carried by external NIP99 events`() {
+        val external = event(listOf(listOf("d", "external-json"))).copy(
+            content = """{"name":"External product","description":"External description","images":["https://example.com/one.jpg"],"price":"45","currency":"USD"}"""
+        )
+        assertEquals("External product", Nip99.title(external))
+        assertEquals("External description", Nip99.description(external))
+        assertEquals("45 USD", Nip99.priceLabel(external))
+        assertEquals(listOf("https://example.com/one.jpg"), Nip99.images(external))
+    }
+
+    @Test
+    fun `malformed legacy product JSON falls back safely`() {
+        val legacy = event(listOf(listOf("d", "broken-legacy"))).copy(
+            kind = Nip99.KIND_LEGACY_PRODUCT,
+            content = """{"name":"""
+        )
+        assertEquals("", Nip99.title(legacy))
+        assertEquals("""{"name":""", Nip99.description(legacy))
+        assertTrue(Nip99.images(legacy).isEmpty())
+        assertNull(Nip99.price(legacy))
+        assertNull(Nip99.stock(legacy))
+    }
+
+    @Test
     fun `buildTags emits marketplace metadata and normalizes category tags`() {
         val tags = Nip99.buildTags(
             dTag = "painting-01",

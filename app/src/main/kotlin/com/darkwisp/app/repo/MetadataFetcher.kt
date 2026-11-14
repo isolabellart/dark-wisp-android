@@ -308,7 +308,7 @@ class MetadataFetcher(
         scope.launch(processingContext) {
             var relayListDiscoveryJob: Job? = null
             try {
-                val isMarketplaceListing = kind == Nip99.KIND_LISTING
+                val isMarketplaceListing = Nip99.isMarketplaceKind(kind)
                 val safeHints = relayHints
                     .map { it.trim() }
                     .filter { RelayConfig.isValidUrl(it) }
@@ -366,7 +366,7 @@ class MetadataFetcher(
                 // persisted listing first so a known coordinate is visible without waiting
                 // for network discovery; keep the relay refresh running for newer revisions.
                 if (isMarketplaceListing && eventRepo.findAddressableEvent(kind, author, dTag) == null) {
-                    val persisted = eventRepo.findPersistedNip99Listing(author, dTag)
+                    val persisted = eventRepo.findPersistedMarketplaceListing(kind, author, dTag)
                     if (persisted != null) {
                         eventRepo.cacheEvent(persisted)
                         android.util.Log.i(
@@ -420,17 +420,18 @@ class MetadataFetcher(
 
                     android.util.Log.w(
                         "MetadataFetcher",
-                        "Exact NIP-99 coordinate not returned; paged seller history fallback " +
+                        "Exact Marketplace coordinate not returned; paged seller history fallback " +
                             "author=${author.take(12)} dTag=$dTag relays=${historyTargets.size}"
                     )
                     val fallbackResult = fetchAddressableEventHistoryPages(
                         author = author,
                         dTag = dTag,
-                        targetUrls = historyTargets
+                        targetUrls = historyTargets,
+                        kind = kind
                     )
                     android.util.Log.i(
                         "MetadataFetcher",
-                        "NIP-99 paged storefront fallback finished author=${author.take(12)} dTag=$dTag " +
+                        "Marketplace paged storefront fallback finished author=${author.take(12)} dTag=$dTag " +
                             "matched=${fallbackResult.matched} pages=${fallbackResult.pagesFetched} " +
                             "respondingRelays=${fallbackResult.respondingRelays}/${fallbackResult.targetRelayCount} " +
                             "timeout=${fallbackResult.timedOut}"
@@ -564,7 +565,8 @@ class MetadataFetcher(
     private suspend fun fetchAddressableEventHistoryPages(
         author: String,
         dTag: String,
-        targetUrls: List<String>
+        targetUrls: List<String>,
+        kind: Int
     ): AddressableFetchOutcome = kotlinx.coroutines.coroutineScope {
         val targets = targetUrls.distinct()
         if (targets.isEmpty()) {
@@ -588,13 +590,13 @@ class MetadataFetcher(
                     var until: Long? = null
                     repeat(NIP99_STOREFRONT_MAX_PAGES) {
                         if (found.isCompleted) return@launch
-                        val page = fetchAddressableSellerPage(relayUrl, author, until)
+                        val page = fetchAddressableSellerPage(relayUrl, author, until, kind)
                         pagesFetched.incrementAndGet()
                         if (page.completed) respondingRelays.add(relayUrl)
 
                         val match = page.events
                             .asSequence()
-                            .filter { matchesAddressableEventCoordinate(it, Nip99.KIND_LISTING, author, dTag) }
+                            .filter { matchesAddressableEventCoordinate(it, kind, author, dTag) }
                             .maxWithOrNull(compareBy<NostrEvent> { it.created_at }.thenBy { it.id })
                         if (match != null) {
                             found.complete(match)
@@ -642,10 +644,11 @@ class MetadataFetcher(
     private suspend fun fetchAddressableSellerPage(
         relayUrl: String,
         author: String,
-        until: Long?
+        until: Long?,
+        kind: Int
     ): AddressableSellerPage = kotlinx.coroutines.coroutineScope {
         val subId = "addr-history-${addressableBatchCounter.incrementAndGet()}"
-        val request = ClientMessage.req(subId, buildAddressableStorefrontPageFilter(author, until))
+        val request = ClientMessage.req(subId, buildAddressableStorefrontPageFilter(author, until, kind))
         val pageEvents = ConcurrentHashMap<String, NostrEvent>()
 
         // Subscribe before sending the REQ: immediate EVENT/EOSE frames must not be lost.
@@ -653,7 +656,7 @@ class MetadataFetcher(
             relayPool.relayEvents.collect { relayEvent ->
                 if (relayEvent.subscriptionId != subId || relayEvent.relayUrl != relayUrl) return@collect
                 val event = relayEvent.event
-                if (event.kind != Nip99.KIND_LISTING || event.pubkey != author) return@collect
+                if (event.kind != kind || event.pubkey != author) return@collect
                 if (Nip99.dTag(event).isBlank()) return@collect
                 if (!eventRepo.isEventVisibleToUser(event)) return@collect
 

@@ -28,9 +28,13 @@ internal data class AddressableFetchOutcome(
 internal const val NIP99_STOREFRONT_PAGE_SIZE = 250
 internal const val NIP99_STOREFRONT_MAX_PAGES = 8
 
-internal fun buildAddressableStorefrontPageFilter(author: String, until: Long?): Filter =
+internal fun buildAddressableStorefrontPageFilter(
+    author: String,
+    until: Long?,
+    kind: Int = Nip99.KIND_LISTING
+): Filter =
     Filter(
-        kinds = listOf(Nip99.KIND_LISTING),
+        kinds = listOf(kind),
         authors = listOf(author),
         until = until,
         limit = NIP99_STOREFRONT_PAGE_SIZE
@@ -60,17 +64,17 @@ internal fun buildAddressableEventQueryStages(
             kinds = listOf(kind),
             authors = listOf(author),
             dTags = listOf(dTag),
-            limit = if (kind == Nip99.KIND_LISTING) 10 else 1
+            limit = if (Nip99.isMarketplaceKind(kind)) 10 else 1
         )
     )
-    if (kind != Nip99.KIND_LISTING) return listOf(exact)
+    if (!Nip99.isMarketplaceKind(kind)) return listOf(exact)
 
     return listOf(
         exact,
         AddressableEventQueryStage(
             mode = "seller-storefront-fallback",
             filter = Filter(
-                kinds = listOf(Nip99.KIND_LISTING),
+                kinds = listOf(kind),
                 authors = listOf(author),
                 limit = NIP99_STOREFRONT_PAGE_SIZE
             )

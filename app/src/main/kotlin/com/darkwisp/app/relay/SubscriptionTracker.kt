@@ -13,7 +13,8 @@ class SubscriptionTracker {
         const val SOFT_CAP = 20
         private val PRIORITY_PREFIXES = listOf(
             "dms", "notif", "feed", "self-data", "thread-", "user-engage", "extnet-",
-            "wallet-backup", "auto-check", "relay-backup", "grp-"
+            "wallet-backup", "auto-check", "relay-backup", "grp-",
+            "marketplace-", "addr-", "peer-relays-"
         )
     }
 

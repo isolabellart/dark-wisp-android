@@ -626,7 +626,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     @Volatile private var relaySourceDirtyFlag = false
     @Volatile private var pollVoteDirty = false
 
-    private val WOT_EXEMPT_KINDS = intArrayOf(0, 3, 4, 10002, 10050, 1059, 13, 14, Nip99.KIND_LISTING)
+    private val WOT_EXEMPT_KINDS = intArrayOf(0, 3, 4, 10002, 10050, 1059, 13, 14, Nip99.KIND_LISTING, Nip99.KIND_LEGACY_PRODUCT)
 
     private fun isWotFiltered(pubkey: String, kind: Int): Boolean {
         if (safetyPrefs?.wotFilterEnabled?.value != true) return false
@@ -663,7 +663,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         }
         if (event.created_at > System.currentTimeMillis() / 1000 + 30) return  // reject future-dated notes (30s grace for clock skew)
         if (muteRepo?.isBlocked(event.pubkey) == true) return
-        if ((event.kind == 1 || event.kind == Nip22.KIND_COMMENT || event.kind == 30023 || event.kind == 30402 || event.kind == 20 || event.kind == 21 || event.kind == 22 || event.kind == Nip69.KIND_ZAP_POLL) && muteRepo?.isEventMuted(event) == true) return
+        if ((event.kind == 1 || event.kind == Nip22.KIND_COMMENT || event.kind == 30023 || Nip99.isMarketplaceKind(event.kind) || event.kind == 20 || event.kind == 21 || event.kind == 22 || event.kind == Nip69.KIND_ZAP_POLL) && muteRepo?.isEventMuted(event) == true) return
         if (event.kind == 1 || event.kind == Nip22.KIND_COMMENT) {
             // NIP-22 replies-to-comments reference the thread root only via
             // uppercase E scope — prefer it over the lowercase-e parent.
@@ -712,7 +712,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
                 // NIP-22 comments never appear in feeds — cached only, rendered in
                 // thread/article views and counted as replies.
             }
-            30023, 30402 -> {
+            30023, Nip99.KIND_LISTING, Nip99.KIND_LEGACY_PRODUCT -> {
                 binaryInsert(event, fromFeed = true)
             }
             20, 21, 22 -> {
@@ -871,7 +871,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         // the reaction against the stable NIP-99 coordinate so the product count
         // does not reset when the listing is edited.
         val addressTarget = explicitAddressTarget ?: getEvent(eventTargetId)
-            ?.takeIf { it.kind == Nip99.KIND_LISTING }
+            ?.takeIf { Nip99.isMarketplaceKind(it.kind) }
             ?.let { Nip99.addressTag(it) }
         val targetKeys = listOfNotNull(eventTargetId, addressTarget).distinct()
         val emoji = if (event.content.isBlank() || event.content == "+") "❤️" else event.content
@@ -901,7 +901,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
             // A NIP-99 listing has a stable address across revisions. Count each
             // reacting pubkey once for that address, regardless of how many kind-7
             // events the same account publishes.
-            val isMarketplaceAddress = targetKey.startsWith("${Nip99.KIND_LISTING}:")
+            val isMarketplaceAddress = targetKey.substringBefore(':').toIntOrNull()?.let(Nip99::isMarketplaceKind) == true
             val shouldIncrementCount = if (isMarketplaceAddress) {
                 val authorKey = "${targetKey}:${event.pubkey}"
                 val authors = synchronized(countedMarketplaceReactionAuthors) {
@@ -1307,7 +1307,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
         if (muteRepo?.isBlocked(author) == true) return null
         var best: NostrEvent? = null
         for (event in eventCache.values) {
-            if (kind == Nip99.KIND_LISTING) {
+            if (Nip99.isMarketplaceKind(kind)) {
                 if (!matchesAddressableEventCoordinate(event, kind, author, dTag)) continue
             } else {
                 if (event.kind != kind || event.pubkey != author) continue
@@ -1322,19 +1322,28 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
     }
 
     /**
-     * Store-first NIP-99 lookup. Marketplace events are persisted by coordinate owner and
-     * kind, then matched against the canonical single d-tag before being hydrated into memory.
+     * Store-first lookup for NIP-99 and read-only legacy Marketplace products.
      * Call from an IO/worker coroutine, not from composition.
      */
-    fun findPersistedNip99Listing(author: String, dTag: String, limit: Int = 2_000): NostrEvent? {
-        if (author.isBlank() || dTag.isBlank() || muteRepo?.isBlocked(author) == true) return null
+    fun findPersistedMarketplaceListing(
+        kind: Int,
+        author: String,
+        dTag: String,
+        limit: Int = 2_000
+    ): NostrEvent? {
+        if (!Nip99.isMarketplaceKind(kind) || author.isBlank() || dTag.isBlank() ||
+            muteRepo?.isBlocked(author) == true
+        ) return null
         return eventPersistence
-            ?.getEventsByAuthorAndKind(author, Nip99.KIND_LISTING, limit)
+            ?.getEventsByAuthorAndKind(author, kind, limit)
             .orEmpty()
             .asSequence()
-            .filter { matchesAddressableEventCoordinate(it, Nip99.KIND_LISTING, author, dTag) }
+            .filter { matchesAddressableEventCoordinate(it, kind, author, dTag) }
             .maxWithOrNull(compareBy<NostrEvent> { it.created_at }.thenBy { it.id })
     }
+
+    fun findPersistedNip99Listing(author: String, dTag: String, limit: Int = 2_000): NostrEvent? =
+        findPersistedMarketplaceListing(Nip99.KIND_LISTING, author, dTag, limit)
 
     fun getEvent(id: String): NostrEvent? {
         val event = eventCache[id] ?: eventPersistence?.getEvent(id)?.also {
@@ -1533,7 +1542,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
 
     fun getReactionCount(eventId: String): Int {
         val addressKey = reactionTargetKeys(eventId)
-            .firstOrNull { it.startsWith("${Nip99.KIND_LISTING}:") }
+            .firstOrNull { it.substringBefore(':').toIntOrNull()?.let(Nip99::isMarketplaceKind) == true }
         if (addressKey != null) {
             val authors = countedMarketplaceReactionAuthors.get(addressKey) ?: return 0
             return synchronized(authors) { authors.size }
@@ -1546,7 +1555,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
      * state against both the exact revision ID and its 30402:author:d coordinate.
      */
     private fun reactionTargetKeys(eventId: String): List<String> {
-        if (eventId.startsWith("${Nip99.KIND_LISTING}:")) return listOf(eventId)
+        if (eventId.substringBefore(':').toIntOrNull()?.let(Nip99::isMarketplaceKind) == true) return listOf(eventId)
         val target = getEvent(eventId)
         val address = target
             ?.takeIf { it.kind == Nip99.KIND_LISTING }

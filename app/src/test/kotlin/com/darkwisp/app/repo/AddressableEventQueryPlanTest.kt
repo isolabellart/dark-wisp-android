@@ -49,6 +49,23 @@ class AddressableEventQueryPlanTest {
     }
 
     @Test
+    fun `legacy NIP15 products also use exact address and seller history fallback`() {
+        val stages = buildAddressableEventQueryStages(Nip99.KIND_LEGACY_PRODUCT, author, dTag)
+
+        assertEquals(2, stages.size)
+        assertEquals(listOf(Nip99.KIND_LEGACY_PRODUCT), stages[0].filter.kinds)
+        assertEquals(listOf(author), stages[0].filter.authors)
+        assertEquals(listOf(dTag), stages[0].filter.dTags)
+        assertEquals(listOf(Nip99.KIND_LEGACY_PRODUCT), stages[1].filter.kinds)
+        assertEquals(listOf(author), stages[1].filter.authors)
+        assertNull(stages[1].filter.dTags)
+
+        val legacyPage = buildAddressableStorefrontPageFilter(author, null, Nip99.KIND_LEGACY_PRODUCT)
+        assertEquals(listOf(Nip99.KIND_LEGACY_PRODUCT), legacyPage.kinds)
+        assertEquals(listOf(author), legacyPage.authors)
+    }
+
+    @Test
     fun `non marketplace addressables do not trigger storefront fallback`() {
         val stages = buildAddressableEventQueryStages(30023, author, dTag)
 
