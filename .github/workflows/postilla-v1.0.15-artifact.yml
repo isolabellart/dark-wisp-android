@@ -1,0 +1,149 @@
+name: Postilla v1.0.15 signed APK (artifact only)
+
+on:
+  push:
+    branches:
+      - "release/postilla-1.0.15-artifact"
+    paths:
+      - "app/**"
+      - "gradle/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "gradlew"
+      - "gradlew.bat"
+      - ".github/workflows/postilla-v1.0.15-artifact.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: postilla-v1.0.15-artifact
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Test, build and verify signed release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check required signing secrets
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.DARK_WISP_ENHANCED_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.DARK_WISP_ENHANCED_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.DARK_WISP_ENHANCED_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.DARK_WISP_ENHANCED_KEY_PASSWORD }}
+        run: |
+          missing=()
+          [[ -z "$KEYSTORE_B64" ]] && missing+=("DARK_WISP_ENHANCED_KEYSTORE_BASE64")
+          [[ -z "$STORE_PASSWORD" ]] && missing+=("DARK_WISP_ENHANCED_STORE_PASSWORD")
+          [[ -z "$KEY_ALIAS" ]] && missing+=("DARK_WISP_ENHANCED_KEY_ALIAS")
+          [[ -z "$KEY_PASSWORD" ]] && missing+=("DARK_WISP_ENHANCED_KEY_PASSWORD")
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing required signing secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode permanent Postilla signing keystore
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.DARK_WISP_ENHANCED_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.DARK_WISP_ENHANCED_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.DARK_WISP_ENHANCED_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.DARK_WISP_ENHANCED_KEY_PASSWORD }}
+        run: |
+          KEYSTORE_PATH="$RUNNER_TEMP/postilla-release.jks"
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+          {
+            echo "RELEASE_STORE_FILE=$KEYSTORE_PATH"
+            echo "RELEASE_STORE_PASSWORD=$STORE_PASSWORD"
+            echo "RELEASE_KEY_ALIAS=$KEY_ALIAS"
+            echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Confirm source version is Postilla 1.0.15 (16)
+        shell: bash
+        run: |
+          grep -Fq 'versionCode = 16' app/build.gradle.kts
+          grep -Fq 'versionName = "1.0.15"' app/build.gradle.kts
+
+      - name: Run staging unit tests
+        run: |
+          ./gradlew --no-daemon --no-build-cache --max-workers=2 \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
+            testStagingUnitTest --stacktrace
+
+      - name: Build signed production APK
+        run: |
+          ./gradlew --no-daemon --no-build-cache --max-workers=2 \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
+            assembleRelease --stacktrace
+
+      - name: Verify package, version and permanent signing certificate
+        shell: bash
+        run: |
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+
+          APKANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer | head -n 1)"
+          test -x "$APKANALYZER"
+          PACKAGE_ID="$("$APKANALYZER" manifest application-id "$APK")"
+          VERSION_NAME="$("$APKANALYZER" manifest version-name "$APK")"
+          VERSION_CODE="$("$APKANALYZER" manifest version-code "$APK")"
+          {
+            echo "Package: $PACKAGE_ID"
+            echo "Version: $VERSION_NAME ($VERSION_CODE)"
+          } | tee "$RUNNER_TEMP/postilla-release-validation.txt"
+
+          [[ "$PACKAGE_ID" == "com.isolabellart.darkwispenhanced" ]]
+          [[ "$VERSION_NAME" == "1.0.15" ]]
+          [[ "$VERSION_CODE" == "16" ]]
+
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          SIGNATURE_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "$APK" 2>&1)"
+          printf '%s\n' "$SIGNATURE_OUTPUT" | tee -a "$RUNNER_TEMP/postilla-release-validation.txt"
+
+          ACTUAL_CERT_SHA256="$(printf '%s\n' "$SIGNATURE_OUTPUT" \
+            | sed -nE 's/.*certificate SHA-256 digest: ([0-9A-Fa-f:]+).*/\1/p' \
+            | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          EXPECTED_CERT_SHA256="86868a3659729a6531f3e8a31d5dcfe04405e2a86866f3e0eb0abb6965cdb841"
+          if [[ "$ACTUAL_CERT_SHA256" != "$EXPECTED_CERT_SHA256" ]]; then
+            echo "::error::APK certificate mismatch. Expected $EXPECTED_CERT_SHA256, got ${ACTUAL_CERT_SHA256:-<missing>}."
+            exit 1
+          fi
+
+          sha256sum "$APK" | tee "$RUNNER_TEMP/postilla-release-sha256.txt"
+
+      - name: Prepare Postilla APK artifact files
+        shell: bash
+        run: |
+          mkdir -p artifact
+          cp app/build/outputs/apk/release/app-release.apk artifact/Postilla-v1.0.15.apk
+          cp "$RUNNER_TEMP/postilla-release-validation.txt" artifact/validation.txt
+          cp "$RUNNER_TEMP/postilla-release-sha256.txt" artifact/SHA256SUMS.txt
+          test -s artifact/Postilla-v1.0.15.apk
+
+      - name: Upload signed APK artifact only (no GitHub Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: postilla-v1.0.15-signed-apk
+          path: artifact/*
+          if-no-files-found: error
+          retention-days: 90
