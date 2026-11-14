@@ -865,7 +865,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
             ?: return
         val explicitAddressTarget = event.tags.lastOrNull { it.size >= 2 && it[0] == "a" }
             ?.get(1)
-            ?.takeIf { it.startsWith("${Nip99.KIND_LISTING}:") }
+            ?.takeIf { it.substringBefore(':').toIntOrNull()?.let(Nip99::isMarketplaceKind) == true }
         // Older NIP-25 clients may omit the address tag and reference only the
         // listing revision by event ID. When that revision is cached, still index
         // the reaction against the stable NIP-99 coordinate so the product count
@@ -1651,7 +1651,7 @@ class EventRepository(val profileRepo: ProfileRepository? = null, val muteRepo: 
                 if (emojiMap?.isEmpty() == true) userReactions.remove(userKey)
             }
 
-            val isMarketplaceAddress = targetKey.startsWith("${Nip99.KIND_LISTING}:")
+            val isMarketplaceAddress = targetKey.substringBefore(':').toIntOrNull()?.let(Nip99::isMarketplaceKind) == true
             if (isMarketplaceAddress) {
                 // Keep one counted author while any other emoji reaction from this
                 // account remains. Remove the product's like only after the last one.
