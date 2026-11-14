@@ -44,14 +44,16 @@ them is not required for users to see Postilla or receive future updates.
 
 ## Store screenshots
 
-The current English phone screenshots have been refreshed on `main` in:
+The current Postilla phone screenshots for the GitHub README and future store/Zapstore presentation are maintained in:
 
 `fastlane/metadata/android/en-US/images/phoneScreenshots/`
 
-The directory currently contains `01.jpg` through `04.jpg`. Treat those as the
-current Postilla screenshots for the future store/Zapstore presentation work; do not
-reuse the older Dark Wisp Enhanced screenshots. The source images remain on `main`
-and are not changed by this branch's implementation work.
+This branch adds five updated PNG screenshots, named `01.png` through `05.png`.
+The previous JPG screenshots have been removed from this branch. Their originals
+remain recoverable from the local backup and Git history.
+
+Use these five PNG files as the current screenshot set for the next store presentation.
+No Zapstore listing has been published or updated by this documentation change.
 
 ## Not done intentionally
 

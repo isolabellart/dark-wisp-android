@@ -22,13 +22,22 @@ The project aims to bring together the human side of Nostr — publishing, conve
 
 ## Postilla in screenshots
 
-These are the current Postilla phone screenshots already maintained in the repository's Fastlane metadata. The same source images are intended for the final GitHub and Zapstore presentation.
+A glimpse of Postilla's Android experience, from social conversations to discovery and exchange.
 
 <p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.jpg" alt="Postilla Android screenshot 1" width="22%">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.jpg" alt="Postilla Android screenshot 2" width="22%">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.jpg" alt="Postilla Android screenshot 3" width="22%">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/04.jpg" alt="Postilla Android screenshot 4" width="22%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" alt="Postilla Android screenshot 1" width="18%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" alt="Postilla Android screenshot 2" width="18%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.png" alt="Postilla Android screenshot 3" width="18%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/04.png" alt="Postilla Android screenshot 4" width="18%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/05.png" alt="Postilla Android screenshot 5" width="18%">
+</p>
+
+## The Postilla visual identity
+
+Postilla's visual identity brings together a calm editorial character, warm ivory, deep charcoal and a restrained orange accent.
+
+<p align="center">
+  <img src="docs/brand/postilla-brand.png" alt="Postilla brand visual identity" width="360">
 </p>
 
 ---
