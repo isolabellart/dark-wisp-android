@@ -654,7 +654,7 @@ class MetadataFetcher(
                 if (relayEvent.subscriptionId != subId || relayEvent.relayUrl != relayUrl) return@collect
                 val event = relayEvent.event
                 if (event.kind != Nip99.KIND_LISTING || event.pubkey != author) return@collect
-                if (event.tags.count { it.size >= 2 && it[0] == "d" } != 1 || Nip99.dTag(event).isBlank()) return@collect
+                if (Nip99.dTag(event).isBlank()) return@collect
                 if (!eventRepo.isEventVisibleToUser(event)) return@collect
 
                 eventRepo.cacheEvent(event)

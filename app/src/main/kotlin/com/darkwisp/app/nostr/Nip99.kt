@@ -19,7 +19,7 @@ object Nip99 {
     data class Availability(val state: AvailabilityState, val stock: Int? = null)
 
     fun tag(event: NostrEvent, name: String): List<String>? =
-        event.tags.lastOrNull { it.size >= 2 && it[0] == name }
+        event.tags.firstOrNull { it.size >= 2 && it[0] == name }
 
     fun tags(event: NostrEvent, name: String): List<List<String>> =
         event.tags.filter { it.size >= 2 && it[0] == name }

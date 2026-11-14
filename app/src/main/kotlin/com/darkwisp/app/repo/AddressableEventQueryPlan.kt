@@ -86,5 +86,4 @@ internal fun matchesAddressableEventCoordinate(
 ): Boolean =
     event.kind == kind &&
         event.pubkey == author &&
-        event.tags.count { it.size >= 2 && it[0] == "d" } == 1 &&
         Nip99.dTag(event) == dTag

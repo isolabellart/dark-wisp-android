@@ -89,6 +89,14 @@ class AddressableEventQueryPlanTest {
         assertFalse(matchesAddressableEventCoordinate(otherDTag, Nip99.KIND_LISTING, author, dTag))
         assertFalse(matchesAddressableEventCoordinate(otherAuthor, Nip99.KIND_LISTING, author, dTag))
         assertFalse(matchesAddressableEventCoordinate(wrongKind, Nip99.KIND_LISTING, author, dTag))
-        assertFalse(matchesAddressableEventCoordinate(duplicateDTag, Nip99.KIND_LISTING, author, dTag))
+        // NIP-99 readers that use the first d-tag must resolve this coordinate
+        // consistently with Shopstr and the other interoperable readers.
+        assertTrue(matchesAddressableEventCoordinate(duplicateDTag, Nip99.KIND_LISTING, author, dTag))
+        assertFalse(matchesAddressableEventCoordinate(
+            duplicateDTag,
+            Nip99.KIND_LISTING,
+            author,
+            "different-final-coordinate"
+        ))
     }
 }
