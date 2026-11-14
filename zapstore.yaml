@@ -1,6 +1,6 @@
-repository: https://github.com/isolabellart/dark-wisp-android
-release_filter: '^v[0-9]+\\.[0-9]+\\.[0-9]+$'
-match: '(?i)^(?:Postilla|Dark-Wisp-Enhanced)-v[0-9]+\\.[0-9]+\\.[0-9]+\\.apk$'
+repository: https://github.com/isolabellart/postilla-android
+release_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
+match: '(?i)^Postilla-v[0-9]+\.[0-9]+\.[0-9]+\.apk$'
 
 name: Postilla
 summary: An independent Android Nostr client for social conversations, private messaging, Lightning and a NIP-99 marketplace.
@@ -10,10 +10,15 @@ description: |
   It brings together Nostr social feeds, NIP-17 private messaging, DeepL translation, a Lightning wallet and a NIP-99 marketplace for products and services.
 
   Postilla continues the work of the original Dark Wisp Android project as an independently maintained downstream fork. The Android application ID remains com.isolabellart.darkwispenhanced and keeps its existing signing identity so current installations can receive future Postilla updates. Postilla is not an official upstream Dark Wisp release.
+
+  The planned Postilla v1.0.15 release will replace the previous Dark Wisp Enhanced v1.0.10 release in the same Android installation line. This version is a release target, not a claim that v1.0.15 has already been published.
 license: MIT
-website: https://github.com/isolabellart/dark-wisp-android/releases/latest
+website: https://github.com/isolabellart/postilla-android/releases/latest
 images:
-  - ./docs/brand/postilla-rebrand-board.webp
+  - ./fastlane/metadata/android/en-US/images/phoneScreenshots/01.jpg
+  - ./fastlane/metadata/android/en-US/images/phoneScreenshots/02.jpg
+  - ./fastlane/metadata/android/en-US/images/phoneScreenshots/03.jpg
+  - ./fastlane/metadata/android/en-US/images/phoneScreenshots/04.jpg
 tags:
   - android
   - nostr
